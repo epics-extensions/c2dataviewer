@@ -133,7 +133,11 @@ class PVAChannelBuffer():
 
         if not self.trigger_is_monitor:
             try:
-                self.trigger_pv = pvaccess.Channel(str(self.pvtrigger_name), pvaccess.CA)
+                # TODO add support for local simulator
+                proto = pvaccess.CA
+                if self.args["TRIGGER"]["TRIG_PROTO"] == "PVA":
+                    proto = pvaccess.PVA
+                self.trigger_pv = pvaccess.Channel(str(self.pvtrigger_name), proto)
                 self.trigger_pv.subscribe('callback', self.trigCallback)
                 self.trigger_pv.startMonitor('field(value,timeStamp)')
                 print("Start trig monitor")
@@ -141,7 +145,7 @@ class PVAChannelBuffer():
                 self.trigger_is_monitor = True
             except:
                 self.trigger_is_monitor = False
-                print("Error- cannot monitor trig pv %s" % str(self.pvtrigger_name))
+                print("Error- cannot monitor trig pv: %s" % str(self.pvtrigger_name))
                 self.trigger_pv_error = True
         else:
             print('To Trig mode, already connected to PV')
@@ -254,7 +258,7 @@ class PVAChannelBuffer():
                     if self.samples_after_trig_cnt >= self.samples_after_trig:
                         self.is_triggered = False
                         self.plot_signal_emitter.emit(self.plot_signal_emitter.my_signal)
-                        print ('emit plot sig')
+                        print('emit plot sig')
 
         self.signal()
         if self.size == 0:
