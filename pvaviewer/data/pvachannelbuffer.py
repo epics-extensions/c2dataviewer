@@ -257,7 +257,7 @@ class PVAChannelBuffer():
                     self.samples_after_trig_cnt = self.samples_after_trig_cnt + vector_len
                     if self.samples_after_trig_cnt >= self.samples_after_trig:
                         self.is_triggered = False
-                        self.plot_signal_emitter.emit(self.plot_signal_emitter.my_signal)
+                        self.plot_signal_emitter.my_signal.emit()
                         print('emit plot sig')
 
         self.signal()
