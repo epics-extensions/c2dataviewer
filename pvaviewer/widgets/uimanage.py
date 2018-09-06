@@ -84,7 +84,7 @@ class UiManage:
                     self.plots[0].setTrigMode('ext')
                 else:
                     self.pvaChannel.stopTriggerPVMode()
-                    if self.params["IS)FREEZE"]:
+                    if self.params["IS_FREEZE"]:
                         self.plots[0].setTrigMode('single')
                     else:
                         self.plots[0].setTrigMode('auto')

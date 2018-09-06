@@ -70,11 +70,10 @@ class LivePlot:
         if self.trigmode == self.trigmodes['auto']:
             self.timer.timeout.connect(self.update)
             print ('connect timer signal')
-
-
         elif self.trigmode == self.trigmodes['ext'] and self.ext_trig_signal != None:
-            QtCore.QObject.connect(self.ext_trig_signal, QtCore.SIGNAL('my_signal()'), self.update)
-            print ('connect ext signal')
+            # QtCore.QObject.connect(self.ext_trig_signal, QtCore.SIGNAL('my_signal()'), self.update)
+            self.ext_trig_signal.my_signal.connect(self.update)
+            print('connect ext signal')
 
 
     def deletePlot(self):
