@@ -30,7 +30,7 @@ class Configure:
         :return: paramcfg: UI display parameter configuration
         """
         if not self.params["PV"]:
-            raise argparse.ArgumentError("EPICS PV name must be provided")
+            raise RuntimeError("EPICS PV name must be provided")
 
         if not self.params["FIELD_NAMES"] and not self.params["ARRAY_FIELD"]:
             self.params['ARRAY_FIELD'] = PvUtility().createDataArrayDict(self.params["PV"],
