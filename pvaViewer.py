@@ -33,6 +33,8 @@ def paramparser():
                    help="Debugging mode")
     par.add_argument("-c", "--config", metavar="KEY", default=None,
                    help="Configuration file for PVA viewer.")
+    par.add_argument("--app", metavar="KEY", default="Scope",
+                   help="Applications of PVA viewer, currently supports: scope, image, stripping.")
     par.add_argument("--verbose", action="count", default=0,
                    help="Get more details information/logging")
     par.add_argument("--pv", metavar="NAME",
@@ -100,7 +102,17 @@ def main():
     from pvaviewer.config import load_config
     cfg = load_config(opt.config)
 
-    a = Scope(cfg=cfg, opt=opt)
+    if opt.app.upper() == "SCOPE":
+        # launch scope application
+        a = Scope(cfg=cfg, opt=opt)
+    elif opt.app.upper() == "IMAGE":
+        # Camera Image Viewer. 
+        # TODO to be implemented later
+        pass
+    elif opt.app.upper() == "STRIP":
+        # PV Stripping Tool. 
+        # TODO to be implemented later
+        pass
     a.run()
 
 if __name__ == "__main__":
