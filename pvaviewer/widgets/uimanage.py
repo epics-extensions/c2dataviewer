@@ -64,10 +64,7 @@ class UiManage:
                 childName = '.'.join(path)
             else:
                 childName = param.name()
-            # print ('  parameter: %s' % childName)
-            # print ('  change:    %s' % change)
-            # print ('  data:      %s' % str(data))
-            # print ('-------------')
+
             if childName == 'Acquisition.Buffer':
                 self.pvaChannel.maxlen = data
                 self.plots[0].autoScale = True
@@ -100,34 +97,14 @@ class UiManage:
                 self.plots[0].param_changed = True
                 if data == 'normal':
                     self.params["ALGORITHM"] = "NORMAL"
-                    # self.args.fft = False
-                    # self.args.psd = False
-                    # self.args.diff = False
-                    # self.args.x_vs_y = False
                 elif data == 'fft':
                     self.params["ALGORITHM"] = "FFT"
-                    # self.args.fft = True
-                    # self.args.psd = False
-                    # self.args.diff = False
-                    # self.args.x_vs_y = False
                 elif data == 'psd':
                     self.params["ALGORITHM"] = "PSD"
-                    # self.args.fft = False
-                    # self.args.psd = True
-                    # self.args.diff = False
-                    # self.args.x_vs_y = False
                 elif data == 'diff':
                     self.params["ALGORITHM"] = "DIFF"
-                    # self.args.fft = False
-                    # self.args.psd = False
-                    # self.args.diff = True
-                    # self.args.x_vs_y = False
                 elif data == 'x_vs_y':
                     self.params["ALGORITHM"] = "XvsY"
-                    # self.args.fft = False
-                    # self.args.psd = False
-                    # self.args.diff = False
-                    # self.args.x_vs_y = True
                 self.plots[0].autoScale = True
             elif childName == 'Display.Autoscale':
                 self.plots[0].lockAutoscale = data
@@ -147,9 +124,6 @@ class UiManage:
                     fieldName = self.params["FIELD_NAMES"].get(data, data)
                     self.plots[0].setFieldName(i, fieldName)
                     self.plots[0].autoScale = True
-
-    def setWindowTitle(self, title):
-        self.win.setWindowTitle(title)
 
     def setPlotAntialias(self, antialias):
         pg.setConfigOptions(antialias=antialias)

@@ -245,6 +245,8 @@ class Scope:
         self.timer.timeout.connect(uimanage.updateUI)
         self.timer.start(1000)
 
+    def setWindowTitle(self, title):
+        self.win.setWindowTitle(title)
 
     def run(self):
         """
