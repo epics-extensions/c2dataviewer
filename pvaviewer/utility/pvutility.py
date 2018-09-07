@@ -74,7 +74,7 @@ class PvUtility:
                 aDict.title = 'Fields %s-%s' % (aDict.firstIndex, aDict.lastIndex)
                 # print('Title: %s' % (aDict.title))
                 key = groupCounter[d]
-                if not aDict.has_key(key):
+                if key not in aDict.keys():
                     aDict2 = OrderedDict()
                     aDict2.parent = aDict
                     aDict2.firstIndex = dataArrayIndex
