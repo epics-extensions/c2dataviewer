@@ -196,7 +196,7 @@ class PVAChannelBuffer():
         self.wait()
 
         # assume a triggers done then set false when we gather data.
-        all_triggers_done = True
+        # all_triggers_done = True
         # we step through all the signals we get from the v4 pv. we keep a count of them
         signalcount = -1  # start at -1 so we inc to 0 at beginning of loop
         # the first np array is the one we determine trigger position in the data. so as we step all data vectors

@@ -211,8 +211,7 @@ class Scope:
         # TODO better way to handle the following 2 options
         self.params['FIELD_NAMES'] = fieldNameChoices
         self.params['ARRAY_FIELD'] = arrayFieldDict
-        # self.fieldNameChoices = fieldNameChoices
-        # self.arrayFieldDict = arrayFieldDict
+        # self.params['NAME_MAP']
 
     def uilayout(self, uimanage):
         """

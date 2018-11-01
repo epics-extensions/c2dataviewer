@@ -294,8 +294,8 @@ class LivePlot:
             self.pvaChannel.signal()
             return
 
-        N = len(dx)
-        Ny = len(dy)
+        # N = len(dx)
+        # Ny = len(dy)
 
         self.pvaChannel.signal()
 

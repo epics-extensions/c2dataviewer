@@ -13,9 +13,9 @@ import logging
 import sys
 from  argparse import ArgumentParser
 
-from pvaviewer.widgets import Scope
+from c2dataviewer.widgets import Scope
 
-_log = logging.getLogger("pvaviewer")
+_log = logging.getLogger("c2dataviewer")
 
 
 def paramparser():
@@ -92,14 +92,14 @@ def main():
     opt = paramparser()
 
     if opt.version:
-        from pvaviewer import __version__
+        from c2dataviewer import __version__
         print (__version__)
         sys.exit(0)
 
     LVL = {0: logging.WARN, 1: logging.INFO, 2: logging.DEBUG}
     logging.basicConfig(format="%(message)s", level=LVL.get(opt.verbose, LVL[2]))
 
-    from pvaviewer.config import load_config
+    from c2dataviewer.config import load_config
     cfg = load_config(opt.config)
 
     if opt.app.upper() == "SCOPE":

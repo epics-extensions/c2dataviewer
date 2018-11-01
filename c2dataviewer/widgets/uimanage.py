@@ -58,7 +58,7 @@ class UiManage:
         if not self.plots:
             return
 
-        for param, change, data in changes:
+        for param, _, data in changes:
             path = self.parameters.childPath(param)
             if path is not None:
                 childName = '.'.join(path)

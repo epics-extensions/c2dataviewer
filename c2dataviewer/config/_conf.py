@@ -21,7 +21,7 @@ def load_config(n):
     :return:
     """
     import os.path
-    cfgfile = ['/etc/pvaviewer.cfg', os.path.expanduser('~/.pvaviewerrc'), 'pvaviewer.cfg']
+    cfgfile = ['/etc/c2dv.cfg', os.path.expanduser('~/.c2dvrc'), 'c2dv.cfg']
     if n is not None:
         cfgfile.append(n)
 
@@ -47,7 +47,6 @@ def load_config(n):
             "DEFAULT_SELECT_FIELD_GROUP_SIZE": 10,
             # Supported algorithm beyond normal display, XvY is to plot X against Y
             "ALGORITHM": ["FFT", "PSD", "DIFF", "XvsY"],
-            "DEFAULT_SELECT_FIELD_GROUP_SIZE": 10
             }
 
 
