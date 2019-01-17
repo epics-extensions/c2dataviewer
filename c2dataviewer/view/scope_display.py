@@ -226,8 +226,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if name != "None":
                 try:
                     data = self.data[name]
-                    # data = self.modal.get(name)
-                    self.curve[count].setData(data + self.sin_wave(len(data), noise=True))
+                    # for testing purpose
+                    # data = data + self.sin_wave(len(data), noise=True)
+                    self.curve[count].setData(data)
                     count = count + 1
                     if self.first_run or self.new_buffer:
                         # perform auto range for the first time
@@ -246,22 +247,22 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.signal()
 
-    def sin_wave(self, counts, noise=False):
-        """
-
-        :param counts:
-        :param noise:
-        :return:
-        """
-        # the frequency of the signal
-        f = 2
-
-        # the points on the x axis for plotting
-        x = np.arange(counts)
-        # compute the value (amplitude) of the sin wave at the for each sample
-        y = [np.sin(2 * np.pi * f * (i / counts)) for i in x]
-        if noise:
-            y = y + np.random.normal(size=counts)
-
-        return y
+    # def sin_wave(self, counts, noise=False):
+    #     """
+    #
+    #     :param counts:
+    #     :param noise:
+    #     :return:
+    #     """
+    #     # the frequency of the signal
+    #     f = 2
+    #
+    #     # the points on the x axis for plotting
+    #     x = np.arange(counts)
+    #     # compute the value (amplitude) of the sin wave at the for each sample
+    #     y = [np.sin(2 * np.pi * f * (i / counts)) for i in x]
+    #     if noise:
+    #         y = y + np.random.normal(size=counts)
+    #
+    #     return y
 
