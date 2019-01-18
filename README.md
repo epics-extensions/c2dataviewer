@@ -19,7 +19,7 @@ Currently there are some hard coded field names, which are inherited from old co
 
 Provide a mechanism to allow user to configure X axes. If it is not provided, it will use data count for the plotting.
 
-It would be from command line, or selectable from drop down menu.
+It could be from command line, or selectable from drop down menu.
 
 * Use time diff as X axes
     * Allow user to select time axes

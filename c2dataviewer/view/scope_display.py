@@ -152,7 +152,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         self.wait()
-        self.data = data.get()
         newSize = self.data_size
 
         # start at -1 so we inc to 0 at beginning of loop
@@ -160,7 +159,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # the first np array is the one we determine trigger position in the data. so as we step all data vectors
         # with k, the 1st vector we mark as "my_trigger_vector"
         my_trigger_vector = -1
-        for k, v in self.data.items():
+        for k, v in data.get().items():
             if k == 'ArrayId':
                 if self.lastArrayId is not None:
                     if v - self.lastArrayId > 1:
@@ -181,9 +180,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     continue
 
                 # if we get here, then we found an epics array in the v4 pv that has data.
-                # we cound arrau type signals that have data, so triggering works.
+                # we cound array type signals that have data, so triggering works.
                 signalcount += 1
-                # the 1st time we get here, we actaully found k pointing to a data vector,
+                # the 1st time we get here, we actually found k pointing to a data vector,
                 # so mark the index of the signal
                 if my_trigger_vector == -1:
                     my_trigger_vector = signalcount
@@ -226,8 +225,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if name != "None":
                 try:
                     data = self.data[name]
-                    # for testing purpose
-                    # data = data + self.sin_wave(len(data), noise=True)
                     self.curve[count].setData(data)
                     count = count + 1
                     if self.first_run or self.new_buffer:
@@ -246,23 +243,3 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     pass
 
         self.signal()
-
-    # def sin_wave(self, counts, noise=False):
-    #     """
-    #
-    #     :param counts:
-    #     :param noise:
-    #     :return:
-    #     """
-    #     # the frequency of the signal
-    #     f = 2
-    #
-    #     # the points on the x axis for plotting
-    #     x = np.arange(counts)
-    #     # compute the value (amplitude) of the sin wave at the for each sample
-    #     y = [np.sin(2 * np.pi * f * (i / counts)) for i in x]
-    #     if noise:
-    #         y = y + np.random.normal(size=counts)
-    #
-    #     return y
-
