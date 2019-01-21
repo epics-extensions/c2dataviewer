@@ -11,18 +11,20 @@ and Area Detector images from the AD pva plugin.
 
 
 # TODO
-* Remove hard code EPICS7 PV field names
+* Remove hard code EPICS7 PV field names [Done]
 
 Currently there are some hard coded field names, which are inherited from old code, for example "ArrayId".
 
-* User selectable/configurable EPICS field name
+* User selectable/configurable EPICS field name [Done]
 
 Provide a mechanism to allow user to configure X axes. If it is not provided, it will use data count for the plotting.
 
 It could be from command line, or selectable from drop down menu.
 
-* Use time diff as X axes
-    * Allow user to select time axes
+* Use time diff as X axes [Done]
+    * Allow user to select time axis
+
+* Plot against multiple vertical axes
 
 * Show statistics data
 
@@ -35,7 +37,6 @@ It could be from command line, or selectable from drop down menu.
     * PSD
     * Diff
     * X vs Y
-* Plot against multiple axes
 
 * Filtering function
 
@@ -51,5 +52,7 @@ This behavior shall be improved to make the application more robust.
 A popup window shall be used instead of crashing the application. 
 
 * Unit test suite
+
+* CI testing integration
 
 * Logging for error and warning message
