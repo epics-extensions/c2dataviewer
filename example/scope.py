@@ -31,11 +31,12 @@ class ScopeServer:
         step = kwargs.get("sample", 1000)
         self.time_interval = 1. / step
 
-        pv = kwargs.get("pv", "Test")
-        self.srv = pva.PvaServer('{}:Scope:Data'.format(pv), pva.PvObject(self.dataStruct))
+        self.pv = pva.PvObject(self.dataStruct)
+        self.pvaServer = pva.PvaServer('{}:Scope:Data'.format(kwargs.get("pv", "Test")), self.pv)
+        print("PV Name: {}:Scope:Data".format(kwargs.get("pv", "Test")))
 
     def update(self):
-        sleep(0.1)
+        # sleep(0.1)
         time = [self.time0 + self.time_interval * i for i in range(0, 100)]
         sinusoid = [sin(2 * pi * 1.1 * t + pi / 2) for t in time]
         triangle = [(2 / pi) * asin(sin(2 * pi * 1.1 * t)) for t in time]
@@ -44,22 +45,34 @@ class ScopeServer:
                                             'Time': time,
                                             'Sinusoid': sinusoid,
                                             'Triangle': triangle})
+        self.pvaServer.update(pv)
 
-        self.srv.update(pv)
+        # self.pv.set({'ArrayId': self.counts,
+        #              'Time': time,
+        #              'Sinusoid': sinusoid,
+        #              'Triangle': triangle})
+        # self.pvaServer.update(self.pv)
+
+        # self.pv.set({'ArrayId': self.counts})
+        # self.pv.set({'Time': time})
+        # self.pv.set({'Sinusoid': sinusoid})
+        # self.pv.set({'Triangle': triangle})
+        # self.pvaServer.update(self.pv)
+
         self.time0 = time[-1] + self.time_interval
         self.counts = self.counts + 1
 
 
 def main():
     """
-    Image simulator main routine
+    Scope simulator main routine
 
     :return:
     """
     parser = argparse.ArgumentParser(
-        description='Image provider to simulate AD and provide data via EPICS7 pvAccess')
+        description='Scope provider to simulate APSU DAQ and provide data via EPICS7 pvAccess')
 
-    parser.add_argument('--pv', type=str,
+    parser.add_argument('--pv', type=str, default="Test",
                         help='EPICS PV name prefix. The full PV name will be {prefix}:Scope:Data'
                              'e.g. --pv=test, the full PV name will be "test:Scope:Data"')
     parser.add_argument('--freq', type=int, default=10,
@@ -69,7 +82,7 @@ def main():
 
     args = parser.parse_args()
 
-    pvas = ScopeServer(PV=args.pv, sample=args.sample)
+    pvas = ScopeServer(pv=args.pv, sample=args.sample)
 
     while True:
         pvas.update()

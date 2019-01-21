@@ -24,6 +24,10 @@ It could be from command line, or selectable from drop down menu.
 * Use time diff as X axes [Done]
     * Allow user to select time axis
 
+* Image initial resize and auto gain control
+
+* Bug to fix updating rate drop caused by CPU spark during resizing for image
+
 * Plot against multiple vertical axes
 
 * Show statistics data

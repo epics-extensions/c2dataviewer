@@ -75,6 +75,7 @@ class ImageServer:
         self.xdim = None
         self.ydim = None
         self.attr = None
+        self.pv = None
         self.pvaServer = None
         self.frames = None
 
@@ -85,8 +86,8 @@ class ImageServer:
 
         :return:
         """
-        pv = pvaccess.PvObject(self.vidData)
-        self.pvaServer = pvaccess.PvaServer('{}:Pva1:Image'.format(self.pvprefix), pv)
+        self.pv = pvaccess.PvObject(self.vidData)
+        self.pvaServer = pvaccess.PvaServer('{}:Pva1:Image'.format(self.pvprefix), self.pv)
         self.xdim = {'size': self.X, 'fullSize': self.X, 'reverse': False, 'binning': 1}
         self.ydim = {'size': self.Y, 'fullSize': self.Y, 'reverse': False, 'binning': 1}
         self.attr = {'name': 'ColorMode', 'descriptor': 'Color mode',
@@ -97,15 +98,14 @@ class ImageServer:
             self.frames[i] = np.random.normal(127, 64, self.X * self.Y).astype('uint8')
 
     def update(self):
-        pv = pvaccess.PvObject(self.vidData)
-        pv.set({'value': ({'ubyteValue': list(self.frames[self.counts % (self.FPS + 1)])},), })
-        pv.set({'dimension': [self.xdim, self.ydim]})
-        pv.set({'attribute': [self.attr]})
+        self.pv.set({'value': ({'ubyteValue': list(self.frames[self.counts % (self.FPS + 1)])},), })
+        self.pv.set({'dimension': [self.xdim, self.ydim]})
+        self.pv.set({'attribute': [self.attr]})
         s, ns = divmod(time.time(), 1)
-        pv.set({'timeStamp': {'secondsPastEpoch': int(s),
-                              'nanoseconds': int(ns*1e9),
-                              'userTag': 0}})
-        self.pvaServer.update(pv)
+        self.pv.set({'timeStamp': {'secondsPastEpoch': int(s),
+                                   'nanoseconds': int(ns*1e9),
+                                   'userTag': 0}})
+        self.pvaServer.update(self.pv)
         self.counts = self.counts + 1
 
 
