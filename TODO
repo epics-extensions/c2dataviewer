@@ -1,0 +1,14 @@
+0. Make "ArrayId" configurable, and get rid of hard coding
+1. Use time diff as X axes
+    1. Allow user to select time axes
+2. Show statistics data
+3. Add histogram support
+4. Add Binning support
+5. Support different plotting
+    1. FFT
+    2. PSD
+    3. Diff
+    4. X vs Y
+6. Plot against multiple axes
+7. Add trigger support
+
