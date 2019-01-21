@@ -19,7 +19,7 @@ from .modal import ScopeData
 from .control import ScopeController
 
 
-def scope(cfg, pvs=None):
+def scope(cfg, **kargs):
     """
     Main function for scope display
 
@@ -43,7 +43,7 @@ def scope(cfg, pvs=None):
 
     w = ScopeWindow()
 
-    configure = Configure(cfg, pvs)
+    configure = Configure(cfg, **kargs)
     parameters = Parameter.create(name="params", type="group", children=configure.parse())
     w.parameterPane.setParameters(parameters, showTop=False)
     pvmap = configure.pvs
@@ -51,6 +51,7 @@ def scope(cfg, pvs=None):
     if pvmap is not None:
         modal = ScopeData(pv=list(pvmap.values())[0])
         controller = ScopeController(w, modal, parameters)
+        controller.default_config(**kargs)
         controller.update_fdr()
     else:
         modal = ScopeData()

@@ -37,7 +37,18 @@ It could be from command line, or selectable from drop down menu.
     * X vs Y
 * Plot against multiple axes
 
+* Filtering function
+
+Filter out data which is out of user specified range (max & min)
+
 * Add trigger support
+
+* Handle PV disconnection in a more proper way
+
+When a PV disconnected in the middle, data source (scope_data.py) throws out a RuntimeError, which is proper.
+Currently the UI does not catch that exception, which causes the UI crash.
+This behavior shall be improved to make the application more robust.
+A popup window shall be used instead of crashing the application. 
 
 * Unit test suite
 

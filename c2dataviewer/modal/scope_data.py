@@ -40,10 +40,11 @@ class ScopeData:
         """
         Get EPICS7 PV field description back as a list
 
-        :return: list of FDR
+        :return: list of field description
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
         fdr = []
+        fdr_scalar = []
         if self.channel is not None:
             pv = self.channel.get('')
             for k, v in pv.getStructureDict().items():
@@ -52,13 +53,16 @@ class ScopeData:
                     v = np.array(v)
                     # Make type comparison compatible with PY2 & PY3
                     fdr.append(k)
+                elif type(v) == pva.ScalarType:
+                    fdr_scalar.append(k)
                 if type(v) != np.ndarray:
                     continue
                 if len(v) == 0:
                     continue
             fdr.sort()
+            fdr_scalar.sort()
 
-        return fdr
+        return fdr, fdr_scalar
 
     def update_pv(self, name, restart=False):
         """

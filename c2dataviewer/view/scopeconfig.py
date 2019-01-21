@@ -14,15 +14,20 @@ class Configure:
     """
     Scope application configuration panel settings
     """
-    def __init__(self, params, pvs=None):
+    def __init__(self, params, **kargs):
         """
 
         :param params: parameters parsed from command line and configuration file
         :param pvs: pv name dictionary, format: {"alias": "PV:Name"}
         """
         self.params = params
-        self.pvs = pvs
+        self.pvs = kargs.get("pv", None)
+        self.default_arrayid = kargs.get("arrayid", "None")
+        self.default_xaxes = kargs.get("xaxes", "None")
+
         self.counts = 4
+        self.default_color = ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
+                              '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000']
 
     def assemble_channel(self, section=None):
         """
@@ -45,8 +50,6 @@ class Configure:
                 self.counts = 4
 
         channel = []
-        self.default_color = ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
-                         '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000']
         for i in range(self.counts):
             channel.append(
                 {"name": "Channel %s" % (i + 1),
@@ -233,6 +236,16 @@ class Configure:
 
         return display
 
+    def assemble_config(self):
+        """
+
+
+        :return:
+        """
+        config = {}
+
+        return config
+
     def parse(self):
         """
 
@@ -263,8 +276,25 @@ class Configure:
         if acquisition is None or display is None or channel is None:
             raise RuntimeError("No enough information for scope")
 
+        # Assemble extra configuration information for plotting
+        # which is ArrayId selection, and x axes
+        id_value = ["None"]
+        if self.default_arrayid != "None":
+            id_value.append(self.default_arrayid)
+        axes = ["None"]
+        if self.default_xaxes != "None":
+            axes.append(self.default_xaxes)
+
+        cfg = {"name": "Config",
+               "type": "group",
+               "children": [
+                   {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
+                   {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
+               ]
+               }
+
         # line up in order
-        paramcfg = [acquisition, display]
+        paramcfg = [acquisition, display, cfg]
         for ch in channel:
             paramcfg.append(ch)
         statistics = {"name": "Statistics", "type": "group", "children": [

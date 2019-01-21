@@ -54,6 +54,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.lostArrays = 0
         self.arraysReceived = 0
 
+        self.current_xaxes = "None"
+        self.current_arrayid = "None"
+
     def set_modal(self, modal):
         """
 
@@ -75,6 +78,26 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.curve.clear()
         # self.num_axes = 0
+
+    def set_arrayid(self, value):
+        """
+        Set current field name for array id
+
+        :param value:
+        :return:
+        """
+        if value != self.current_arrayid:
+            self.current_arrayid = value
+
+    def set_xaxes(self, value):
+        """
+        Set current field name for x axes
+
+        :param value:
+        :return:
+        """
+        if value != self.current_xaxes:
+            self.current_xaxes = value
 
     def setup_plot(self, names, single_axis=False, is_log=False):
         """
@@ -225,7 +248,18 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if name != "None":
                 try:
                     data = self.data[name]
-                    self.curve[count].setData(data)
+                    if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == len(data):
+                        # TODO later to support: frequency field & sample period as time reference
+                        # Currently, support time only
+                        T = np.diff(self.data[self.current_xaxes]).mean()
+                        t = np.arange(len(data)) * T
+
+                        # TODO filtering data with user given max & min value
+                        # self.curve[count].setData(self.data[self.current_xaxes], data)
+
+                        self.curve[count].setData(t-t[0], data)
+                    else:
+                        self.curve[count].setData(data)
                     count = count + 1
                     if self.first_run or self.new_buffer:
                         # perform auto range for the first time

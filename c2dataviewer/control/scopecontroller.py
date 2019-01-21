@@ -37,6 +37,22 @@ class ScopeController:
         self.timer.timeout.connect(self._win.graphicsWidget.update)
         self._win.graphicsWidget.set_modal(self.modal)
 
+        self.default_arrayid = "None"
+        self.default_xaxes = "None"
+        self.current_arrayid = "None"
+        self.current_xaxes = "None"
+
+    def default_config(self, **kargs):
+        """
+        Default configuration for array ID and x axes field names
+
+        :param kargs:
+        :return:
+        """
+        self.default_arrayid = kargs.get("arrayid", "None")
+        self.default_xaxes = kargs.get("xaxes", "None")
+        self.set_xaxes(self.default_xaxes)
+
     def update_fdr(self, empty=False):
         """
         Update EPICS7 PV field description
@@ -45,9 +61,19 @@ class ScopeController:
         """
         if empty:
             fdr = []
+            fdr_scalar = []
         else:
-            fdr = self.modal.get_fdr()
+            fdr, fdr_scalar = self.modal.get_fdr()
         fdr.insert(0, "None")
+        fdr_scalar.insert(0, "None")
+
+        # fill up the selectable pull down menu for array ID
+        child = self.parameters.child("Config").child("ArrayId")
+        child.setLimits(fdr_scalar)
+        # fill up the selectable pull down menu for x axes
+        child = self.parameters.child("Config").child("X Axes")
+        child.setLimits(fdr)
+
         for idx in range(self.channels):
             child = self.parameters.child("Channel %s" % (idx + 1))
             c = child.child("Field")
@@ -112,6 +138,10 @@ class ScopeController:
                     self.set_binning(data)
                 elif childName == "Display.Refresh":
                     self.set_freshrate(data)
+                elif childName == "Config.ArrayId":
+                    self.set_arrayid(data)
+                elif childName == "Config.X Axes":
+                    self.set_xaxes(data)
                 else:
                     for i in range(self.channels):
                         if childName == 'Channel %s.Field' % (i + 1):
@@ -147,6 +177,28 @@ class ScopeController:
         self.timer.stop()
         # Stop data source
         self.modal.stop()
+
+    def set_arrayid(self, value):
+        """
+        Set current field name for array id
+
+        :param value:
+        :return:
+        """
+        if value != self.current_arrayid:
+            self.current_arrayid = value
+            self._win.graphicsWidget.set_arrayid(self.current_arrayid)
+
+    def set_xaxes(self, value):
+        """
+        Set current field name for x axes
+
+        :param value:
+        :return:
+        """
+        if value != self.current_xaxes:
+            self.current_xaxes = value
+            self._win.graphicsWidget.set_xaxes(self.current_xaxes)
 
     def set_trigger_mode(self, value):
         """

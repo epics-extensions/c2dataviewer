@@ -129,13 +129,13 @@ def image_main(cfg, pvmap=None):
     imagev(pvmap, list(pvmap.keys()), scale, noAGC)
 
 
-def scope_main(cfg, pvmap=None):
-    """
-
-    :param cfg:
-    :return:
-    """
-    scope(cfg, pvmap)
+# def scope_main(cfg, pvmap=None):
+#     """
+#
+#     :param cfg:
+#     :return:
+#     """
+#     scope(cfg, pvmap)
 
 
 def main():
@@ -157,9 +157,19 @@ def main():
     parser.add_argument('--alias', type=str,
                         help='EPICS PV alias names. Support multiple alias name which are comma separated.'
                              ' e.g. name1,name2,name3')
+    parser.add_argument('--arrayid', type=str,
+                        help='EPICS PV field name for ID for scope application, '
+                             'which is used by scope to count losing arrays.'
+                             ' e.g. ArrayId')
+    parser.add_argument('--axes', type=str,
+                        help='EPICS PV field name to be used for x axes for scope application.'
+                             ' e.g. Time')
 
     args = parser.parse_args()
     cfg = load_config(args.config)
+
+    arrayid = args.arrayid
+    x_axes = args.axes
 
     pv_map=None
     if args.pv is not None:
@@ -169,7 +179,7 @@ def main():
         # application from CLI overwrite the one in configuration file
         image_main(cfg, pv_map)
     elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
-        scope_main(cfg, pv_map)
+        scope(cfg, pv=pv_map, arrayid=arrayid, xaxes=x_axes)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))
 
