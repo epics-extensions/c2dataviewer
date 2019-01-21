@@ -88,6 +88,7 @@ class ImageServer:
         """
         self.pv = pvaccess.PvObject(self.vidData)
         self.pvaServer = pvaccess.PvaServer('{}:Pva1:Image'.format(self.pvprefix), self.pv)
+        print("PV Name: {}:Pva1:Image".format(self.pvprefix))
         self.xdim = {'size': self.X, 'fullSize': self.X, 'reverse': False, 'binning': 1}
         self.ydim = {'size': self.Y, 'fullSize': self.Y, 'reverse': False, 'binning': 1}
         self.attr = {'name': 'ColorMode', 'descriptor': 'Color mode',
