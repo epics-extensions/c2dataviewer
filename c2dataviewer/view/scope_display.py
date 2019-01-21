@@ -22,7 +22,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                                         '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000'])
 
         self.param_changed = False
-        self.modal = None
+        self.model = None
         self.names = []
         self.auto_scale = False
         self.first_data = True
@@ -57,13 +57,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.current_xaxes = "None"
         self.current_arrayid = "None"
 
-    def set_modal(self, modal):
+    def set_model(self, model):
         """
 
-        :param modal:
+        :param model:
         :return:
         """
-        self.modal = modal
+        self.model = model
 
     def delete_plots(self):
         """

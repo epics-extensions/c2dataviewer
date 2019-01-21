@@ -14,15 +14,15 @@ import pyqtgraph
 
 class ScopeController:
 
-    def __init__(self, widget, modal, parameters, channels=4):
+    def __init__(self, widget, model, parameters, channels=4):
         """
 
-        :param modal:
+        :param model:
         :param parameters:
         :param channels:
         """
         self._win = widget
-        self.modal = modal
+        self.model = model
         self.parameters = parameters
         self.channels = channels
         self.chnames = ["None"] * self.channels
@@ -35,7 +35,7 @@ class ScopeController:
 
         self.timer = pyqtgraph.QtCore.QTimer()
         self.timer.timeout.connect(self._win.graphicsWidget.update)
-        self._win.graphicsWidget.set_modal(self.modal)
+        self._win.graphicsWidget.set_model(self.model)
 
         self.default_arrayid = "None"
         self.default_xaxes = "None"
@@ -63,7 +63,7 @@ class ScopeController:
             fdr = []
             fdr_scalar = []
         else:
-            fdr, fdr_scalar = self.modal.get_fdr()
+            fdr, fdr_scalar = self.model.get_fdr()
         fdr.insert(0, "None")
         fdr_scalar.insert(0, "None")
 
@@ -97,7 +97,7 @@ class ScopeController:
 
                 if childName == "Acquisition.PV":
                     # stop DAQ and update pv info
-                    self.modal.update_pv(data, restart=False)
+                    self.model.update_pv(data, restart=False)
                     if data != "":
                         self.update_fdr()
                     else:
@@ -106,10 +106,10 @@ class ScopeController:
                     if "://" in data:
                         # pv comes with format of proto://pvname
                         p, name = data.split("://")
-                        self.modal.update_trigger(name, proto=p.lower())
+                        self.model.update_trigger(name, proto=p.lower())
                     else:
                         # PV name only, use default pvAccess protocol
-                        self.modal.update_trigger(name)
+                        self.model.update_trigger(name)
                 elif childName == "Acquisition.TriggerMode":
                     self.set_trigger_mode(data)
                 elif childName == "Acquisition.PostTrigger":
@@ -165,7 +165,7 @@ class ScopeController:
 
         :return:
         """
-        self.modal.start(self._win.graphicsWidget.data_process)
+        self.model.start(self._win.graphicsWidget.data_process)
         self.timer.start(self.refresh)
 
     def stop_plotting(self):
@@ -176,7 +176,7 @@ class ScopeController:
         # Stop timer
         self.timer.stop()
         # Stop data source
-        self.modal.stop()
+        self.model.stop()
 
     def set_arrayid(self, value):
         """

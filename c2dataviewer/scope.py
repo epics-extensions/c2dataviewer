@@ -15,7 +15,7 @@ from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import uic
 from pyqtgraph.parametertree import Parameter
 from .view import Configure
-from .modal import ScopeData
+from .model import ScopeData
 from .control import ScopeController
 
 
@@ -49,13 +49,13 @@ def scope(cfg, **kargs):
     pvmap = configure.pvs
 
     if pvmap is not None:
-        modal = ScopeData(pv=list(pvmap.values())[0])
-        controller = ScopeController(w, modal, parameters)
+        model = ScopeData(pv=list(pvmap.values())[0])
+        controller = ScopeController(w, model, parameters)
         controller.default_config(**kargs)
         controller.update_fdr()
     else:
-        modal = ScopeData()
-        controller = ScopeController(w, modal, parameters)
+        model = ScopeData()
+        controller = ScopeController(w, model, parameters)
 
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
 

@@ -16,7 +16,7 @@ from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import uic
 from pyqtgraph import QtCore
 from .control import ImageController
-from .modal import ImageData as DataReceiver
+from .model import ImageData as DataReceiver
 
 
 def imagev(pv, label, scale=1.0, noAGC=True):
