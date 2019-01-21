@@ -259,6 +259,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
                         self.curve[count].setData(t-t[0], data)
                     else:
+                        # TODO need to handle multiple waveform plotting with different data length
                         self.curve[count].setData(data)
                     count = count + 1
                     if self.first_run or self.new_buffer:

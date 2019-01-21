@@ -16,9 +16,6 @@ import pkg_resources
 import argparse
 from configparser import ConfigParser
 
-from c2dataviewer import imagev
-from c2dataviewer import scope
-
 
 def qxl_module_loaded():
     fn = "/proc/modules"
@@ -99,45 +96,6 @@ def pvmaps(pvs, alias=None):
     return pvmap
 
 
-def image_main(cfg, pvmap=None):
-    """
-
-    :param pvmap:
-    :param cfg:
-    :return:
-    """
-    section = cfg[cfg["DEFAULT"]["APP"]]["SECTION"]
-    if pvmap is None:
-        # use pv information from configuration file
-        try:
-            ALIAS = cfg[section]["ALIAS"]
-        except KeyError:
-            ALIAS = None
-        try:
-            pvnames = cfg[section]["PV"]
-        except KeyError:
-            pvnames = None
-        pvmap = pvmaps(pvnames, ALIAS)
-    try:
-        scale = float(cfg[section]["SCALE"])
-    except KeyError:
-        scale = 1.0
-    try:
-        noAGC = True if cfg[section]["AUTOGAIN"] == 'DISABLED' else False
-    except KeyError:
-        noAGC = False
-    imagev(pvmap, list(pvmap.keys()), scale, noAGC)
-
-
-# def scope_main(cfg, pvmap=None):
-#     """
-#
-#     :param cfg:
-#     :return:
-#     """
-#     scope(cfg, pvmap)
-
-
 def main():
     """
 
@@ -176,9 +134,31 @@ def main():
         pv_map = pvmaps(args.pv, args.alias)
 
     if args.app == "image" or (cfg["DEFAULT"]["APP"] == "IMAGE" and args.app != "scope"):
+        from c2dataviewer import imagev
         # application from CLI overwrite the one in configuration file
-        image_main(cfg, pv_map)
+        section = cfg[cfg["DEFAULT"]["APP"]]["SECTION"]
+        if pv_map is None:
+            # use pv information from configuration file
+            try:
+                ALIAS = cfg[section]["ALIAS"]
+            except KeyError:
+                ALIAS = None
+            try:
+                pvnames = cfg[section]["PV"]
+            except KeyError:
+                pvnames = None
+            pv_map = pvmaps(pvnames, ALIAS)
+        try:
+            scale = float(cfg[section]["SCALE"])
+        except KeyError:
+            scale = 1.0
+        try:
+            noAGC = True if cfg[section]["AUTOGAIN"] == 'DISABLED' else False
+        except KeyError:
+            noAGC = False
+        imagev(pv_map, list(pv_map.keys()), scale, noAGC)
     elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
+        from c2dataviewer import scope
         scope(cfg, pv=pv_map, arrayid=arrayid, xaxes=x_axes)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))
