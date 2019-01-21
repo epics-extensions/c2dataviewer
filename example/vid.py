@@ -70,7 +70,7 @@ class ImageServer:
         self.X = kwargs.get("X", 640)
         self.Y = kwargs.get("Y", 480)
         self.FPS = kwargs.get("FPS", 30)
-        self.pvprefix = kwargs.get("PV", "test")
+        self.pvprefix = kwargs.get("PV", "Test")
 
         self.xdim = None
         self.ydim = None
@@ -119,7 +119,7 @@ def main():
     parser = argparse.ArgumentParser(
         description='Image provider to simulate AD and provide data via EPICS7 pvAccess')
 
-    parser.add_argument('--pv', type=str,
+    parser.add_argument('--pv', type=str, default="Test"
                         help='EPICS PV name prefix. The full PV name will be {prefix}:Pva1:Image'
                              'e.g. --pv=test, the full PV name will be "test:Pva1:Image"')
     parser.add_argument('--x', type=int, default=640,
