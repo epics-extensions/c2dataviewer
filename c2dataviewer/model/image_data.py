@@ -31,6 +31,7 @@ class ImageData:
         self.timer.timeout.connect(self.get)
 
         self.data = None
+        self.chan = None
 
     def config(self, widget):
         """
@@ -73,23 +74,29 @@ class ImageData:
         self.stop()
         self.start()
 
-    def start(self):
+    def start(self, routine=None):
         if self.fps == 1:
             self.timer.start(1000)
         elif self.fps == 10:
             self.timer.start(100)
         else:
             try:
-                self.chan.subscribe('monitorCallback', self.monitorCallback)
-                self.chan.startMonitor('')
+                if self.chan is not None:
+                    if routine is None:
+                        self.chan.subscribe('monitorCallback', self.monitorCallback)
+                    else:
+                        self.chan.subscribe('monitorCallback', routine)
+                    self.chan.startMonitor('')
             except pvaccess.PvaException as e:
                 raise RuntimeError("Cannot connect to image PV")
 
     def stop(self):
         self.timer.stop()
         try:
-            self.chan.stopMonitor()
-            self.chan.unsubscribe('monitorCallback')
-        except:
+            if self.chan is not None:
+                self.chan.stopMonitor()
+                self.chan.unsubscribe('monitorCallback')
+        except pvaccess.PvaException:
             # raise RuntimeError("Fail to disconnect")
+            # TODO handle exception in better way, and add logging information
             pass

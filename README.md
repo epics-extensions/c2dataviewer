@@ -26,6 +26,8 @@ It could be from command line, or selectable from drop down menu.
 
 * Image initial resize and auto gain control [Done]
 
+* Separate UI from data source for image
+
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
 
 * Plot against multiple vertical axes
