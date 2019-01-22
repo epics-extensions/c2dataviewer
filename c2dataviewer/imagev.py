@@ -50,17 +50,15 @@ def imagev(pv, label, scale=1.0, noAGC=True):
             """
             self.imageReceiver = imageReceiver
 
-        def doResize(self):
-            try:
-                # print("I am in doResize")
-                # sbh = self._statusbar.height()
-                x = self.imageReceiver.x
-                y = self.imageReceiver.y
-                self._scale = 840.0/x
-                self.resize(x * self._scale, y * self._scale)
-                self.imageWidget.set_scaling(self._scale, x, y)
-            except:
-                pass
+        # def doResize(self):
+        #     try:
+        #         x = self.imageReceiver.x
+        #         y = self.imageReceiver.y
+        #         self._scale = 840.0/x
+        #         self.resize(x * self._scale, y * self._scale)
+        #         self.imageWidget.set_scaling(self._scale, x, y)
+        #     except:
+        #         pass
 
         def resizeEvent(self, event):
             self.resized.emit()
@@ -68,7 +66,6 @@ def imagev(pv, label, scale=1.0, noAGC=True):
 
         def resizedCallback(self):
             x = self.imageReceiver.x
-            # print("I am in resizeCallback")
             try:
                 self._scale = self.width() / x
                 self.imageWidget.set_scaling(self._scale)
@@ -90,13 +87,19 @@ def imagev(pv, label, scale=1.0, noAGC=True):
     else:
         print('QApplication instance already exists: %s' % str(app))
 
-    data = DataReceiver(QtCore.QTimer(), default=pv)
     w = ImageWindow(None)
-    dlg = LimitDiaglog(None)
+    w.imageWidget.gain_controller(w.imageBlackSlider, w.imageGainSlider)
+    data = DataReceiver(QtCore.QTimer(), default=pv)
     data.config(w)
+
+    dlg = LimitDiaglog(None)
     ImageController(w, LIMIT=dlg, PV=label, timer=QtCore.QTimer(), data=data)
     w.set_imagereceiver(data)
-    w.imageWidget.set_scaling(scale)
+
+    # set initial scaling factor
+    # TODO support user defined scaling factor
+    w.imageWidget.set_scaling(w.width() / data.x)
+    # w.imageWidget.set_scaling(scale)
     if not noAGC:
         w.imageWidget.enable_auto_gain()
 

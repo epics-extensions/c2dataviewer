@@ -40,8 +40,6 @@ class ImageData:
         """
         self._win = widget
         self.setCamera(list(self.pvs.values())[0])
-        self._win.imageWidget.gaincontroller(self._win.imageBlackSlider,
-                                             self._win.imageGainSlider)
 
     def setFrameRate(self, rate):
         """

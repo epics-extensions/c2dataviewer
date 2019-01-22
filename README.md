@@ -24,7 +24,7 @@ It could be from command line, or selectable from drop down menu.
 * Use time diff as X axes [Done]
     * Allow user to select time axis
 
-* Image initial resize and auto gain control
+* Image initial resize and auto gain control [Done]
 
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
 

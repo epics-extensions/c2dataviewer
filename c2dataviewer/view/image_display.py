@@ -34,17 +34,16 @@ class ImagePlotWidget(RawImageWidget):
         self.maxVal = 0
 
         # Limit control to avoid overflow network for best performance
-        self._pref={}
-        self._pref["Max"] = 0
-        self._pref["Min"] = 0
-        self._pref["DPX"] = 0
-        self._pref["DPXLimit"] = 0xfff0
-        self._pref["CPU"] = 0
-        self._pref["CPULimit"] = 30
-        self._pref["Net"] = 0
-        self._pref["NetLimit"] = 20
-        self._pref["FPS"] = 0
-        self._pref["FPSLimit"] = 0.1
+        self._pref = {"Max": 0,
+                      "Min": 0,
+                      "DPX": 0,
+                      "DPXLimit": 0xfff0,
+                      "CPU": 0,
+                      "CPULimit": 30,
+                      "Net": 0,
+                      "NetLimit": 20,
+                      "FPS": 0,
+                      "FPSLimit": 0.1}
 
         self._df = [0]
         self._db = [0]
@@ -54,6 +53,12 @@ class ImagePlotWidget(RawImageWidget):
         self._min = [0]
 
         self._scaling = 1.0
+        self._agc = True
+        self._lastTimestamp = None
+
+        # Gain controller slider widget
+        self.slider = None
+        self.gain = None
 
     def set_black(self, value):
         """
@@ -76,7 +81,7 @@ class ImagePlotWidget(RawImageWidget):
 
         :return:
         """
-        self._agc = False
+        # self._agc = False
         self._lastTimestamp = None
 
     def enable_auto_gain(self):
@@ -87,7 +92,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         self._agc = True
 
-    def gaincontroller(self, slider, gain):
+    def gain_controller(self, slider, gain):
         """
 
         :return:
@@ -112,12 +117,6 @@ class ImagePlotWidget(RawImageWidget):
         :param data:
         :return:
         """
-
-        # if not self.initialized:
-        #     print("not initialized yet")
-        #     return
-
-        # print("Why no image?")
         data_types = data['value'][0].keys()
         if 'ushortValue' in data_types:
             i = data['value'][0]['ushortValue']
@@ -132,8 +131,6 @@ class ImagePlotWidget(RawImageWidget):
             npdt = 'uint8'
             embeddedDataLen = 40
         else:
-            # self._win.setStatus('No recognized image data received.')
-            # return
             raise RuntimeError('No recognized image data received.')
 
         x, y = data['dimension']
