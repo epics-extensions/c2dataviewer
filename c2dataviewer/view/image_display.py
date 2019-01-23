@@ -10,6 +10,7 @@ PVA object viewer utilities for image display
 """
 
 import numpy as np
+from pyqtgraph import QtCore
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 import cv2
 
@@ -21,7 +22,9 @@ class ImagePlotWidget(RawImageWidget):
         self._black = 0.0
 
         self._noagc = kargs.get("noAGC", False)
-        self.camera_changed()
+        # self.camera_changed()
+        self._agc = False
+        self._lastTimestamp = None
 
         self.mbReceived = 0.0
         self.framesDisplayed = 0
@@ -29,7 +32,7 @@ class ImagePlotWidget(RawImageWidget):
         # image dimension
         self.x = 800
         self.y = 0
-        self.data = None
+        self.fps = -1
 
         # max value of image pixel
         self.maxVal = 0
@@ -64,6 +67,8 @@ class ImagePlotWidget(RawImageWidget):
         self.datasource = None
         self.data = None
 
+        self.timer = kargs.get("timer", QtCore.QTimer())
+
     def set_datasource(self, data):
         """
         Set data source, and start data taking
@@ -72,6 +77,7 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.datasource = data
+        self.timer.timeout.connect(self.get)
 
     def set_black(self, value):
         """
@@ -89,6 +95,19 @@ class ImagePlotWidget(RawImageWidget):
         """
         self._gain = value
 
+    def start(self):
+        """
+
+        :return:
+        """
+
+        if self.fps == 1:
+            self.timer.start(1000)
+        elif self.fps == 10:
+            self.timer.start(100)
+        else:
+            self.datasource.start(routine=self.monitor_callback)
+
     def set_framerate(self, value):
         """
 
@@ -96,8 +115,8 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.datasource.stop()
-        self.datasource.set_framerate(value)
-        self.datasource.start(routine=self.monitor_callback)
+        self.fps = value
+        self.start()
 
     def monitor_callback(self, data):
         """
@@ -108,13 +127,24 @@ class ImagePlotWidget(RawImageWidget):
         self.data = data
         self.display(data)
 
-    def camera_changed(self):
+    def get(self):
         """
 
         :return:
         """
-        # self._agc = False
+        self.data = self.datasource.get('field()')
+        self.display(self.data)
+
+    def camera_changed(self, value):
+        """
+
+        :return:
+        """
+        self._agc = False
         self._lastTimestamp = None
+        self.datasource.stop()
+        self.datasource.setCamera(value)
+        self.start()
 
     def enable_auto_gain(self):
         """

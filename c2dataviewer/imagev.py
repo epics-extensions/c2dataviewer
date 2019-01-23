@@ -93,10 +93,8 @@ def imagev(pv, label, scale=1.0, noAGC=True):
 
     w = ImageWindow(None)
     w.imageWidget.gain_controller(w.imageBlackSlider, w.imageGainSlider)
-    data = DataReceiver(QtCore.QTimer(), default=pv)
+    data = DataReceiver(default=pv)
     w.imageWidget.set_datasource(data)
-
-    data.config(w)
 
     dlg = LimitDiaglog(None)
     ImageController(w, LIMIT=dlg, PV=label, timer=QtCore.QTimer(), data=data)

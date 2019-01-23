@@ -110,7 +110,6 @@ class ImageController:
         self.resetStatus()
         fr = list(self._framerates.keys())[n]
         try:
-            # self.datareceiver.setFrameRate(self._framerates[fr])
             self._win.imageWidget.set_framerate(self._framerates[fr])
         except NameError:
             pass
@@ -161,9 +160,7 @@ class ImageController:
 
         n = self._win.pvPrefix.currentIndex()
         self.resetStatus()
-        self._win.imageWidget.camera_changed()
-        # TODO
-        self.datareceiver.setCamera(self._cameras[n])
+        self._win.imageWidget.camera_changed(self._cameras[n])
 
     def resetStatus(self):
         """
