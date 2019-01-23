@@ -35,6 +35,10 @@ def imagev(pv, label, scale=1.0, noAGC=True):
         resized = QtCore.pyqtSignal()
 
         def __init__(self, parent=None):
+            """
+
+            :param parent:
+            """
             super(ImageWindow, self).__init__(parent=parent)
             self._proc = psutil.Process()
             self.setupUi(self)
@@ -90,6 +94,8 @@ def imagev(pv, label, scale=1.0, noAGC=True):
     w = ImageWindow(None)
     w.imageWidget.gain_controller(w.imageBlackSlider, w.imageGainSlider)
     data = DataReceiver(QtCore.QTimer(), default=pv)
+    w.imageWidget.set_datasource(data)
+
     data.config(w)
 
     dlg = LimitDiaglog(None)

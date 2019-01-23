@@ -53,13 +53,13 @@ class ImageData:
     def get(self):
         try:
             self.data = self.chan.get('field()')
-        except pvaccess.PvaException as e:
+        except pvaccess.PvaException:
             return
         self._win.imageWidget.display(self.data)
 
     def monitorCallback(self, data):
         self.data = data
-        self._win.imageWidget.display(self.data)
+        # self._win.imageWidget.display(self.data)
 
     def setCamera(self, name):
         self.camera = name
@@ -69,12 +69,22 @@ class ImageData:
         self.get()
         self.start()
 
-    def setFrameRate(self, fps):
+    def set_framerate(self, fps):
+        """
+        Set frame rate
+
+        :param fps:
+        :return:
+        """
         self.fps = fps
-        self.stop()
-        self.start()
 
     def start(self, routine=None):
+        """
+        Start pvAccess monitor. The callback could be user specified, or the one in the data source
+
+        :param routine:
+        :return:
+        """
         if self.fps == 1:
             self.timer.start(1000)
         elif self.fps == 10:
@@ -91,6 +101,11 @@ class ImageData:
                 raise RuntimeError("Cannot connect to image PV")
 
     def stop(self):
+        """
+        Stop pvAccess monitor
+
+        :return:
+        """
         self.timer.stop()
         try:
             if self.chan is not None:

@@ -27,8 +27,9 @@ class ImagePlotWidget(RawImageWidget):
         self.framesDisplayed = 0
 
         # image dimension
-        self.x = 0
+        self.x = 800
         self.y = 0
+        self.data = None
 
         # max value of image pixel
         self.maxVal = 0
@@ -60,6 +61,18 @@ class ImagePlotWidget(RawImageWidget):
         self.slider = None
         self.gain = None
 
+        self.datasource = None
+        self.data = None
+
+    def set_datasource(self, data):
+        """
+        Set data source, and start data taking
+
+        :param data:
+        :return:
+        """
+        self.datasource = data
+
     def set_black(self, value):
         """
 
@@ -75,6 +88,25 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self._gain = value
+
+    def set_framerate(self, value):
+        """
+
+        :param value:
+        :return:
+        """
+        self.datasource.stop()
+        self.datasource.set_framerate(value)
+        self.datasource.start(routine=self.monitor_callback)
+
+    def monitor_callback(self, data):
+        """
+
+        :param data:
+        :return:
+        """
+        self.data = data
+        self.display(data)
 
     def camera_changed(self):
         """
