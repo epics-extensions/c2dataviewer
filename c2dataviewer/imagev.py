@@ -19,7 +19,7 @@ from .control import ImageController
 from .model import ImageData as DataReceiver
 
 
-def imagev(pv, label, scale=1.0, noAGC=True):
+def imagev(pv, label, scale=None, noAGC=True):
     """
     Main function for image display
 
@@ -43,38 +43,24 @@ def imagev(pv, label, scale=1.0, noAGC=True):
             self._proc = psutil.Process()
             self.setupUi(self)
             self.show()
-            self.imageReceiver = None
 
             self.resized.connect(self.resizedCallback)
 
-        def set_imagereceiver(self, imageReceiver):
+        def resizeEvent(self, event):
             """
 
+            :param event:
             :return:
             """
-            self.imageReceiver = imageReceiver
-
-        # def doResize(self):
-        #     try:
-        #         x = self.imageReceiver.x
-        #         y = self.imageReceiver.y
-        #         self._scale = 840.0/x
-        #         self.resize(x * self._scale, y * self._scale)
-        #         self.imageWidget.set_scaling(self._scale, x, y)
-        #     except:
-        #         pass
-
-        def resizeEvent(self, event):
             self.resized.emit()
             return super(ImageWindow, self).resizeEvent(event)
 
         def resizedCallback(self):
-            x = self.imageReceiver.x
-            try:
-                self._scale = self.width() / x
-                self.imageWidget.set_scaling(self._scale)
-            except:
-                self._scale = 1.0
+            """
+
+            :return:
+            """
+            self.imageWidget.set_scaling()
 
     dlg_class = uic.loadUiType("c2dataviewer/ui/imagev_limit_pane.ui")[0]
 
@@ -98,12 +84,13 @@ def imagev(pv, label, scale=1.0, noAGC=True):
 
     dlg = LimitDiaglog(None)
     ImageController(w, LIMIT=dlg, PV=label, timer=QtCore.QTimer(), data=data)
-    w.set_imagereceiver(data)
 
     # set initial scaling factor
-    # TODO support user defined scaling factor
-    w.imageWidget.set_scaling(w.width() / data.x)
-    # w.imageWidget.set_scaling(scale)
+    if scale is not None and scale != 1.0:
+        w.imageWidget.set_scaling(scale=scale)
+    else:
+        w.imageWidget.set_scaling()
+
     if not noAGC:
         w.imageWidget.enable_auto_gain()
 

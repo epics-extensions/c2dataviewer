@@ -22,7 +22,6 @@ class ImageData:
         """
         self.data = None
         self.chan = None
-        self.x, self.y = 800, 0
 
         self.pvs = default
         if self.pvs is not None:

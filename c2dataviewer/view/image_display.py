@@ -30,12 +30,13 @@ class ImagePlotWidget(RawImageWidget):
         self.framesDisplayed = 0
 
         # image dimension
-        self.x = 800
-        self.y = 0
+        self.x = None
+        self.y = None
         self.fps = -1
 
         # max value of image pixel
         self.maxVal = 0
+        self.mutex = QtCore.QMutex()
 
         # Limit control to avoid overflow network for best performance
         self._pref = {"Max": 0,
@@ -69,15 +70,41 @@ class ImagePlotWidget(RawImageWidget):
 
         self.timer = kargs.get("timer", QtCore.QTimer())
 
-    def set_datasource(self, data):
+    def wait(self):
+        """
+
+        :return:
+        """
+        self.mutex.lock()
+
+    def signal(self):
+        """
+
+        :return:
+        """
+        self.mutex.unlock()
+
+    def set_datasource(self, source):
         """
         Set data source, and start data taking
+
+        :param source:
+        :return:
+        """
+        self.datasource = source
+        self.__update_dimension(self.datasource.get())
+        self.timer.timeout.connect(self.get)
+
+    def __update_dimension(self, data):
+        """
 
         :param data:
         :return:
         """
-        self.datasource = data
-        self.timer.timeout.connect(self.get)
+        x, y = data['dimension']
+        if (x != self.x) or (y != self.y):
+            self.x = x['size']
+            self.y = y['size']
 
     def set_black(self, value):
         """
@@ -100,7 +127,6 @@ class ImagePlotWidget(RawImageWidget):
 
         :return:
         """
-
         if self.fps == 1:
             self.timer.start(1000)
         elif self.fps == 10:
@@ -114,9 +140,11 @@ class ImagePlotWidget(RawImageWidget):
         :param value:
         :return:
         """
+        self.wait()
         self.datasource.stop()
         self.fps = value
         self.start()
+        self.signal()
 
     def monitor_callback(self, data):
         """
@@ -125,7 +153,9 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.data = data
+        self.wait()
         self.display(data)
+        self.signal()
 
     def get(self):
         """
@@ -133,18 +163,24 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.data = self.datasource.get('field()')
+        self.wait()
         self.display(self.data)
+        self.signal()
 
     def camera_changed(self, value):
         """
 
         :return:
         """
+        self.wait()
         self._agc = False
         self._lastTimestamp = None
         self.datasource.stop()
         self.datasource.setCamera(value)
+        self.__update_dimension(self.datasource.get())
+        self.set_scaling()
         self.start()
+        self.signal()
 
     def enable_auto_gain(self):
         """
@@ -162,15 +198,19 @@ class ImagePlotWidget(RawImageWidget):
         self.slider = slider
         self.gain = gain
 
-    def set_scaling(self, scale):
+    def set_scaling(self, scale=None):
         """
 
         :param scale:
-        :param x:
-        :param y:
         :return:
         """
-        self._scaling = scale
+        if scale is None:
+            if self.x is None:
+                self._scaling = 1.0
+            else:
+                self._scaling = self.width()/self.x
+        else:
+            self._scaling = scale
 
     def display(self, data):
         """
@@ -195,10 +235,7 @@ class ImagePlotWidget(RawImageWidget):
         else:
             raise RuntimeError('No recognized image data received.')
 
-        x, y = data['dimension']
-        if (x != self.x) or (y != self.y):
-            self.x = x['size']
-            self.y = y['size']
+        self.__update_dimension(data)
 
         if maxVal != self.maxVal:
             self.maxVal = maxVal
@@ -230,7 +267,6 @@ class ImagePlotWidget(RawImageWidget):
         i = np.resize(i, (self.y, self.x))
         i = cv2.resize(i, dsize=(int(self.x * self._scaling), int(self.y * self._scaling)),
                        interpolation=cv2.INTER_AREA)
-
         if self._agc:
             self._black, white = np.percentile(i, [0.01, 99.99])
             self.slider.setValue(self._black)
@@ -246,8 +282,5 @@ class ImagePlotWidget(RawImageWidget):
         i = np.clip(i, 0, maxVal).astype(npdt)
 
         self.setImage(np.rot90(np.fliplr(i)))
-        # self._win._app.processEvents()
 
         self.framesDisplayed += 1
-
-        return self._black, self._gain
