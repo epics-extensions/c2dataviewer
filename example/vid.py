@@ -1,105 +1,141 @@
-#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
-import argparse
-import sys
+"""
+Copyright 2018 UChicago Argonne LLC
+ as operator of Argonne National Laboratory
+
+Image Simulator which provides image data via EPICS7 pvAccess.
+It is used to support c2dv development at APS Upgrade.
+
+@author: Guobao Shen <gshen@anl.gov>
+"""
+
 import time
-
+import argparse
 import numpy as np
-import pyqtgraph
-try:
-    from pyqtgraph.Qt import QtCore, QtWidgets, QtGui
-    qwidget = QtWidgets.QWidget
-except:
-    from pyqtgraph.Qt import QtCore, QtGui
-    qwidget = QtGui.QWidget
-
-from pyqtgraph.widgets.RawImageWidget import RawImageWidget
-
 import pvaccess
 
-MAX_FPS = 60
 
+class ImageServer:
+    def __init__(self, **kwargs):
+        """
 
-framesDisplayed = 0
-gain = None
-black = None
-lastUpdate = 0
-def update(v):
-    global framesDisplayed, gain, black, lastUpdate
+        """
+        self.vidData = {
+            'value': ({'ubyteValue': [pvaccess.UBYTE],
+                       'byteValue': [pvaccess.BYTE]},),
 
-    # Limt frames per second to below MAX_FPS
-    now = time.time()
-    if now - lastUpdate < (1./ MAX_FPS): return
+            'codec': {'string': pvaccess.STRING,
+                      'parameters': ()},
 
-    i = v['value'][0]['ubyteValue']
-    if not args.noAGC:
-        if gain is None:
-            black, white = np.percentile(i, [0.01, 99.99])
-            gain = 255 / (white - black)
-        i = (i - black) * gain
-        i = np.clip(i, 0, 255).astype('uint8')
+            'compressedSize': pvaccess.LONG,
+            'uncompressedSize': pvaccess.LONG,
 
-    # resize to get a 2D array from 1D data structure
-    i = np.resize(i, (y, x))
+            'dimension': [{'size': pvaccess.INT,
+                           'offset': pvaccess.INT,
+                           'fullSize': pvaccess.INT,
+                           'binning': pvaccess.INT,
+                           'reverse': pvaccess.BOOLEAN}],
 
-    img.setImage(np.flipud(np.rot90(i)))
-    app.processEvents()
+            'uniqueId': pvaccess.INT,
 
-    if args.benchmark:
-        framesDisplayed += 1
-        if framesDisplayed > 300:
-            app.quit()
+            'dataTimeStamp': {'secondsPastEpoch': pvaccess.LONG,
+                              'nanoseconds': pvaccess.INT,
+                              'userTag': pvaccess.INT},
 
-    lastUpdate = now
+            'attribute': [{'name': pvaccess.STRING,
+                           'value': (),
+                           'descriptor': pvaccess.STRING,
+                           'sourceType': pvaccess.INT,
+                           'source': pvaccess.STRING}],
+
+            'descriptor': pvaccess.STRING,
+
+            'alarm': {'severity': pvaccess.INT,
+                      'status': pvaccess.INT,
+                      'message': pvaccess.STRING},
+
+            'timeStamp': {'secondsPastEpoch': pvaccess.LONG,
+                          'nanoseconds': pvaccess.INT,
+                          'userTag': pvaccess.INT},
+
+            'display': {'limitLow': pvaccess.DOUBLE,
+                        'limitHigh': pvaccess.DOUBLE,
+                        'description': pvaccess.STRING,
+                        'format': pvaccess.STRING,
+                        'units': pvaccess.STRING},
+        }
+
+        self.counts = 0
+        self.X = kwargs.get("X", 640)
+        self.Y = kwargs.get("Y", 480)
+        self.FPS = kwargs.get("FPS", 30)
+        self.pvprefix = kwargs.get("PV", "Test")
+
+        self.xdim = None
+        self.ydim = None
+        self.attr = None
+        self.pv = None
+        self.pvaServer = None
+        self.frames = None
+
+        self.config()
+
+    def config(self):
+        """
+
+        :return:
+        """
+        self.pv = pvaccess.PvObject(self.vidData)
+        self.pvaServer = pvaccess.PvaServer('{}:Pva1:Image'.format(self.pvprefix), self.pv)
+        print("PV Name: {}:Pva1:Image".format(self.pvprefix))
+        self.xdim = {'size': self.X, 'fullSize': self.X, 'reverse': False, 'binning': 1}
+        self.ydim = {'size': self.Y, 'fullSize': self.Y, 'reverse': False, 'binning': 1}
+        self.attr = {'name': 'ColorMode', 'descriptor': 'Color mode',
+                     'sourceType': 0, 'source': 'Driver'}
+
+        self.frames = np.zeros((self.FPS+1, self.X * self.Y), np.uint8)
+        for i in range(self.FPS+1):
+            self.frames[i] = np.random.normal(127, 64, self.X * self.Y).astype('uint8')
+
+    def update(self):
+        self.pv.set({'value': ({'ubyteValue': list(self.frames[self.counts % (self.FPS + 1)])},), })
+        self.pv.set({'dimension': [self.xdim, self.ydim]})
+        self.pv.set({'attribute': [self.attr]})
+        s, ns = divmod(time.time(), 1)
+        self.pv.set({'timeStamp': {'secondsPastEpoch': int(s),
+                                   'nanoseconds': int(ns*1e9),
+                                   'userTag': 0}})
+        self.pvaServer.update(self.pv)
+        self.counts = self.counts + 1
+
 
 def main():
-    global app, img, x, y
-    global args
+    """
+    Image simulator main routine
 
+    :return:
+    """
     parser = argparse.ArgumentParser(
-            description='AreaDetector video example')
+        description='Image provider to simulate AD and provide data via EPICS7 pvAccess')
 
-    parser.add_argument('--benchmark', action='store_true',
-                        help='measure framerate')
-    parser.add_argument('--noAGC', action='store_true',
-                        help='disable auto gain')
-
-    parser.add_argument('--channel', metavar='KEY', default=None,
-                        help='video image channel name')
+    parser.add_argument('--pv', type=str, default="Test",
+                        help='EPICS PV name prefix. The full PV name will be {prefix}:Pva1:Image'
+                             'e.g. --pv=test, the full PV name will be "test:Pva1:Image"')
+    parser.add_argument('--x', type=int, default=640,
+                        help='Horizontal image size, 640 by default')
+    parser.add_argument('--y', type=int, default=480,
+                        help='Vertical image size, 480 by default')
+    parser.add_argument('--fps', type=int, default=30,
+                        help='Frame rate per second, 30 by default')
 
     args = parser.parse_args()
 
-    app = QtGui.QApplication([])
-    win = qwidget()
-    win.setWindowTitle('daqScope')
-    layout = QtGui.QGridLayout()
-    layout.setMargin(0)
-    win.setLayout(layout)
-    img = RawImageWidget(win)
-    layout.addWidget(img, 0, 0, 0, 0)
-    win.show()
-    chan = pvaccess.Channel(args.channel)
+    pvas = ImageServer(X=args.x, Y=args.y, FPS=args.fps, PV=args.pv)
 
-    x,y = chan.get('field()')['dimension']
-    x = x['size']
-    y = y['size']
-    win.resize(x, y)
+    while True:
+        pvas.update()
+        time.sleep(1./args.fps)
 
-    chan.subscribe('update', update)
-    chan.startMonitor()
-
-    if args.benchmark:
-        start = time.time()
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
-        chan.stopMonitor()
-        chan.unsubscribe('update')
-    if args.benchmark:
-        stop = time.time()
-        print('Frames displayed: %d' % framesDisplayed)
-        print('Elapsed time:     %.3f sec' % (stop-start))
-        print('Frames per second: %.3f FPS' % (framesDisplayed/(stop-start)))
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
