@@ -142,6 +142,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.wait()
         self.datasource.stop()
+        self.timer.stop()
         self.fps = value
         self.start()
         self.signal()
