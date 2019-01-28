@@ -134,6 +134,14 @@ class ImagePlotWidget(RawImageWidget):
         else:
             self.datasource.start(routine=self.monitor_callback)
 
+    def stop(self):
+        """
+
+        :return:
+        """
+        self.timer.stop()
+        self.datasource.stop()
+
     def set_framerate(self, value):
         """
 
@@ -141,8 +149,7 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.wait()
-        self.datasource.stop()
-        self.timer.stop()
+        self.stop()
         self.fps = value
         self.start()
         self.signal()
@@ -176,7 +183,7 @@ class ImagePlotWidget(RawImageWidget):
         self.wait()
         self._agc = False
         self._lastTimestamp = None
-        self.datasource.stop()
+        self.stop()
         self.datasource.setCamera(value)
         self.__update_dimension(self.datasource.get())
         self.set_scaling()
