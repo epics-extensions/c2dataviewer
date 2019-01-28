@@ -127,12 +127,10 @@ class ImagePlotWidget(RawImageWidget):
 
         :return:
         """
-        if self.fps == 1:
-            self.timer.start(1000)
-        elif self.fps == 10:
-            self.timer.start(100)
-        else:
+        if self.fps == -1:
             self.datasource.start(routine=self.monitor_callback)
+        else:
+            self.timer.start(1000/self.fps)
 
     def stop(self):
         """
