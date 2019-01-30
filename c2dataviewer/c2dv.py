@@ -51,7 +51,8 @@ def load_config(N=None):
     :return:
     """
     import os.path
-    cfgfile = ['/etc/c2dv.cfg', os.path.expanduser('~/.c2dvrc'), 'c2dv.cfg']
+    pkgcfg = os.path.join( os.path.dirname(__file__), 'c2dv.cfg' )
+    cfgfile = ['/etc/c2dv.cfg', os.path.expanduser('~/.c2dvrc'), 'c2dv.cfg', pkgcfg]
     # if N is not None:
     #     cfgfile.append(N)
 
