@@ -11,6 +11,7 @@ PVA object viewer utilities
 """
 
 import sys
+import os.path
 import psutil
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import uic
@@ -29,7 +30,8 @@ def imagev(pv, label, scale=None, noAGC=True):
     :param noAGC: No automatic gain adjust, True by default
     :return:
     """
-    form_class = uic.loadUiType("c2dataviewer/ui/imagev.ui")[0]
+    form_path = os.path.join(os.path.dirname(__file__), "ui/imagev.ui")
+    form_class = uic.loadUiType(form_path)[0]
 
     class ImageWindow(QtWidgets.QMainWindow, form_class):
         resized = QtCore.pyqtSignal()
@@ -62,7 +64,8 @@ def imagev(pv, label, scale=None, noAGC=True):
             """
             self.imageWidget.set_scaling()
 
-    dlg_class = uic.loadUiType("c2dataviewer/ui/imagev_limit_pane.ui")[0]
+    dlg_path = os.path.join(os.path.dirname(__file__), "ui/imagev_limit_pane.ui")
+    dlg_class = uic.loadUiType(dlg_path)[0]
 
     class LimitDiaglog(QtWidgets.QDialog, dlg_class):
 

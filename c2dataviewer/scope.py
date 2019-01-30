@@ -10,6 +10,7 @@ PVA object viewer utilities
 """
 
 import sys
+import os.path
 import psutil
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import uic
@@ -25,7 +26,8 @@ def scope(cfg, **kargs):
 
     :return:
     """
-    form_class = uic.loadUiType("c2dataviewer/ui/scope.ui")[0]
+    form_path = os.path.join( os.path.dirname(__file__), "ui/scope.ui")
+    form_class = uic.loadUiType(form_path)[0]
 
     class ScopeWindow(QtWidgets.QMainWindow, form_class):
         def __init__(self, parent=None):
