@@ -33,6 +33,7 @@ class ImageController:
         self._win.pvPrefix.currentIndexChanged.connect(lambda: self.camera_changed())
 
         self._dlg = kargs.get("LIMIT", None)
+        self._warning = kargs.get("WARNING", None)
 
         self._lastFrames = 0
         self._lastTime = None
@@ -49,7 +50,7 @@ class ImageController:
         self._win.imageGainSlider.setMinimum(1)
 
         # Frame DAQ control
-        self._framerates = {'1 Hz': 1, '10 Hz': 10, 'Full IOC Rate': -1}
+        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1}
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
@@ -64,6 +65,8 @@ class ImageController:
 
         self._dlg.okButton.clicked.connect(lambda: self.acceptNewLimits())
         self._dlg.cancelButton.clicked.connect(lambda: self.cancelNewLimits())
+
+        self._warning.warningConfirmButton.clicked.connect(lambda: self.acceptWarning())
 
         self._lastTime = ptime.time()
         self._timer = kargs.get("timer", None)
@@ -151,6 +154,13 @@ class ImageController:
         """
         self._dlg.reject()
 
+    def acceptWarning(self):
+        """
+
+        :return:
+        """
+        self._warning.close()
+
     def camera_changed(self):
         """
 
@@ -160,7 +170,14 @@ class ImageController:
 
         n = self._win.pvPrefix.currentIndex()
         self.resetStatus()
-        self._win.imageWidget.camera_changed(self._cameras[n])
+        #
+        try:
+            self._win.imageWidget.camera_changed(self._cameras[n])
+        except ValueError:
+            if self._warning is not None:
+                self._warning.warningTextBrowse.setText("No data from: {}. Stop image display".
+                                                        format(self._cameras[n]))
+                self._warning.show()
 
     def resetStatus(self):
         """

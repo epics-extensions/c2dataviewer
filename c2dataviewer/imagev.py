@@ -64,10 +64,16 @@ def imagev(pv, label, scale=None, noAGC=True):
 
     dlg_class = uic.loadUiType("c2dataviewer/ui/imagev_limit_pane.ui")[0]
 
-    class LimitDiaglog(QtWidgets.QDialog, dlg_class):
-
+    class LimitDialog(QtWidgets.QDialog, dlg_class):
         def __init__(self, parent=None):
-            super(LimitDiaglog, self).__init__(parent=parent)
+            super(LimitDialog, self).__init__(parent=parent)
+            self.setupUi(self)
+
+    warning_class = uic.loadUiType("c2dataviewer/ui/warning.ui")[0]
+
+    class WarningDialog(QtWidgets.QDialog, warning_class):
+        def __init__(self, parent=None):
+            super(WarningDialog, self).__init__(parent=parent)
             self.setupUi(self)
 
     # Check for an instance of a QtWidgets.QApplication, if so use it...
@@ -82,8 +88,10 @@ def imagev(pv, label, scale=None, noAGC=True):
     data = DataReceiver(default=pv)
     w.imageWidget.set_datasource(data)
 
-    dlg = LimitDiaglog(None)
-    ImageController(w, LIMIT=dlg, PV=label, timer=QtCore.QTimer(), data=data)
+    dlg = LimitDialog(None)
+    warning = WarningDialog(None)
+    ImageController(w, LIMIT=dlg, WARNING=warning,
+                    PV=label, timer=QtCore.QTimer(), data=data)
 
     # set initial scaling factor
     if scale is not None and scale != 1.0:

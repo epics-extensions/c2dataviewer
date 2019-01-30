@@ -183,10 +183,14 @@ class ImagePlotWidget(RawImageWidget):
         self._lastTimestamp = None
         self.stop()
         self.datasource.setCamera(value)
-        self.__update_dimension(self.datasource.get())
-        self.set_scaling()
-        self.start()
-        self.signal()
+        try:
+            self.__update_dimension(self.datasource.get())
+            self.set_scaling()
+            self.start()
+            self.signal()
+        except ValueError as e:
+            self.signal()
+            raise e
 
     def enable_auto_gain(self):
         """
