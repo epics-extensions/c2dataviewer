@@ -1,18 +1,21 @@
+{% set data = load_setup_py_data() %}
+
 package:
-  name: C2DataViewer
-  version: {{ environ.get('GIT_DESCRIBE_TAG', '0.0') }}
+  name: c2dataviewer
+  version: {{ data.get('version') }}
 
 source:
   path: ..
 
 build:
-  number: {{ environ.get('GIT_DESCRIBE_NUMBER', '0') }}
+  number: 0
   entry_points:
-    - c2dv = C2DataViewer.c2dataviewer:main
+    - c2dv = c2dataviewer.c2dv:main
 
 requirements:
   build:
     - python {{ python }}
+    - versioneer
   run:
     - numpy
     - opencv
