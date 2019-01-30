@@ -8,7 +8,23 @@ It is developed with pyqtgraph, PyQt, and uses pvaPy as pvAccess Python binding.
 This is a viewer for pvData structured data objects as transported by pvAccess. Some use cases are a 'scope viewer',
 and Area Detector images from the AD pva plugin.
 
+# Conda Packaging
 
+To build a conda package:
+```bash
+conda build . -c epics
+```
+
+To install build package in a new environment:
+```bash
+conda create -n c2dv.0001 local::c2dataviewer -c epics
+```
+
+To run app from new environment:
+```bash
+source activate c2dv.0001
+c2dv --app scope
+```
 
 # TODO
 * Remove hard code EPICS7 PV field names [Done]
