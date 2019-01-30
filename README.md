@@ -30,11 +30,10 @@ It could be from command line, or selectable from drop down menu.
 
 * Bug fix when changing frame rate and/or camera [Done]
 
-* Bug to fix updating rate drop caused by CPU spark during resizing for image
-
 * Plot against multiple vertical axes
+    * Discussed, and decided to gather more requirements first before coding.
 
-* Show statistics data
+* Show statistics data for Scope
 
 * Add histogram support
 
@@ -58,6 +57,8 @@ When a PV disconnected in the middle, data source (scope_data.py) throws out a R
 Currently the UI does not catch that exception, which causes the UI crash.
 This behavior shall be improved to make the application more robust.
 A popup window shall be used instead of crashing the application. 
+
+* Bug to fix updating rate drop caused by CPU spark during resizing for image
 
 * Unit test suite
 
