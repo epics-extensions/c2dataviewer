@@ -72,7 +72,8 @@ def imagev(pv, label, scale=None, noAGC=True):
             super(LimitDialog, self).__init__(parent=parent)
             self.setupUi(self)
 
-    warning_class = uic.loadUiType("c2dataviewer/ui/warning.ui")[0]
+    warning_path = os.path.join(os.path.dirname(__file__), "ui/warning.ui")[0]
+    warning_class = uic.loadUiType(warning_path)[0]
 
     class WarningDialog(QtWidgets.QDialog, warning_class):
         def __init__(self, parent=None):
