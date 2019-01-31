@@ -298,6 +298,7 @@ class Configure:
         for ch in channel:
             paramcfg.append(ch)
         statistics = {"name": "Statistics", "type": "group", "children": [
+            {"name": "CPU", "type": "float", "value": 0, "readonly": True, "suffix": "%"},
             {"name": "Lost Arrays", "type": "int", "value": 0, "readonly": True},
             {"name": "Tot. Arrays", "type": "int", "value": 0, "readonly": True, "siPrefix": True},
             {"name": "Arrays/Sec", "type": "float", "value": 0., "readonly": True, "siPrefix": True,

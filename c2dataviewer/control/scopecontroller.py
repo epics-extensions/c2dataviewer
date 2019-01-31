@@ -10,6 +10,7 @@ PVA object viewer utilities
 """
 
 import pyqtgraph
+import numpy as np
 
 
 class ScopeController:
@@ -37,6 +38,14 @@ class ScopeController:
         self.timer.timeout.connect(self._win.graphicsWidget.update)
         self._win.graphicsWidget.set_model(self.model)
 
+        # timer to update status with statistics data
+        self.status_timer = pyqtgraph.QtCore.QTimer()
+        self.status_timer.timeout.connect(self.update_status)
+        self.status_timer.start(1000)
+
+        self.arrays = np.array([])
+        self.lastArrays = 0
+
         self.default_arrayid = "None"
         self.default_xaxes = "None"
         self.current_arrayid = "None"
@@ -49,8 +58,13 @@ class ScopeController:
         :param kargs:
         :return:
         """
-        self.default_arrayid = kargs.get("arrayid", "None")
-        self.default_xaxes = kargs.get("xaxes", "None")
+        arrayid = kargs.get("arrayid", "None")
+        if arrayid is None:
+            self.default_arrayid = "None"
+        self.set_arrayid(self.default_arrayid)
+        xaxes = kargs.get("xaxes", "None")
+        if xaxes is None:
+            self.default_xaxes = "None"
         self.set_xaxes(self.default_xaxes)
 
     def update_fdr(self, empty=False):
@@ -227,17 +241,6 @@ class ScopeController:
         # TODO need to understand this requirement more to implement it
         # it is currently a place holder
 
-    # def freeze(self, flag):
-    #     """
-    #     Freeze taking data from EPICS7 PV
-    #
-    #     :param flag:
-    #     :return:
-    #     """
-    #     self.freeze = flag
-    #     if self.isplotting:
-    #         self.stop_plotting()
-
     def set_display_mode(self, value):
         """
 
@@ -276,3 +279,44 @@ class ScopeController:
         :param value:
         :return:
         """
+
+    def update_status(self):
+        """
+        Update statistics status.
+
+        :return:
+        """
+        with self._win._proc.oneshot():
+            cpu = self._win._proc.cpu_percent(None)
+
+        # TODO algorithm to calculate Array/sec
+        arraysReceived = self._win.graphicsWidget.arraysReceived
+        n = arraysReceived - self.lastArrays
+        self.lastArrays = arraysReceived
+        self.arrays = np.append(self.arrays, n)[-10:]
+
+        for q in self.parameters.child("Statistics").children():
+
+            if q.name() == 'CPU':
+                q.setValue(cpu)
+            elif q.name() == 'Lost Arrays':
+                q.setValue(self._win.graphicsWidget.lostArrays)
+            elif q.name() == 'Tot. Arrays':
+                q.setValue(self._win.graphicsWidget.arraysReceived)
+            elif q.name() == 'Arrays/Sec':
+                q.setValue(self.arrays.mean())
+            elif q.name() == 'Bytes/Sec':
+                q.setValue(self.arrays.mean() * self._win.graphicsWidget.data_size)
+            elif q.name() == 'Rate':
+                q.setValue(self._win.graphicsWidget.fps)
+            elif q.name() == 'TrigStatus':
+                stat_str = "Not Trig Mode,Not Monitoring"
+                # if self.pvaChannel.trigger_is_monitor:
+                #     stat_str = "Not Trig Mode, Monitoring TrigPV"
+                #     if self.pvaChannel.trigger_mode:
+                #         stat_str = "Waiting for Trigger, Collecting"
+                #         if self.pvaChannel.is_triggered:
+                #             stat_str = "Got Trigger, Collecting"
+                #             if self.pvaChannel.trigger_data_done:
+                #                 stat_str = "Got Trigger, Done Collecting"
+                q.setValue(stat_str)

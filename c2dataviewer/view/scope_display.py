@@ -10,6 +10,7 @@ PVA object viewer utilities for image display
 """
 
 import pyqtgraph
+import pyqtgraph.ptime as ptime
 import numpy as np
 
 
@@ -33,8 +34,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         #   4: multiple axes with linear scale
         self.plot_type = 2
 
-        self.timer = pyqtgraph.QtCore.QTimer(self)
-
         # self.axes = None
         self.curve = []
         self.num_axes = 0
@@ -56,6 +55,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.current_xaxes = "None"
         self.current_arrayid = "None"
+
+        self.fps = None
+        self.lastTime = ptime.time()
 
     def set_model(self, model):
         """
@@ -182,8 +184,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # the first np array is the one we determine trigger position in the data. so as we step all data vectors
         # with k, the 1st vector we mark as "my_trigger_vector"
         my_trigger_vector = -1
+
         for k, v in data.get().items():
-            if k == 'ArrayId':
+            if k == self.current_arrayid:
                 if self.lastArrayId is not None:
                     if v - self.lastArrayId > 1:
                         self.lostArrays += 1
@@ -227,6 +230,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.signal()
         if self.data_size == 0:
             self.data_size = newSize
+
         self.arraysReceived += 1
         if self.first_data:
             self.first_data = False
@@ -277,4 +281,21 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     # data is not ready yet
                     pass
 
+        self.update_fps()
         self.signal()
+
+    def update_fps(self):
+        """
+        Update fps statistics
+
+        :return:
+        """
+        now = ptime.time()
+        dt = now - self.lastTime
+        self.lastTime = now
+        if self.fps is None:
+            self.fps = 1.0 / dt
+        else:
+            s = np.clip(dt * 3., 0, 1)
+            self.fps = self.fps * (1 - s) + (1.0 / dt) * s
+
