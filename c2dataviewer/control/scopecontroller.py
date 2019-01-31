@@ -51,21 +51,22 @@ class ScopeController:
         self.current_arrayid = "None"
         self.current_xaxes = "None"
 
-    def default_config(self, **kargs):
+    def default_config(self, **kwargs):
         """
         Default configuration for array ID and x axes field names
 
-        :param kargs:
+        :param kwargs:
         :return:
         """
-        arrayid = kargs.get("arrayid", "None")
+        arrayid = kwargs.get("arrayid", "None")
         if arrayid is None:
             self.default_arrayid = "None"
         self.set_arrayid(self.default_arrayid)
-        xaxes = kargs.get("xaxes", "None")
+        xaxes = kwargs.get("xaxes", "None")
         if xaxes is None:
             self.default_xaxes = "None"
         self.set_xaxes(self.default_xaxes)
+        self._win.graphicsWidget.set_range(**kwargs)
 
     def update_fdr(self, empty=False):
         """

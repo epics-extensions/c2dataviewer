@@ -49,7 +49,7 @@ It could be from command line, or selectable from drop down menu.
 * Plot against multiple vertical axes
     * Discussed, and decided to gather more requirements first before coding.
 
-* Show statistics data for Scope
+* Show statistics data for Scope [Done]
 
 * Add histogram support
 
@@ -61,7 +61,7 @@ It could be from command line, or selectable from drop down menu.
     * Diff
     * X vs Y
 
-* Filtering function
+* Filtering function [Done]
 
 Filter out data which is out of user specified range (max & min)
 

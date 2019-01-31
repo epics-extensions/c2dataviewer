@@ -58,6 +58,7 @@ def scope(cfg, **kargs):
     else:
         model = ScopeData()
         controller = ScopeController(w, model, parameters)
+        controller.default_config(**kargs)
 
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
 

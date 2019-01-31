@@ -59,6 +59,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.fps = None
         self.lastTime = ptime.time()
 
+        self._max = None
+        self._min = None
+
     def set_model(self, model):
         """
 
@@ -170,6 +173,40 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.max_length = value
         self.new_buffer = True
 
+    def set_range(self, **kwargs):
+        """
+        Set data range for data filtering.
+        Any data out of range will be filtered out, and not plotted.
+
+        :param kwargs:
+        :return:
+        """
+        self._max = kwargs.get("max", None)
+        self._min = kwargs.get("min", None)
+
+    def filter(self, data, pair=None):
+        """
+        Filter data out of range
+
+        :param data:
+        :param pair:
+        :return:
+        """
+        rd, rt = data, pair
+        if self._max is not None:
+            mask = rd <= self._max
+            rd = rd[mask]
+            if pair is not None:
+                rt = rt[mask]
+        if self._min is not None:
+            mask = rd >= self._min
+            rd = rd[mask]
+            if pair is not None:
+                rt = rt[mask]
+        if pair is not None:
+            return rd, rt
+        return rd
+
     def data_process(self, data):
         """
 
@@ -259,12 +296,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                         t = np.arange(len(data)) * T
 
                         # TODO filtering data with user given max & min value
+                        d, t = self.filter(data, t)
                         # self.curve[count].setData(self.data[self.current_xaxes], data)
 
-                        self.curve[count].setData(t-t[0], data)
+                        self.curve[count].setData(t-t[0], d)
                     else:
                         # TODO need to handle multiple waveform plotting with different data length
-                        self.curve[count].setData(data)
+                        self.curve[count].setData(self.filter(data))
                     count = count + 1
                     if self.first_run or self.new_buffer:
                         # perform auto range for the first time

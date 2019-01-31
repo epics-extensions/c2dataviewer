@@ -123,14 +123,15 @@ def main():
     parser.add_argument('--axes', type=str,
                         help='EPICS PV field name to be used for x axes for scope application.'
                              ' e.g. Time')
+    parser.add_argument('--max', type=float, default=None,
+                        help='Filter out values greater than MAX')
+    parser.add_argument('--min', type=float, default=None,
+                        help='Filter out values less than MIN')
 
     args = parser.parse_args()
     cfg = load_config(args.config)
 
-    arrayid = args.arrayid
-    x_axes = args.axes
-
-    pv_map=None
+    pv_map = None
     if args.pv is not None:
         pv_map = pvmaps(args.pv, args.alias)
 
@@ -160,7 +161,8 @@ def main():
         imagev(pv_map, list(pv_map.keys()), scale, noAGC)
     elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
         from c2dataviewer import scope
-        scope(cfg, pv=pv_map, arrayid=arrayid, xaxes=x_axes)
+        scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.axes,
+              max=args.max, min=args.min)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))
 
