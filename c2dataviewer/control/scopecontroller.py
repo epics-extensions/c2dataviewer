@@ -131,8 +131,6 @@ class ScopeController:
                     self.set_post_tigger(data)
                 elif childName == "Acquisition.HoldTrigger":
                     self.set_hold_trigger(data)
-                # elif childName == "Acquisition.Freeze":
-                #     self.freeze(data)
                 elif childName == "Acquisition.Buffer (Samples)":
                     self._win.graphicsWidget.update_buffer(data)
                 elif childName == "Acquisition.Start":
@@ -142,15 +140,15 @@ class ScopeController:
                     else:
                         self.stop_plotting()
                 elif childName == "Display.Mode":
-                    self.set_display_mode(data)
+                    self._win.graphicsWidget.set_display_mode(data)
                 elif childName == "Display.N Ave":
-                    self.set_average(data)
+                    self._win.graphicsWidget.set_average(data)
                 elif childName == "Display.Autoscale":
                     self._win.graphicsWidget.do_autoscale(data)
                 elif childName == "Display.Histogram":
-                    self.set_histogram(data)
+                    self._win.graphicsWidget.set_histogram(data)
                 elif childName == "Display.Num Bins":
-                    self.set_binning(data)
+                    self._win.graphicsWidget.set_binning(data)
                 elif childName == "Display.Refresh":
                     self.set_freshrate(data)
                 elif childName == "Config.ArrayId":
@@ -241,45 +239,6 @@ class ScopeController:
         """
         # TODO need to understand this requirement more to implement it
         # it is currently a place holder
-
-    def set_display_mode(self, value):
-        """
-
-        :param value:
-        :return:
-        """
-
-    def set_average(self, value):
-        """
-        Set average number
-
-        :param value:
-        :return:
-        """
-
-    def set_autoscale(self, flag):
-        """
-        Set flag to auto scale plotting
-
-        :param flag:
-        :return:
-        """
-
-    def set_histogram(self, flag):
-        """
-        Set flag to enable/disable histogram plotting
-
-        :param flag:
-        :return:
-        """
-
-    def set_binning(self, value):
-        """
-        Set number for binning
-
-        :param value:
-        :return:
-        """
 
     def update_status(self):
         """

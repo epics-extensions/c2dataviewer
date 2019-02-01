@@ -62,6 +62,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self._max = None
         self._min = None
 
+        self.bins = 100
+        self.fft = False
+        self.psd = False
+        self.diff = False
+        self.xy = False
+        self.histogram = False
+
     def set_model(self, model):
         """
 
@@ -207,6 +214,72 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             return rd, rt
         return rd
 
+    def set_display_mode(self, value):
+        """
+
+        :param value:
+        :return:
+        """
+        if value == 'normal':
+            self.fft = False
+            self.psd = False
+            self.diff = False
+            self.xy = False
+            self.plot.setLogMode(x=False, y=False)
+        elif value == 'fft':
+            self.fft = True
+            self.psd = False
+            self.diff = False
+            self.xy = False
+            self.plot.setLogMode(x=True, y=True)
+        elif value == 'psd':
+            self.fft = False
+            self.psd = True
+            self.diff = False
+            self.xy = False
+            self.plot.setLogMode(x=True, y=True)
+        elif value == 'diff':
+            self.fft = False
+            self.psd = False
+            self.diff = True
+            self.xy = False
+            self.plot.setLogMode(x=False, y=False)
+        elif value == 'xy':
+            self.fft = False
+            self.psd = False
+            self.diff = False
+            self.xy = True
+            self.plot.setLogMode(x=False, y=False)
+        self.plot.autoScale = True
+
+    def set_average(self, value):
+        """
+        Set average number
+
+        :param value:
+        :return:
+        """
+
+    def set_histogram(self, flag):
+        """
+        Set flag to enable/disable histogram plotting
+
+        :param flag:
+        :return:
+        """
+        self.histogram = flag
+        self.auto_scale = True
+
+    def set_binning(self, value):
+        """
+        Set number for binning
+
+        :param value:
+        :return:
+        """
+        self.bins = value
+        self.auto_scale = True
+
     def data_process(self, data):
         """
 
@@ -289,6 +362,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if name != "None":
                 try:
                     data = self.data[name]
+                    if data is None:
+                        continue
                     if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == len(data):
                         # TODO later to support: frequency field & sample period as time reference
                         # Currently, support time only
