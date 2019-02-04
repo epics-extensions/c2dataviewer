@@ -49,11 +49,16 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.data = {}
         self.first_run = True
 
+        # last id number of array received
         self.lastArrayId = None
+        # count of lost arrays
         self.lostArrays = 0
+        # count of array received
         self.arraysReceived = 0
 
+        # EPICS7 field name for horizontal axis
         self.current_xaxes = "None"
+        # EPICS7 field name for Array ID
         self.current_arrayid = "None"
 
         self.fps = None
@@ -282,6 +287,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
     def data_process(self, data):
         """
+        Process raw data off the wire
 
         :param data: raw data right after off the wire thru EPICS7 pvAccess
         :return:
@@ -345,8 +351,84 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.first_data:
             self.first_data = False
 
+    def draw_curve(self, index, data):
+        """
+        Draw a waveform curve
+
+        :param index:
+        :param data:
+        :return:
+        """
+
+        data_len = len(data)
+        # in case on time reference in PV, we declare T to sec per sample.
+        # sample period
+        sample_period = 1.0
+        # time array
+        time_array = None
+
+        if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == data_len:
+            # TODO later to support: frequency field & sample period as time reference
+            # Currently, support time only
+            sample_period = np.diff(self.data[self.current_xaxes]).mean()
+            time_array = np.arange(len(data)) * sample_period
+        else:
+            # TODO need to handle multiple waveform plotting with different data length
+            pass
+
+        if self.diff:
+            d = np.diff(data)
+
+        if self.fft or self.psd:
+            if data_len == 0:
+                return
+            yf = np.fft.rfft(data)
+            xf = np.fft.rfftfreq(data_len, d=sample_period)
+
+        if self.histogram and not self.psd and not self.fft:
+            self.curve[index].opts['stepMode'] = True
+        else:
+            self.curve[index].opts['stepMode'] = False
+
+        if self.fft:
+            self.curve[index].setData(xf, (2. / sample_period) * np.abs(yf))
+        elif self.psd:
+            df = np.diff(xf).mean()
+            psd = ((2.0 / sample_period * np.abs(yf)) ** 2) / df / 2
+            self.curve[index].setData(xf, psd)
+        elif self.histogram and not self.psd and not self.fft:
+            d = self.filter(data)
+            y, x = np.histogram(d, bins=self.bins)
+            self.curve[index].setData(x, y)
+        elif time_array is None:
+            self.curve[index].setData(self.filter(data))
+        else:
+            d, t = self.filter(d, time_array)
+            self.curve[index].setData(t-t[0], d)
+
+            # TODO support trigger mode
+            # if self.trigger_mode and self.is_triggered and is_drawtrigmark:
+            #     marktime = self.trigger_timestamp-firsttime
+            #     marklinex = np.array([marktime, marktime])
+            #     markliney = np.array([1.2 * max(d), 0.8 * min(d)])
+            #     self.trigMarker.setData(marklinex, markliney)
+            # else:
+            #     self.trigMarker.clear()
+
+        if self.first_run or self.new_buffer:
+            # perform auto range for the first time
+            self.plot.enableAutoRange()
+            # then disable it if auto scale is off
+            if not self.auto_scale:
+                self.plot.disableAutoRange()
+            if self.first_run:
+                self.first_run = False
+            elif self.new_buffer:
+                self.new_buffer = False
+
     def update(self):
         """
+        Update display plotting
 
         :return:
         """
@@ -364,31 +446,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     data = self.data[name]
                     if data is None:
                         continue
-                    if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == len(data):
-                        # TODO later to support: frequency field & sample period as time reference
-                        # Currently, support time only
-                        T = np.diff(self.data[self.current_xaxes]).mean()
-                        t = np.arange(len(data)) * T
-
-                        # TODO filtering data with user given max & min value
-                        d, t = self.filter(data, t)
-                        # self.curve[count].setData(self.data[self.current_xaxes], data)
-
-                        self.curve[count].setData(t-t[0], d)
-                    else:
-                        # TODO need to handle multiple waveform plotting with different data length
-                        self.curve[count].setData(self.filter(data))
+                    self.draw_curve(count, data)
                     count = count + 1
-                    if self.first_run or self.new_buffer:
-                        # perform auto range for the first time
-                        self.plot.enableAutoRange()
-                        # then disable it if auto scale is off
-                        if not self.auto_scale:
-                            self.plot.disableAutoRange()
-                        if self.first_run:
-                            self.first_run = False
-                        elif self.new_buffer:
-                            self.new_buffer = False
                 except KeyError:
                     # TODO solve the race condition in a better way, and add logging support later
                     # data is not ready yet
