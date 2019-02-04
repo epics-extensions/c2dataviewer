@@ -51,14 +51,14 @@ It could be from command line, or selectable from drop down menu.
 
 * Show statistics data for Scope [Done]
 
-* Add histogram support
+* Add histogram support [Done]
 
-* Add Binning support
+* Add Binning support [Done]
 
-* Support different plotting
-    * FFT
-    * PSD
-    * Diff
+* Support different plotting 
+    * FFT [Done]
+    * PSD [Done]
+    * Diff [Done]
     * X vs Y
 
 * Filtering function [Done]

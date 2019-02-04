@@ -369,12 +369,10 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == data_len:
             # TODO later to support: frequency field & sample period as time reference
+            # TODO need to handle multiple waveform plotting with different data length
             # Currently, support time only
             sample_period = np.diff(self.data[self.current_xaxes]).mean()
             time_array = np.arange(len(data)) * sample_period
-        else:
-            # TODO need to handle multiple waveform plotting with different data length
-            pass
 
         if self.diff:
             d = np.diff(data)
