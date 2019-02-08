@@ -65,6 +65,10 @@ It could be from command line, or selectable from drop down menu.
 
 Filter out data which is out of user specified range (max & min)
 
+* Keep latest plot when stopping plotting [Done]
+
+* BUG: buffer size from configuration is not initialized properly. [Done]
+
 * Add trigger support
 
 * Handle PV disconnection in a more proper way
