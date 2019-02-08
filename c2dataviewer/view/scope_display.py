@@ -27,6 +27,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.names = []
         self.auto_scale = False
         self.first_data = True
+        self.plotting_started = False
 
         # Plotting type:
         #   2: single axes with linear scale
@@ -89,12 +90,10 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         if self.curve:
-            # if self.plot_type == 2:
             for nn in range(0, len(self.curve)):
                 self.plot.removeItem(self.curve[nn])
 
         self.curve.clear()
-        # self.num_axes = 0
 
     def set_arrayid(self, value):
         """
@@ -359,7 +358,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param data:
         :return:
         """
-
         data_len = len(data)
         # in case on time reference in PV, we declare T to sec per sample.
         # sample period
@@ -424,18 +422,18 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             elif self.new_buffer:
                 self.new_buffer = False
 
-    def update(self):
+    def update_drawing(self):
         """
         Update display plotting
 
         :return:
         """
-        self.wait()
-
-        if self.first_data:
+        if self.first_data or not self.plotting_started:
             # TODO this is to help to over come race condition. To be done in a better way later
-            self.signal()
+            # self.signal()
             return
+
+        self.wait()
 
         count = 0
         for name in self.names:

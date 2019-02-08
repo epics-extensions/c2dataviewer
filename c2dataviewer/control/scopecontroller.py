@@ -35,7 +35,7 @@ class ScopeController:
         self.freeze = False
 
         self.timer = pyqtgraph.QtCore.QTimer()
-        self.timer.timeout.connect(self._win.graphicsWidget.update)
+        self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
         self._win.graphicsWidget.set_model(self.model)
 
         # timer to update status with statistics data
@@ -134,7 +134,8 @@ class ScopeController:
                 elif childName == "Acquisition.Buffer (Samples)":
                     self._win.graphicsWidget.update_buffer(data)
                 elif childName == "Acquisition.Start":
-                    self.plotting_started = data
+                    # self.plotting_started = data
+                    self._win.graphicsWidget.plotting_started = data
                     if data:
                         self.start_plotting()
                     else:
@@ -155,7 +156,8 @@ class ScopeController:
                     self.set_arrayid(data)
                 elif childName == "Config.X Axes":
                     self.set_xaxes(data)
-                else:
+                elif "Channel" in childName:
+                    # avoid changes caused by Statistic updating
                     for i in range(self.channels):
                         if childName == 'Channel %s.Field' % (i + 1):
                             self.chnames[i] = self.parameters.child(path[0]).child('Field').value()
@@ -168,9 +170,10 @@ class ScopeController:
         :param value: time interval to plot, in second
         :return:
         """
-        self.refresh = value*1000.0
         self.stop_plotting()
-        if self.plotting_started:
+        self.refresh = value*1000.0
+        # if self.plotting_started:
+        if self._win.graphicsWidget.plotting_started:
             self.start_plotting()
 
     def start_plotting(self):
