@@ -88,7 +88,7 @@ class Configure:
                 {"name": "PostTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
                 {"name": "HoldTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
                 # {"name": "Freeze", "type": "bool", "value": False},
-                {"name": "Buffer", "type": "int", "value": 256, "siPrefix": True, "suffix": "Samples"},
+                {"name": "Buffer (Samples)", "type": "int", "value": 256, "siPrefix": True, "suffix": "Samples"},
                 {"name": "Start", "type": "bool", "value": False}
             ]}
         else:

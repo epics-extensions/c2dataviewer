@@ -68,6 +68,9 @@ class ScopeController:
         self.set_xaxes(self.default_xaxes)
         self._win.graphicsWidget.set_range(**kwargs)
 
+        self._win.graphicsWidget.max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
+        self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
+
     def update_fdr(self, empty=False):
         """
         Update EPICS7 PV field description
