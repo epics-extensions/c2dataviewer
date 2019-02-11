@@ -170,12 +170,12 @@ class ImageController:
 
         n = self._win.pvPrefix.currentIndex()
         self.resetStatus()
-        #
         try:
             self._win.imageWidget.camera_changed(self._cameras[n])
-        except ValueError:
+        except (ValueError, RuntimeError):
             if self._warning is not None:
-                self._warning.warningTextBrowse.setText("No data from: {}. Stop image display".
+                self._warning.warningTextBrowse.setText("No data from: {}. Stop image display. \n"
+                                                        "Please select a different channel.".
                                                         format(self._cameras[n]))
                 self._warning.show()
 
@@ -189,11 +189,6 @@ class ImageController:
         self._win.imageWidget._dt = [1]
         self._fps = 0
         self._net = 0
-        # TODO clear window status
-        # try:
-        #     self._win.clearStatus()
-        # except NameError:
-        #     pass
 
     def statistics_update(self, valuefield, value, **kargs):
         """

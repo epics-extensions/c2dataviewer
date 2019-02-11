@@ -13,6 +13,7 @@ import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 import cv2
+from pvaccess import PvaException
 
 
 class ImagePlotWidget(RawImageWidget):
@@ -163,7 +164,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.data = data
         self.wait()
-        self.display(data)
+        self.display(self.data)
         self.signal()
 
     def get(self):
@@ -180,21 +181,35 @@ class ImagePlotWidget(RawImageWidget):
         """
 
         :return:
+        :raise RuntimeError:
         """
         self.wait()
         self._agc = False
         self._lastTimestamp = None
-        # self.stop()
         try:
             self.datasource.update_device(value)
-        except RuntimeError as e:
-            print(repr(e))
+        except PvaException as e:
+            # TODO wrap PvaException from pvaPy in a better way for other interface
+            # pvAccess connection error
+            # release mutex lock
+            self.signal()
+            # stop display
+            self.stop()
+            # Raise runtime exception
+            raise RuntimeError(str(e))
         try:
             self.__update_dimension(self.datasource.get())
+        except ValueError as e:
+            self.stop()
+            self.signal()
+            raise e
+
+        try:
             self.set_scaling()
             self.start()
             self.signal()
         except ValueError as e:
+            self.stop()
             self.signal()
             raise e
 
@@ -249,9 +264,10 @@ class ImagePlotWidget(RawImageWidget):
             npdt = 'uint8'
             embeddedDataLen = 40
         else:
+            self.stop()
             raise RuntimeError('No recognized image data received.')
 
-        self.__update_dimension(data)
+        # self.__update_dimension(data)
 
         if maxVal != self.maxVal:
             self.maxVal = maxVal
