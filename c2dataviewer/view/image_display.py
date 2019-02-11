@@ -164,18 +164,29 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.data = data
         self.wait()
-        self.display(self.data)
-        self.signal()
+        try:
+            self.display(self.data)
+            self.signal()
+        except RuntimeError:
+            self.signal()
 
     def get(self):
         """
 
         :return:
         """
-        self.data = self.datasource.get('field()')
+        try:
+            self.data = self.datasource.get('field()')
+        except PvaException as e:
+            self.stop()
+            # raise e
+
         self.wait()
-        self.display(self.data)
-        self.signal()
+        try:
+            self.display(self.data)
+            self.signal()
+        except RuntimeError:
+            self.signal()
 
     def camera_changed(self, value):
         """
