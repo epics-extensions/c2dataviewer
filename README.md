@@ -75,14 +75,16 @@ Filter out data which is out of user specified range (max & min)
 
 * ENH: Handling empty image channel with no data inside in a more proper way instead of crashing [Done] 
 
-* Add trigger support
-
-* Handle PV disconnection in a more proper way
+* Handle PV disconnection in a more proper way [Done]
 
 When a PV disconnected in the middle, data source (scope_data.py) throws out a RuntimeError, which is proper.
 Currently the UI does not catch that exception, which causes the UI crash.
 This behavior shall be improved to make the application more robust.
 A popup window shall be used instead of crashing the application. 
+
+* ENH: move exception handling to controller
+
+* Add trigger support
 
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
 
