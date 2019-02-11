@@ -17,7 +17,7 @@ from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import uic
 from pyqtgraph import QtCore
 from .control import ImageController
-from .model import ImageData as DataReceiver
+from .model import DataSource as DataReceiver
 
 
 def imagev(pv, label, scale=None, noAGC=True):
@@ -89,7 +89,7 @@ def imagev(pv, label, scale=None, noAGC=True):
 
     w = ImageWindow(None)
     w.imageWidget.gain_controller(w.imageBlackSlider, w.imageGainSlider)
-    data = DataReceiver(default=pv)
+    data = DataReceiver(default=list(pv.values())[0])
     w.imageWidget.set_datasource(data)
 
     dlg = LimitDialog(None)

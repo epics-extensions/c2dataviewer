@@ -138,7 +138,10 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         self.timer.stop()
-        self.datasource.stop()
+        try:
+            self.datasource.stop()
+        except RuntimeError as e:
+            print(repr(e))
 
     def set_framerate(self, value):
         """
@@ -181,8 +184,11 @@ class ImagePlotWidget(RawImageWidget):
         self.wait()
         self._agc = False
         self._lastTimestamp = None
-        self.stop()
-        self.datasource.setCamera(value)
+        # self.stop()
+        try:
+            self.datasource.update_device(value)
+        except RuntimeError as e:
+            print(repr(e))
         try:
             self.__update_dimension(self.datasource.get())
             self.set_scaling()

@@ -4,7 +4,7 @@
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
 
-PVA object viewer utilities
+PVA object viewer utilities using pvaPy as pvAccess binding
 
 @author: Guobao Shen <gshen@anl.gov>
 """
@@ -14,27 +14,57 @@ import pvaccess as pva
 from pvaccess import PvaException
 
 
-class ScopeData:
-
-    def __init__(self, pv=None):
+class DataSource:
+    def __init__(self, default=None):
         """
 
-        :param pv:
+        :param default:
         """
-        self.pv = pv
-        # self.timer = timer
+        # local cache of latest data
+        self.data = None
+        # EPICS7 channel
+        self.channel = None
 
-        self.fps = -1
-        # self.timer.timeout.connect(self.get)
-        if self.pv is not None:
-            self.channel = pva.Channel(self.pv)
-        else:
-            self.channel = None
+        # default PV name
+        self.device = None
+        if default is not None:
+            if type(default) in [list, tuple]:
+                self.__init_connection(default[0])
+            elif type(default) == dict:
+                self.__init_connection(list(default.values())[0])
+            elif type(default) == str:
+                self.__init_connection(default)
+            else:
+                raise RuntimeError("Unknown data type of default parameter: ", default)
 
+        # trigger support from external EPICS3/7 channel
         self.trigger = None
         self.trigger_chan = None
 
-        self.data = None
+    def __init_connection(self, name):
+        """
+        Create initial channel connection with given PV name
+
+        :param name: EPICS7 PV name
+        :return:
+        """
+        self.device = name
+        self.channel = pva.Channel(self.device)
+        self.get()
+
+    def get(self, field=None):
+        """
+        Get data of given field name.
+        If field is None, get whole EPICS7 record data from current EPICS7 channel.
+
+        :param field: EPICS7 field name
+        :return:
+        """
+        if field is None:
+            data = self.channel.get('field()')
+        else:
+            data = self.channel.get(field)
+        return data
 
     def get_fdr(self):
         """
@@ -64,17 +94,18 @@ class ScopeData:
 
         return fdr, fdr_scalar
 
-    def update_pv(self, name, restart=False):
+    def update_device(self, name, restart=False):
         """
-        Update the EPICS PV name, and test its connectivity
+        Update device, EPICS PV name, and test its connectivity
 
-        :param name:
-        :param restart:
+        :param name: device name
+        :param restart: flag to restart or not
         :return:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
         if self.channel is not None:
             self.stop()
+
         if name != "":
             chan = pva.Channel(name)
             # test channel connectivity
@@ -83,10 +114,8 @@ class ScopeData:
             # channel connected successfully
             # update old channel information with the new one
             self.channel = chan
-            self.pv = name
+            self.device = name
 
-            # self._win.imageWidget.camera_changed()
-            # self._win.imageWidget.display(self.data)
             if restart:
                 self.start()
         else:
@@ -94,19 +123,21 @@ class ScopeData:
 
     def monitor_callback(self, data):
         """
+        Default call back routine for EPICS7 channel of current device.
+        It updates the data with the latest value.
 
-        :param data:
+        :param data: new data from EPICS7 channel
         :return:
         """
         self.data = data.get()
 
     def start(self, routine=None):
         """
+        Start a EPICS7 monitor for current device.
 
         :return:
+        :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
-
-        # TODO update fps later accordingly
         if self.channel is None:
             # there is nothing to start since channel does not exist yet
             return
@@ -117,9 +148,15 @@ class ScopeData:
                 self.channel.subscribe('monitorCallback', routine)
             self.channel.startMonitor('')
         except PvaException:
-            raise RuntimeError("Cannot connect to PV")
+            raise RuntimeError("Cannot connect to EPICS7 PV ({})".format(self.device))
 
     def stop(self):
+        """
+        Stop monitor EPICS7 channel for current device.
+
+        :return:
+        :raise PvaException: raise pvaccess exception when channel fails to disconnect.
+        """
         if self.channel is None:
             # there is nothing to stop since channel does not exist yet
             return
@@ -127,7 +164,7 @@ class ScopeData:
             self.channel.stopMonitor()
             self.channel.unsubscribe('monitorCallback')
         except PvaException:
-            # raise RuntimeError("Fail to disconnect")
+            # raise RuntimeError("Fail to disconnect EPICS7 PV ({})".format(self.device))
             pass
 
     def update_trigger(self, name, proto=None):
@@ -135,6 +172,7 @@ class ScopeData:
         Update trigger PV name
 
         :param name:
+        :param proto:
         :return:
         """
         if self.trigger_chan is not None:

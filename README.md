@@ -69,6 +69,12 @@ Filter out data which is out of user specified range (max & min)
 
 * BUG: buffer size from configuration is not initialized properly. [Done]
 
+* ENH: Improve model handling: merge pvAccess layer for different application into one class. [Done]
+
+* ENH: Handling channel connection time out in a more proper way instead of crashing
+
+* ENH: Handling empty image channel with no data inside in a more proper way instead of crashing 
+
 * Add trigger support
 
 * Handle PV disconnection in a more proper way
