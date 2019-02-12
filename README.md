@@ -46,9 +46,6 @@ It could be from command line, or selectable from drop down menu.
 
 * Bug fix when changing frame rate and/or camera [Done]
 
-* Plot against multiple vertical axes
-    * Discussed, and decided to gather more requirements first before coding.
-
 * Show statistics data for Scope [Done]
 
 * Add histogram support [Done]
@@ -86,7 +83,17 @@ A popup window shall be used instead of crashing the application.
 
 * Add trigger support
 
+An external PV which behaviors like a trigger. It currently accepts an EPICS3 bo-like PV.
+The trigger function will be enable when a trigger PV name is given, and trigger mode is enabled.
+When the value of given trigger PV changed from 0 to 1, it triggers the Scope to 
+capture the 2nd half of buffer, then stop data capturing. 
+The Scope ignores the value change, and stays off data capturing in cases 1) trigger changes from 1 to 0; 2) trigger stays at value 1.
+When Scope goes from data capturing mode to data off capturing mode, the UI shall uncheck the start checkbox. 
+
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
+
+* Plot against multiple vertical axes
+    * Discussed, and decided to gather more requirements first before coding.
 
 * Unit test suite
 

@@ -359,8 +359,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         data_len = len(data)
-        # in case on time reference in PV, we declare T to sec per sample.
-        # sample period
+        # in case on time reference in PV, we declare sample period to sec per sample.
+        # 1 second per sample as initial
         sample_period = 1.0
         # time array
         time_array = None
