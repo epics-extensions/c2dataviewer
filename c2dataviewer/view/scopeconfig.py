@@ -14,16 +14,17 @@ class Configure:
     """
     Scope application configuration panel settings
     """
-    def __init__(self, params, **kargs):
+    def __init__(self, params, **kwargs):
         """
 
         :param params: parameters parsed from command line and configuration file
         :param pvs: pv name dictionary, format: {"alias": "PV:Name"}
         """
         self.params = params
-        self.pvs = kargs.get("pv", None)
-        self.default_arrayid = kargs.get("arrayid", "None")
-        self.default_xaxes = kargs.get("xaxes", "None")
+        self.pvs = kwargs.get("pv", None)
+        self.default_arrayid = kwargs.get("arrayid", "None")
+        self.default_xaxes = kwargs.get("xaxes", "None")
+        self.default_trigger = kwargs.get("trigger", None)
 
         self.counts = 4
         self.default_color = ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
@@ -83,7 +84,7 @@ class Configure:
                 # EPICS7 PV name, which assumes pvAccess protocol
                 # Alias name to be supported later
                 {"name": "PV", "type": "str", "value": pv},
-                {"name": "TrigPV", "type": "str", "value": None},
+                {"name": "TrigPV", "type": "str", "value": self.default_trigger},
                 {"name": "TriggerMode", "type": "bool", "value": False, "readonly": True},
                 # {"name": "PostTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
                 # {"name": "HoldTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
@@ -109,6 +110,8 @@ class Configure:
             # Trigger PV name and protocol, which comes with format of proto://pv_name
             # the protocol is either ca:// for channel access or pva:// for pvAccess
             trigger_pv = section.get("TRIGGER", None)
+            if self.default_trigger is not None:
+                trigger_pv = self.default_trigger
 
             if trigger_pv is not None and trigger_pv.upper().strip() == "NONE":
                 # set trigger PV value to None if a "None" string comes from configuration

@@ -20,7 +20,7 @@ from .model import DataSource as DataReceiver
 from .control import ScopeController
 
 
-def scope(cfg, **kargs):
+def scope(cfg, **kwargs):
     """
     Main function for scope display
 
@@ -45,7 +45,7 @@ def scope(cfg, **kargs):
 
     w = ScopeWindow()
 
-    configure = Configure(cfg, **kargs)
+    configure = Configure(cfg, **kwargs)
     parameters = Parameter.create(name="params", type="group", children=configure.parse())
     w.parameterPane.setParameters(parameters, showTop=False)
     pvmap = configure.pvs
@@ -62,12 +62,12 @@ def scope(cfg, **kargs):
     if pvmap is not None:
         model = DataReceiver(default=list(pvmap.values())[0])
         controller = ScopeController(w, model, parameters, WARNING=warning)
-        controller.default_config(**kargs)
+        controller.default_config(**kwargs)
         controller.update_fdr()
     else:
         model = DataReceiver()
         controller = ScopeController(w, model, parameters, WARNING=warning)
-        controller.default_config(**kargs)
+        controller.default_config(**kwargs)
 
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
 

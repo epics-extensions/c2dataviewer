@@ -127,6 +127,11 @@ def main():
                         help='Filter out values greater than MAX')
     parser.add_argument('--min', type=float, default=None,
                         help='Filter out values less than MIN')
+    parser.add_argument('--trigger', type=str, default=None,
+                        help='Trigger PV for scope. Format: [proto://]pv_name. '
+                             'Protocol is optional, and needs to be either "ca" or "pva" when specified, '
+                             'by default, uses EPICS7 pvAccess.'
+                             ' e.g. ca://MY:TEST:TRIG:PV or MY:TEST:TRIG:PV')
 
     args = parser.parse_args()
     cfg = load_config(args.config)
@@ -162,7 +167,7 @@ def main():
     elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
         from c2dataviewer import scope
         scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.axes,
-              max=args.max, min=args.min)
+              max=args.max, min=args.min, trigger=args.trigger)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))
 

@@ -79,16 +79,33 @@ Currently the UI does not catch that exception, which causes the UI crash.
 This behavior shall be improved to make the application more robust.
 A popup window shall be used instead of crashing the application. 
 
-* ENH: move exception handling to controller
+* ENH: move exception handling to controller [Done]
 
-* Add trigger support
+* Add trigger support [Done]
 
-An external PV which behaviors like a trigger. It currently accepts an EPICS3 bo-like PV.
+Support an external PV which behaviors like a trigger. It currently takes an EPICS3 binary-like PV.
 The trigger function will be enable when a trigger PV name is given, and trigger mode is enabled.
-When the value of given trigger PV changed from 0 to 1, it triggers the Scope to 
-capture the 2nd half of buffer, then stop data capturing. 
-The Scope ignores the value change, and stays off data capturing in cases 1) trigger changes from 1 to 0; 2) trigger stays at value 1.
+When the value of given trigger PV changed from 0 to 1, it triggers the Scope to capture data to until 
+the 2nd half of buffer filled up. Once the buffer is captured, it stops data capturing, and displays data for scope. 
+The event from trigger PV is ignored in the following cases: 
+1) trigger changes from 1 to 0; 
+2) trigger stays at value 1.
+
 When Scope goes from data capturing mode to data off capturing mode, the UI shall uncheck the start checkbox. 
+
+The external trigger support is for scope application currently, and does not work for image yet. 
+
+Advanced function to be implemented later:
+1) Time period requirements to hold trigger after valid trigger event;
+2) Customized time for taking data after valid trigger event.
+
+* Support trigger pv from command line [Done]
+
+* Add trigger position in plotting
+
+* Utilize time stamp to determine trigger position
+
+* Strip plotting
 
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
 
