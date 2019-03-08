@@ -476,12 +476,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.first_data:
             self.first_data = False
 
-    def draw_curve(self, index, data):
+    def draw_curve(self, count, data, index):
         """
         Draw a waveform curve
 
-        :param index:
-        :param data:
+        :param count:  count of curve for plotting
+        :param data:   curve data for plotting
+        :param index:  DC offset index
         :return:
         """
         data_len = len(data)
@@ -508,25 +509,25 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             xf = np.fft.rfftfreq(data_len, d=sample_period)
 
         if self.histogram and not self.psd and not self.fft:
-            self.curve[index].opts['stepMode'] = True
+            self.curve[count].opts['stepMode'] = True
         else:
-            self.curve[index].opts['stepMode'] = False
+            self.curve[count].opts['stepMode'] = False
 
         if self.fft:
-            self.curve[index].setData(xf, (2. / sample_period) * np.abs(yf))
+            self.curve[count].setData(xf, (2. / sample_period) * np.abs(yf))
         elif self.psd:
             df = np.diff(xf).mean()
             psd = ((2.0 / sample_period * np.abs(yf)) ** 2) / df / 2
-            self.curve[index].setData(xf, psd)
+            self.curve[count].setData(xf, psd)
         elif self.histogram and not self.psd and not self.fft:
             d = self.filter(data)
             y, x = np.histogram(d, bins=self.bins)
-            self.curve[index].setData(x, y)
+            self.curve[count].setData(x, y)
         elif time_array is None:
-            self.curve[index].setData(self.filter(data)+self.dc_offsets[index])
+            self.curve[count].setData(self.filter(data) + self.dc_offsets[index])
         else:
             d, t = self.filter(d, time_array)
-            self.curve[index].setData(t-t[0], d+self.dc_offsets[index])
+            self.curve[count].setData(t - t[0], d + self.dc_offsets[index])
 
             # TODO support trigger mode
             # if self.trigger_mode and self.is_triggered and is_drawtrigmark:
@@ -561,15 +562,15 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.wait()
 
-        # count = 0
-        for count, name in enumerate(self.names):
+        count = 0
+        for idx, name in enumerate(self.names):
             if name != "None":
                 try:
                     data = self.data[name]
                     if data is None:
                         continue
-                    self.draw_curve(count, data)
-                    # count = count + 1
+                    self.draw_curve(count, data, idx)
+                    count = count + 1
                 except KeyError:
                     # TODO solve the race condition in a better way, and add logging support later
                     # data is not ready yet
