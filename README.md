@@ -103,9 +103,9 @@ Advanced function to be implemented later:
 
 * User adjustable DC offset for all channels [Done] 
 
-* Add trigger position in plotting
+* Add trigger position in plotting [Done]
 
-* Utilize time stamp to determine trigger position
+* Utilize time stamp to determine trigger position [Done]
 
 * Handle trigger with ai/ao, and select trigger level
 
