@@ -80,6 +80,7 @@ class ScopeController:
         self._win.graphicsWidget.dc_offsets = [0.0] * self.channels
 
         self._win.graphicsWidget.max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
+        self._win.graphicsWidget.samples_after_trig = int(self._win.graphicsWidget.max_length / 2)
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
 
         self.default_trigger = kwargs.get("trigger", None)
