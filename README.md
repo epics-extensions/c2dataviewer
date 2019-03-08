@@ -101,9 +101,13 @@ Advanced function to be implemented later:
 
 * Support trigger pv from command line [Done]
 
+* User adjustable DC offset for all channels [Done] 
+
 * Add trigger position in plotting
 
 * Utilize time stamp to determine trigger position
+
+* Handle trigger with ai/ao, and select trigger level
 
 * Strip plotting
 

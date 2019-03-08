@@ -76,6 +76,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.xy = False
         self.histogram = False
 
+        self.dc_offsets = None
+
         ##############################
         #
         # trigger related variables
@@ -521,10 +523,10 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             y, x = np.histogram(d, bins=self.bins)
             self.curve[index].setData(x, y)
         elif time_array is None:
-            self.curve[index].setData(self.filter(data))
+            self.curve[index].setData(self.filter(data)+self.dc_offsets[index])
         else:
             d, t = self.filter(d, time_array)
-            self.curve[index].setData(t-t[0], d)
+            self.curve[index].setData(t-t[0], d+self.dc_offsets[index])
 
             # TODO support trigger mode
             # if self.trigger_mode and self.is_triggered and is_drawtrigmark:
@@ -559,15 +561,15 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.wait()
 
-        count = 0
-        for name in self.names:
+        # count = 0
+        for count, name in enumerate(self.names):
             if name != "None":
                 try:
                     data = self.data[name]
                     if data is None:
                         continue
                     self.draw_curve(count, data)
-                    count = count + 1
+                    # count = count + 1
                 except KeyError:
                     # TODO solve the race condition in a better way, and add logging support later
                     # data is not ready yet

@@ -63,6 +63,7 @@ class Configure:
                          "readonly": True
                      },
                      {"name": "Field", "type": "list", "values": [], "value": "None"},
+                     {"name": "DC offset", "type": "float", "value": 0.0}
                  ]
                  }
             )

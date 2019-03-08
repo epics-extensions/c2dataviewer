@@ -75,6 +75,8 @@ class ScopeController:
         self.set_xaxes(self.default_xaxes)
         self._win.graphicsWidget.set_range(**kwargs)
 
+        self._win.graphicsWidget.dc_offsets = [0.0] * self.channels
+
         self._win.graphicsWidget.max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
 
@@ -216,8 +218,11 @@ class ScopeController:
                     # avoid changes caused by Statistic updating
                     for i in range(self.channels):
                         if childName == 'Channel %s.Field' % (i + 1):
-                            self.chnames[i] = self.parameters.child(path[0]).child('Field').value()
-                    self._win.graphicsWidget.setup_plot(self.chnames, single_axis=True)
+                            self.chnames[i] = data
+                        elif childName == 'Channel %s.DC offset' % (i + 1):
+                            self._win.graphicsWidget.dc_offsets[i] = data
+                    if "Field" in childName:
+                        self._win.graphicsWidget.setup_plot(self.chnames, single_axis=True)
 
     def set_freshrate(self, value):
         """
