@@ -94,7 +94,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # self.samples_before_trig = 0
 
         self.trigger_mode = False
-        self.trigger_data_done = False
+        self.trigger_data_done = True
         # true if in trig mode and trig was received. that is the pv mon fired.
         self.is_triggered = False
         # counts whenever trigger pv monitor fires callback
@@ -122,15 +122,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 QtCore.QObject.__init__(self)
 
         self.plot_signal_emitter = Foo()
-
-    def __alloc_trigger_size__(self):
-        """
-        Set size for trigger
-
-        :return:
-        """
-        self.samples_after_trig = int(self.max_length/2)
-        self.samples_before_trig = self.max_length - self.sample_after_trig
 
     def set_model(self, model):
         """
@@ -369,32 +360,34 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # TODO handle trigger event for the case of plotting freezing,
         # need to handle multiple trigger before done with current trigger, and during plotting freezing
         #
-        if self.trigger_rec_type in ["bi", "bo"]:
-            # only trigger during jumping from 0 => 1
-            if data["value"]["index"] == 1:
+        if self.trigger_data_done:
+            # only accept new trigger after the current trigger done
+            if self.trigger_rec_type in ["bi", "bo"]:
+                # only trigger during jumping from 0 => 1
+                if data["value"]["index"] == 1:
+                    self.is_triggered = True
+            elif self.trigger_rec_type in ["longin", "longout"]:
+                # always triggers when values changes
                 self.is_triggered = True
-            elif self.trigger_data_done:
-                self.is_triggered = False
-        elif self.trigger_rec_type in ["longin", "longout"]:
-            # always triggers when values changes
-            self.is_triggered = True
-        elif self.trigger_rec_type in ["calc"]:
-            # always triggers when values changes
-            self.is_triggered = True
-        elif self.trigger_rec_type in ["ai", "ao"]:
-            # always triggers when values changes
-            # TODO set trigger level later
-            self.is_triggered = True
+            elif self.trigger_rec_type in ["calc"]:
+                # always triggers when values changes
+                self.is_triggered = True
+            elif self.trigger_rec_type in ["ai", "ao"]:
+                # always triggers when values changes
+                # TODO set trigger level later
+                self.is_triggered = True
 
-        self.trigger_count = self.trigger_count + 1
-        ts = data['timeStamp']
-        # because the callback happens on connection, we set flag on 2nd callback, when monitor fires for real.
-        # also, we only call this stuff if is_triggered is False
-        # so we don't trigger again before we process the last trigger.
-        # also, if hold off ignore, then during a hold off time, we ignore triggers for example for 1 second.
-        if self.trigger_count > 0 and self.is_triggered:
-            self.samples_after_trig_cnt = 0
-            self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+            self.trigger_count = self.trigger_count + 1
+            ts = data['timeStamp']
+            # because the callback happens on connection, we set flag on 2nd callback, when monitor fires for real.
+            # also, we only call this stuff if is_triggered is False
+            # so we don't trigger again before we process the last trigger.
+            # also, if hold off ignore, then during a hold off time, we ignore triggers for example for 1 second.
+            if self.trigger_count > 0 and self.is_triggered:
+                self.samples_after_trig_cnt = 0
+                self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+
+            self.trigger_data_done = False
 
     def data_process(self, data):
         """
@@ -582,8 +575,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     # data is not ready yet
                     pass
 
-        self.is_triggered = False
-        self.trigger_data_done = True
+        if self.trigger_mode and self.is_triggered:
+            self.is_triggered = False
+            self.trigger_data_done = True
 
         self.update_fps()
         self.signal()
