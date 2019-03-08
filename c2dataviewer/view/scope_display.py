@@ -392,7 +392,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # also, we only call this stuff if is_triggered is False
         # so we don't trigger again before we process the last trigger.
         # also, if hold off ignore, then during a hold off time, we ignore triggers for example for 1 second.
-        if self.trigger_count > 1 and self.is_triggered is False:
+        if self.trigger_count > 0 and self.is_triggered:
             self.samples_after_trig_cnt = 0
             self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
 
@@ -477,13 +477,14 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.first_data:
             self.first_data = False
 
-    def draw_curve(self, count, data, index):
+    def draw_curve(self, count, data, index, draw_trig_mark=False):
         """
         Draw a waveform curve
 
         :param count:  count of curve for plotting
         :param data:   curve data for plotting
         :param index:  DC offset index
+        :param draw_trig_mark: flag whether drawing trigger mark
         :return:
         """
         data_len = len(data)
@@ -498,7 +499,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             # TODO need to handle multiple waveform plotting with different data length
             # Currently, support time only
             sample_period = np.diff(self.data[self.current_xaxes]).mean()
-            time_array = np.arange(len(data)) * sample_period
+            time_array = self.data[self.current_xaxes]
 
         if self.diff:
             d = np.diff(data)
@@ -531,15 +532,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.curve[count].setData(t - t[0], d + self.dc_offsets[index])
 
             if self.trigger_mode and self.is_triggered:
-                # # Add trigger marker on plotting
-                # print(t[0], self.trigger_timestamp, time_array[0])
-                # marktime = self.trigger_timestamp-time_array[0]
-                # marklinex = np.array([marktime, marktime])
-                # markliney = np.array([1.2 * max(d), 0.8 * min(d)])
-                # self.trigMarker.setData(marklinex, markliney)
-
-                self.is_triggered = False
-                self.trigger_data_done = True
+                if draw_trig_mark:
+                    # # Add trigger marker on plotting
+                    marktime = self.trigger_timestamp - time_array[0]
+                    marklinex = np.array([marktime, marktime])
+                    # markliney = np.array([1.2 * max(d), 0.8 * min(d)])
+                    markliney = np.array(self.plot.viewRange()[1])*0.75
+                    self.trigMarker.setData(marklinex, markliney)
             else:
                 self.trigMarker.clear()
 
@@ -568,18 +567,23 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.wait()
 
         count = 0
+        draw_trig_mark = True
         for idx, name in enumerate(self.names):
             if name != "None":
                 try:
                     data = self.data[name]
                     if data is None:
                         continue
-                    self.draw_curve(count, data, idx)
+                    self.draw_curve(count, data, idx, draw_trig_mark)
+                    draw_trig_mark = False
                     count = count + 1
                 except KeyError:
                     # TODO solve the race condition in a better way, and add logging support later
                     # data is not ready yet
                     pass
+
+        self.is_triggered = False
+        self.trigger_data_done = True
 
         self.update_fps()
         self.signal()
