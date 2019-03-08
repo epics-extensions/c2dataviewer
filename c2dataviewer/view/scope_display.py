@@ -520,29 +520,11 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.curve[count].setData(x, y)
         elif time_array is None:
             self.curve[count].setData(self.filter(data) + self.dc_offsets[index])
-            if self.trigger_mode and self.is_triggered:
-                if draw_trig_mark:
-                    # Add trigger marker on plotting
-                    marktime = self.max_length - self.samples_after_trig_cnt
-                    marklinex = np.array([marktime, marktime])
-                    markliney = np.array(self.plot.viewRange()[1])*0.75
-                    self.trigMarker.setData(marklinex, markliney)
-            else:
-                self.trigMarker.clear()
+            self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.samples_after_trig_cnt)
         else:
             d, t = self.filter(data, time_array)
             self.curve[count].setData(t - t[0], d + self.dc_offsets[index])
-
-            if self.trigger_mode and self.is_triggered:
-                if draw_trig_mark:
-                    # Add trigger marker on plotting
-                    marktime = self.trigger_timestamp - time_array[0]
-                    marklinex = np.array([marktime, marktime])
-                    # markliney = np.array([1.2 * max(d), 0.8 * min(d)])
-                    markliney = np.array(self.plot.viewRange()[1])*0.75
-                    self.trigMarker.setData(marklinex, markliney)
-            else:
-                self.trigMarker.clear()
+            self.__handle_trigger_marker__(draw_trig_mark, self.trigger_timestamp - time_array[0])
 
         if self.first_run or self.new_buffer:
             # perform auto range for the first time
@@ -554,6 +536,22 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 self.first_run = False
             elif self.new_buffer:
                 self.new_buffer = False
+
+    def __handle_trigger_marker__(self, draw_trig_mark, marktime):
+        """
+
+        :param draw_trig_mark:
+        :param marktime:
+        :return:
+        """
+        if self.trigger_mode and self.is_triggered:
+            if draw_trig_mark:
+                # Add trigger marker on plotting
+                # TODO fix potential risk that Y axes range increasing cause by trigger marker
+                self.trigMarker.setData(np.array([marktime, marktime]),
+                                        np.array(self.plot.viewRange()[1]) * 0.75)
+        else:
+            self.trigMarker.clear()
 
     def update_drawing(self):
         """
