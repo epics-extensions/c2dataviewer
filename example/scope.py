@@ -12,6 +12,7 @@ It is used to support c2dv development at APS Upgrade.
 
 import argparse
 from math import pi, sin, asin
+import time
 from time import sleep
 import pvaccess as pva
 
@@ -26,7 +27,6 @@ class ScopeServer:
                            'Sinusoid': [pva.FLOAT],
                            'Triangle': [pva.FLOAT]}
 
-        self.time0 = 0.0
         self.counts = 0
         step = kwargs.get("sample", 1000)
         self.time_interval = 1. / step
@@ -37,12 +37,13 @@ class ScopeServer:
 
     def update(self):
         # sleep(0.1)
-        time = [self.time0 + self.time_interval * i for i in range(0, 100)]
-        sinusoid = [sin(2 * pi * 1.1 * t + pi / 2) for t in time]
-        triangle = [(2 / pi) * asin(sin(2 * pi * 1.1 * t)) for t in time]
+        time0 = time.time()
+        ts = [time0 + self.time_interval * i for i in range(0, 100)]
+        sinusoid = [sin(2 * pi * 1.1 * t + pi / 2) for t in ts]
+        triangle = [(2 / pi) * asin(sin(2 * pi * 1.1 * t)) for t in ts]
 
         pv = pva.PvObject(self.dataStruct, {'ArrayId': self.counts,
-                                            'Time': time,
+                                            'Time': ts,
                                             'Sinusoid': sinusoid,
                                             'Triangle': triangle})
         self.pvaServer.update(pv)
@@ -59,7 +60,7 @@ class ScopeServer:
         # self.pv.set({'Triangle': triangle})
         # self.pvaServer.update(self.pv)
 
-        self.time0 = time[-1] + self.time_interval
+        # self.time0 = time[-1] + self.time_interval
         self.counts = self.counts + 1
 
 
