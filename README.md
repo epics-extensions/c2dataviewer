@@ -109,6 +109,8 @@ Advanced function to be implemented later:
 
 * Handle trigger with ai/ao, and select trigger level
 
+* Support waveform plotting driven by IOC
+
 * Strip plotting
 
 * Bug to fix updating rate drop caused by CPU spark during resizing for image

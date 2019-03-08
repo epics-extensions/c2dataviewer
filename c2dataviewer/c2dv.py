@@ -120,7 +120,7 @@ def main():
                         help='EPICS PV field name for ID for scope application, '
                              'which is used by scope to count losing arrays.'
                              ' e.g. ArrayId')
-    parser.add_argument('--axes', type=str,
+    parser.add_argument('--xaxes', type=str,
                         help='EPICS PV field name to be used for x axes for scope application.'
                              ' e.g. Time')
     parser.add_argument('--max', type=float, default=None,
@@ -166,7 +166,7 @@ def main():
         imagev(pv_map, list(pv_map.keys()), scale, noAGC)
     elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
         from c2dataviewer import scope
-        scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.axes,
+        scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.xaxes,
               max=args.max, min=args.min, trigger=args.trigger)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))

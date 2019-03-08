@@ -34,7 +34,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         #   2: single axes with linear scale
         #   3: single axes with log scale
         #   4: multiple axes with linear scale
-        self.plot_type = 2
+        # self.plot_type = 2
 
         # self.axes = None
         self.curve = []
@@ -42,6 +42,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.plot = self.addPlot()
         # auto range is disabled by default
         self.plot.disableAutoRange()
+        # trigger marker
+        self.trigMarker = self.plot.plot(pen='r')
 
         self.mutex = pyqtgraph.QtCore.QMutex()
 
@@ -462,7 +464,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if self.is_triggered:
                 self.samples_after_trig_cnt = self.samples_after_trig_cnt + vector_len
                 if self.samples_after_trig_cnt >= self.samples_after_trig:
-                    self.is_triggered = False
                     self.plot_signal_emitter.my_signal.emit()
             # else:
             #     # trigger type is "", which means not in trigger mode
@@ -526,17 +527,21 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         elif time_array is None:
             self.curve[count].setData(self.filter(data) + self.dc_offsets[index])
         else:
-            d, t = self.filter(d, time_array)
+            d, t = self.filter(data, time_array)
             self.curve[count].setData(t - t[0], d + self.dc_offsets[index])
 
-            # TODO support trigger mode
-            # if self.trigger_mode and self.is_triggered and is_drawtrigmark:
-            #     marktime = self.trigger_timestamp-firsttime
-            #     marklinex = np.array([marktime, marktime])
-            #     markliney = np.array([1.2 * max(d), 0.8 * min(d)])
-            #     self.trigMarker.setData(marklinex, markliney)
-            # else:
-            #     self.trigMarker.clear()
+            if self.trigger_mode and self.is_triggered:
+                # # Add trigger marker on plotting
+                # print(t[0], self.trigger_timestamp, time_array[0])
+                # marktime = self.trigger_timestamp-time_array[0]
+                # marklinex = np.array([marktime, marktime])
+                # markliney = np.array([1.2 * max(d), 0.8 * min(d)])
+                # self.trigMarker.setData(marklinex, markliney)
+
+                self.is_triggered = False
+                self.trigger_data_done = True
+            else:
+                self.trigMarker.clear()
 
         if self.first_run or self.new_buffer:
             # perform auto range for the first time

@@ -65,14 +65,16 @@ class ScopeController:
         :param kwargs:
         :return:
         """
-        arrayid = kwargs.get("arrayid", "None")
-        if arrayid is None:
+        self.default_arrayid = kwargs.get("arrayid", None)
+        if self.default_arrayid is None:
             self.default_arrayid = "None"
-        self.set_arrayid(self.default_arrayid)
-        xaxes = kwargs.get("xaxes", "None")
-        if xaxes is None:
+        else:
+            self._win.graphicsWidget.set_arrayid(self.default_arrayid)
+        self.default_xaxes = kwargs.get("xaxes", None)
+        if self.default_xaxes is None:
             self.default_xaxes = "None"
-        self.set_xaxes(self.default_xaxes)
+        else:
+            self._win.graphicsWidget.set_xaxes(self.default_xaxes)
         self._win.graphicsWidget.set_range(**kwargs)
 
         self._win.graphicsWidget.dc_offsets = [0.0] * self.channels
@@ -292,7 +294,7 @@ class ScopeController:
         """
         if value != self.current_arrayid:
             self.current_arrayid = value
-            self._win.graphicsWidget.set_arrayid(self.current_arrayid)
+            self._win.graphicsWidget.current_arrayid = value
 
     def set_xaxes(self, value):
         """
@@ -303,7 +305,7 @@ class ScopeController:
         """
         if value != self.current_xaxes:
             self.current_xaxes = value
-            self._win.graphicsWidget.set_xaxes(self.current_xaxes)
+            self._win.graphicsWidget.current_xaxes = value
 
     def set_trigger_mode(self, value):
         """
