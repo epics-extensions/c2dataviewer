@@ -107,7 +107,23 @@ Advanced function to be implemented later:
 
 * Utilize time stamp to determine trigger position [Done]
 
-* Handle trigger with ai/ao, and select trigger level
+* Handle trigger with ai/ao, and select trigger level [Done]
+
+* Handle trigger for the same rising edge
+Once the trigger event is processed, the current implementation will generate another trigger even the trigger signal 
+is on the sme rising edge.
+
+* User selectable trigger edge (rising, falling, or both)
+
+* Support post trigger 
+
+Need to clarify the requirements
+
+* Support hold trigger
+
+Need to clarify the requirements, how this work together with different EPICS record types.
+
+* Use trigger (different) field embedded within same EPICS7 record
 
 * Support waveform plotting driven by IOC
 

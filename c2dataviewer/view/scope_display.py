@@ -107,6 +107,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.trigger_timestamp = 0.0
 
         self.trigger_rec_type = None
+        self.trigger_level = 0.0
         ##############################
         #
         # End Trigger mode variables
@@ -335,24 +336,28 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
     def trigger_process(self, data):
         """
-        Process trigger signal.
+        Process trigger signal. It currently supports EPICS classic record types,
+        which are ai/ao, bi/bo, calc, and longin/longout.
 
-        Expecting data structure returned as below:
-            epics:nt/NTEnum:1.0
-                enum_t value
-                    int index
-                    string[] choices
-                alarm_t alarm
-                    int severity
-                    int status
-                    string message
-                time_t timeStamp
-                    long secondsPastEpoch
-                    int nanoseconds
-                    int userTag
+        It generates a trigger event when it receives an EPICS event and the previous trigger process is done.
 
-        Need to update this process when the structure changes.
-        Later on, use timeStamp instead of its value for data collection.
+        For a bi/bo type trigger, the trigger event is generated at rising edge, which means 0 => 1, and ignores
+        the event 1 => 0.
+
+        For a longin/longout type trigger, it always generates a trigger when there is any value change,
+        and previous trigger is done.
+
+        FOr a calc type trigger, it behaviors the same with longin/longout.
+
+        For a ai/ao type trigger, it generates a trigger event when
+            1. its value is greater than give threshold;
+            2. previous trigger is done;
+            3. triggering at rising edge;
+        It will be triggered again once the current plotting is done even for the same trigger edge.
+        A special approach shall be adopted to handle the trigger event caused by the same rising edge.
+
+        More algorithm to be added later when needed.
+        The current implementation is the first approach, and shall be reconsidered when needed.
 
         :param data:
         :return:
@@ -366,16 +371,22 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 # only trigger during jumping from 0 => 1
                 if data["value"]["index"] == 1:
                     self.is_triggered = True
+                    self.trigger_data_done = False
             elif self.trigger_rec_type in ["longin", "longout"]:
                 # always triggers when values changes
                 self.is_triggered = True
+                self.trigger_data_done = False
             elif self.trigger_rec_type in ["calc"]:
                 # always triggers when values changes
                 self.is_triggered = True
+                self.trigger_data_done = False
             elif self.trigger_rec_type in ["ai", "ao"]:
                 # always triggers when values changes
-                # TODO set trigger level later
-                self.is_triggered = True
+                if data["value"] >= self.trigger_level:
+                    self.is_triggered = True
+                    self.trigger_data_done = False
+                else:
+                    self.is_triggered = False
 
             self.trigger_count = self.trigger_count + 1
             ts = data['timeStamp']
@@ -386,8 +397,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if self.trigger_count > 0 and self.is_triggered:
                 self.samples_after_trig_cnt = 0
                 self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
-
-            self.trigger_data_done = False
 
     def data_process(self, data):
         """

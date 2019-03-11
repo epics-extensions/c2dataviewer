@@ -94,11 +94,13 @@ class ScopeController:
                 trt = self.model.update_trigger(self.default_trigger)
             self.parameters.child("Acquisition").child('TriggerMode').setWritable()
             self._win.graphicsWidget.trigger_rec_type = trt
-        except:
+            self.__trigger_level_rw__(trt)
+        except Exception as e:
             self._win.graphicsWidget.trigger_rec_type = None
             self.parameters.child("Acquisition").child('TrigPV').setValue("")
             self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
             self.default_trigger = None
+            raise e
 
     def update_fdr(self, empty=False):
         """
@@ -126,6 +128,23 @@ class ScopeController:
             c = child.child("Field")
             c.setLimits(fdr)
             c.setValue("None")
+
+    def __trigger_level_rw__(self, trt):
+        """
+        Set trigger level parameter readable/writable according trigger record type
+
+        Making trigger level writable is not supported in pyqtgraph 0.10. See
+        https://github.com/pyqtgraph/pyqtgraph/issues/263
+
+        Address this again once it is fixed in a newer release of pyqtgraph
+
+        :param trt:
+        :return:
+        """
+        # if trt in ["ai", "ao"]:
+        #     self.parameters.child("Acquisition").child('TriggerLevel').setWritable()
+        # else:
+        #     self.parameters.child("Acquisition").child('TriggerLevel').setReadonly()
 
     def parameter_change(self, params, changes):
         """
@@ -168,6 +187,8 @@ class ScopeController:
                                 trt = self.model.update_trigger(data)
                             self.parameters.child("Acquisition").child('TriggerMode').setWritable()
                             self._win.graphicsWidget.trigger_rec_type = trt
+                            self.__trigger_level_rw__(trt)
+
                             # restart trigger if trigger is enabled
                             if self._win.graphicsWidget.trigger_mode:
                                 self.start_trigger_mode()
@@ -186,6 +207,8 @@ class ScopeController:
                             # TODO clear trigger PV text field
                 elif childName == "Acquisition.TriggerMode":
                     self.set_trigger_mode(data)
+                elif childName == "Acquisition.TriggerLevel":
+                    self._win.graphicsWidget.trigger_level = data
                 elif childName == "Acquisition.PostTrigger":
                     self.set_post_tigger(data)
                 elif childName == "Acquisition.HoldTrigger":
