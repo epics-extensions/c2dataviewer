@@ -125,6 +125,8 @@ Need to clarify the requirements, how this work together with different EPICS re
 
 * Use trigger (different) field embedded within same EPICS7 record
 
+* APSU LLRF FFT requirement support
+
 * Support waveform plotting driven by IOC
 
 * Strip plotting
