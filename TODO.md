@@ -108,6 +108,8 @@ Need to clarify the requirements, how this work together with different EPICS re
 
 * Strip plotting
 
+* INtegration with PyDM
+
 * Bug to fix updating rate drop caused by CPU spark during resizing for image
 
 * Plot against multiple vertical axes
