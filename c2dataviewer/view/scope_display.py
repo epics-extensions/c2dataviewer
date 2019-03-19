@@ -417,56 +417,57 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # with k, the 1st vector we mark as "vector_data_count"
         vector_data_count = -1
 
-        for k, v in data.get().items():
-            if k == self.current_arrayid:
-                if self.lastArrayId is not None:
-                    if v - self.lastArrayId > 1:
-                        self.lostArrays += 1
-                self.lastArrayId = v
-                if self.data_size == 0:
-                    new_size += 4
-            if type(v) is list:
-                v = np.array(v)
-            # when program is here, the v4 field is either a np array, or some sort of scalar.
-            # if not an array then we have a scalar, so store the scalar into the local copy of data,
-            # and do NOT add to a long stored buffer
-            if type(v) != np.ndarray:
-                self.data[k] = v
-            else:
-                # at this point in program we found an nd array that may or may not have data. nd array is
-                # not an EPICS7 NDArray, but a numpy ndarray.
-                # if no data in aa pv field, we just skip this whole loop iteration.
-                if len(v) == 0:
-                    continue
+        if not self.is_freeze:
+            for k, v in data.get().items():
+                if k == self.current_arrayid:
+                    if self.lastArrayId is not None:
+                        if v - self.lastArrayId > 1:
+                            self.lostArrays += 1
+                    self.lastArrayId = v
+                    if self.data_size == 0:
+                        new_size += 4
+                if type(v) is list:
+                    v = np.array(v)
+                # when program is here, the v4 field is either a np array, or some sort of scalar.
+                # if not an array then we have a scalar, so store the scalar into the local copy of data,
+                # and do NOT add to a long stored buffer
+                if type(v) != np.ndarray:
+                    self.data[k] = v
+                else:
+                    # at this point in program we found an nd array that may or may not have data. nd array is
+                    # not an EPICS7 NDArray, but a numpy ndarray.
+                    # if no data in aa pv field, we just skip this whole loop iteration.
+                    if len(v) == 0:
+                        continue
 
-                # if we get here, then we found an epics array in the EPICS7 pv that has data.
-                # count array type signals that have data, so triggering works.
-                signal_count += 1
-                # the 1st time we get here, we actually found k pointing to a data vector,
-                # so mark the index of the signal
-                if vector_data_count == -1:
-                    vector_data_count = signal_count
+                    # if we get here, then we found an epics array in the EPICS7 pv that has data.
+                    # count array type signals that have data, so triggering works.
+                    signal_count += 1
+                    # the 1st time we get here, we actually found k pointing to a data vector,
+                    # so mark the index of the signal
+                    if vector_data_count == -1:
+                        vector_data_count = signal_count
 
-                vector_len = len(v)
+                    vector_len = len(v)
 
-                self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-                if self.size == 0:
-                    if self.data[k][0].dtype == 'float32':
-                        new_size += 4 * len(data[k])
-                    elif self.data[k][0].dtype == 'float64':
-                        new_size += 8 * len(data[k])
-                    elif self.data[k][0].dtype == 'int16':
-                        new_size += 2 * len(data[k])
-                    elif self.data[k][0].dtype == 'int32':
-                        new_size += 4 * len(data[k])
+                    self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
+                    if self.size == 0:
+                        if self.data[k][0].dtype == 'float32':
+                            new_size += 4 * len(data[k])
+                        elif self.data[k][0].dtype == 'float64':
+                            new_size += 8 * len(data[k])
+                        elif self.data[k][0].dtype == 'int16':
+                            new_size += 2 * len(data[k])
+                        elif self.data[k][0].dtype == 'int32':
+                            new_size += 4 * len(data[k])
 
-        # if we got a vector of data, then we deal with triggering.
-        if not self.is_freeze and vector_data_count != -1 and self.trigger_mode:
-            # it means trigger type is either single shot, or run/stop
-            if self.is_triggered:
-                self.samples_after_trig_cnt = self.samples_after_trig_cnt + vector_len
-                if self.samples_after_trig_cnt >= self.samples_after_trig:
-                    self.plot_signal_emitter.my_signal.emit()
+            # if we got a vector of data, then we deal with triggering.
+            if vector_data_count != -1 and self.trigger_mode:
+                # it means trigger type is either single shot, or run/stop
+                if self.is_triggered:
+                    self.samples_after_trig_cnt = self.samples_after_trig_cnt + vector_len
+                    if self.samples_after_trig_cnt >= self.samples_after_trig:
+                        self.plot_signal_emitter.my_signal.emit()
             # else:
             #     # trigger type is "", which means not in trigger mode
             #     self.plot_signal_emitter.my_signal.emit()

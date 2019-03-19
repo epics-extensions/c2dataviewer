@@ -32,7 +32,7 @@ class ScopeController:
         self.refresh = 100
 
         self.plotting_started = False
-        self.freeze = False
+        # self.freeze = False
 
         self.timer = pyqtgraph.QtCore.QTimer()
         self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
