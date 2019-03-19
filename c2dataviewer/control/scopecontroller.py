@@ -84,23 +84,24 @@ class ScopeController:
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
 
         self.default_trigger = kwargs.get("trigger", None)
-        try:
-            if "://" in self.default_trigger:
-                # pv comes with format of proto://pvname
-                p, name = self.default_trigger.split("://")
-                trt = self.model.update_trigger(name, proto=p.lower())
-            else:
-                # PV name only, use default Channel Access protocol
-                trt = self.model.update_trigger(self.default_trigger)
-            self.parameters.child("Acquisition").child('TriggerMode').setWritable()
-            self._win.graphicsWidget.trigger_rec_type = trt
-            self.__trigger_level_rw__(trt)
-        except Exception as e:
-            self._win.graphicsWidget.trigger_rec_type = None
-            self.parameters.child("Acquisition").child('TrigPV').setValue("")
-            self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
-            self.default_trigger = None
-            raise e
+        if self.default_trigger is not None:
+            try:
+                if "://" in self.default_trigger:
+                    # pv comes with format of proto://pvname
+                    p, name = self.default_trigger.split("://")
+                    trt = self.model.update_trigger(name, proto=p.lower())
+                else:
+                    # PV name only, use default Channel Access protocol
+                    trt = self.model.update_trigger(self.default_trigger)
+                self.parameters.child("Acquisition").child('TriggerMode').setWritable()
+                self._win.graphicsWidget.trigger_rec_type = trt
+                self.__trigger_level_rw__(trt)
+            except Exception as e:
+                self._win.graphicsWidget.trigger_rec_type = None
+                self.parameters.child("Acquisition").child('TrigPV').setValue("")
+                self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+                self.default_trigger = None
+                raise e
 
     def update_fdr(self, empty=False):
         """
