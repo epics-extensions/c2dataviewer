@@ -337,7 +337,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
     def trigger_process(self, data):
         """
         Process trigger signal. It currently supports EPICS classic record types,
-        which are ai/ao, bi/bo, calc, and longin/longout.
+        which are ai/ao, bi/bo, calc, longin/longout, and event.
 
         It generates a trigger event when it receives an EPICS event and the previous trigger process is done.
 
@@ -347,7 +347,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         For a longin/longout type trigger, it always generates a trigger when there is any value change,
         and previous trigger is done.
 
-        FOr a calc type trigger, it behaviors the same with longin/longout.
+        For event and calc type trigger, it behaviors the same with longin/longout.
 
         For a ai/ao type trigger, it generates a trigger event when
             1. its value is greater than give threshold;
@@ -378,6 +378,11 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 self.trigger_data_done = False
             elif self.trigger_rec_type in ["calc"]:
                 # always triggers when values changes
+                self.is_triggered = True
+                self.trigger_data_done = False
+            elif self.trigger_rec_type in ["event"]:
+                # always triggers when values changes
+                # TODO compare the time stamp to determine the event trigger
                 self.is_triggered = True
                 self.trigger_data_done = False
             elif self.trigger_rec_type in ["ai", "ao"]:

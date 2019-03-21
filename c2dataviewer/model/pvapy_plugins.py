@@ -197,11 +197,11 @@ class DataSource:
         # test the record type.
         # For the first implementation, it accepts bi/bo
         trigger_rec_type = pva.Channel(name+".RTYP", pva.CA).get()["value"]
-        if trigger_rec_type not in ["bi", "bo", "ai", "ao", "longin", "longout", "calc"]:
+        if trigger_rec_type not in ["bi", "bo", "ai", "ao", "longin", "longout", "calc", "event"]:
             if self.trigger_chan is not None:
                 self.trigger = None
                 self.trigger_chan = None
-            raise RuntimeError("Trigger record has to be one in [ai, ao, bi, bo, calc, longin, longout]")
+            raise RuntimeError("Trigger record has to be one in [ai, ao, bi, bo, calc, longin, longout, event]")
 
         # update trigger name & channel
         self.trigger = name
