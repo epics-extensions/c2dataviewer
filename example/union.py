@@ -24,7 +24,7 @@ class UnionTest:
         """
         self.dataStruct = {'ArrayId': pva.UINT,
                            'Time': [pva.DOUBLE],
-                           'value': pva.PvUnion({'Sinusoid': [pva.FLOAT], 'Triangle': [pva.FLOAT]}),
+                           'value': pva.PvUnion({'Sinusoid': [pva.FLOAT], 'Triangle': [pva.DOUBLE]}),
                            'Sinusoid': [pva.FLOAT],
                            'Triangle': [pva.FLOAT]}
 
