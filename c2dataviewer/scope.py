@@ -20,7 +20,7 @@ from .model import DataSource as DataReceiver
 from .control import ScopeController
 
 
-def scope(cfg, **kargs):
+def scope(cfg, **kwargs):
     """
     Main function for scope display
 
@@ -45,20 +45,29 @@ def scope(cfg, **kargs):
 
     w = ScopeWindow()
 
-    configure = Configure(cfg, **kargs)
+    configure = Configure(cfg, **kwargs)
     parameters = Parameter.create(name="params", type="group", children=configure.parse())
     w.parameterPane.setParameters(parameters, showTop=False)
     pvmap = configure.pvs
 
+    warning_path = os.path.join(os.path.dirname(__file__), "ui/warning.ui")
+    warning_class = uic.loadUiType(warning_path)[0]
+
+    class WarningDialog(QtWidgets.QDialog, warning_class):
+        def __init__(self, parent=None):
+            super(WarningDialog, self).__init__(parent=parent)
+            self.setupUi(self)
+
+    warning = WarningDialog(None)
     if pvmap is not None:
         model = DataReceiver(default=list(pvmap.values())[0])
-        controller = ScopeController(w, model, parameters)
-        controller.default_config(**kargs)
+        controller = ScopeController(w, model, parameters, WARNING=warning)
+        controller.default_config(**kwargs)
         controller.update_fdr()
     else:
         model = DataReceiver()
-        controller = ScopeController(w, model, parameters)
-        controller.default_config(**kargs)
+        controller = ScopeController(w, model, parameters, WARNING=warning)
+        controller.default_config(**kwargs)
 
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
 

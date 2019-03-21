@@ -4,7 +4,7 @@
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
 
-Scope simulator which provides scope data via EPICS7 pvAccess for APS Upgrade DAQ system.
+Example to create example channel using Union type to send data via EPICS7 pvAccess.
 It is used to support c2dv development at APS Upgrade.
 
 @author: Guobao Shen <gshen@anl.gov>
@@ -17,13 +17,14 @@ from time import sleep
 import pvaccess as pva
 
 
-class ScopeServer:
+class UnionTest:
     def __init__(self, **kwargs):
         """
 
         """
         self.dataStruct = {'ArrayId': pva.UINT,
                            'Time': [pva.DOUBLE],
+                           'value': pva.PvUnion({'Sinusoid': [pva.FLOAT], 'Triangle': [pva.DOUBLE]}),
                            'Sinusoid': [pva.FLOAT],
                            'Triangle': [pva.FLOAT]}
 
@@ -33,7 +34,7 @@ class ScopeServer:
 
         self.pv = pva.PvObject(self.dataStruct)
         self.pvaServer = pva.PvaServer('{}:Scope:Data'.format(kwargs.get("pv", "Test")), self.pv)
-        print("PV Name: {}:Scope:Data".format(kwargs.get("pv", "Test")))
+        print("PV Name: {}:Union:Data".format(kwargs.get("pv", "Test")))
 
     def update(self):
         # sleep(0.1)
@@ -44,23 +45,10 @@ class ScopeServer:
 
         pv = pva.PvObject(self.dataStruct, {'ArrayId': self.counts,
                                             'Time': ts,
+                                            'value': {'Sinusoid': sinusoid},
                                             'Sinusoid': sinusoid,
                                             'Triangle': triangle})
         self.pvaServer.update(pv)
-
-        # self.pv.set({'ArrayId': self.counts,
-        #              'Time': time,
-        #              'Sinusoid': sinusoid,
-        #              'Triangle': triangle})
-        # self.pvaServer.update(self.pv)
-
-        # self.pv.set({'ArrayId': self.counts})
-        # self.pv.set({'Time': time})
-        # self.pv.set({'Sinusoid': sinusoid})
-        # self.pv.set({'Triangle': triangle})
-        # self.pvaServer.update(self.pv)
-
-        # self.time0 = time[-1] + self.time_interval
         self.counts = self.counts + 1
 
 
@@ -71,7 +59,7 @@ def main():
     :return:
     """
     parser = argparse.ArgumentParser(
-        description='Scope provider to simulate APSU DAQ and provide data via EPICS7 pvAccess')
+        description='Example using EPICS7 Union with pvaPy to provide data via EPICS7 pvAccess')
 
     parser.add_argument('--pv', type=str, default="Test",
                         help='EPICS PV name prefix. The full PV name will be {prefix}:Scope:Data'
@@ -83,7 +71,7 @@ def main():
 
     args = parser.parse_args()
 
-    pvas = ScopeServer(pv=args.pv, sample=args.sample)
+    pvas = UnionTest(pv=args.pv, sample=args.sample)
 
     while True:
         pvas.update()

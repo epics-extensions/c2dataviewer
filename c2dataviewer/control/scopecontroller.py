@@ -9,13 +9,13 @@ PVA object viewer utilities
 @author: Guobao Shen <gshen@anl.gov>
 """
 
-import pyqtgraph
 import numpy as np
+import pyqtgraph
 
 
 class ScopeController:
 
-    def __init__(self, widget, model, parameters, channels=4):
+    def __init__(self, widget, model, parameters, **kwargs):
         """
 
         :param model:
@@ -25,14 +25,14 @@ class ScopeController:
         self._win = widget
         self.model = model
         self.parameters = parameters
-        self.channels = channels
+        self.channels = kwargs.get("channels", 4)
         self.chnames = ["None"] * self.channels
         self.data = None
         # refresh frequency: every 100 ms by default
         self.refresh = 100
 
         self.plotting_started = False
-        self.freeze = False
+        # self.freeze = False
 
         self.timer = pyqtgraph.QtCore.QTimer()
         self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
@@ -43,6 +43,12 @@ class ScopeController:
         self.status_timer.timeout.connect(self.update_status)
         self.status_timer.start(1000)
 
+        self._warning = kwargs.get("WARNING", None)
+        if self._warning is not None:
+            self._warning.warningConfirmButton.clicked.connect(lambda: self.accept_warning())
+        else:
+            raise RuntimeError("Warning popup window not initialized properly.")
+
         self.arrays = np.array([])
         self.lastArrays = 0
 
@@ -50,6 +56,7 @@ class ScopeController:
         self.default_xaxes = "None"
         self.current_arrayid = "None"
         self.current_xaxes = "None"
+        self.default_trigger = None
 
     def default_config(self, **kwargs):
         """
@@ -58,18 +65,43 @@ class ScopeController:
         :param kwargs:
         :return:
         """
-        arrayid = kwargs.get("arrayid", "None")
-        if arrayid is None:
+        self.default_arrayid = kwargs.get("arrayid", None)
+        if self.default_arrayid is None:
             self.default_arrayid = "None"
-        self.set_arrayid(self.default_arrayid)
-        xaxes = kwargs.get("xaxes", "None")
-        if xaxes is None:
+        else:
+            self._win.graphicsWidget.set_arrayid(self.default_arrayid)
+        self.default_xaxes = kwargs.get("xaxes", None)
+        if self.default_xaxes is None:
             self.default_xaxes = "None"
-        self.set_xaxes(self.default_xaxes)
+        else:
+            self._win.graphicsWidget.set_xaxes(self.default_xaxes)
         self._win.graphicsWidget.set_range(**kwargs)
 
+        self._win.graphicsWidget.dc_offsets = [0.0] * self.channels
+
         self._win.graphicsWidget.max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
+        self._win.graphicsWidget.samples_after_trig = int(self._win.graphicsWidget.max_length / 2)
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
+
+        self.default_trigger = kwargs.get("trigger", None)
+        if self.default_trigger is not None:
+            try:
+                if "://" in self.default_trigger:
+                    # pv comes with format of proto://pvname
+                    p, name = self.default_trigger.split("://")
+                    trt = self.model.update_trigger(name, proto=p.lower())
+                else:
+                    # PV name only, use default Channel Access protocol
+                    trt = self.model.update_trigger(self.default_trigger)
+                self.parameters.child("Acquisition").child('TriggerMode').setWritable()
+                self._win.graphicsWidget.trigger_rec_type = trt
+                self.__trigger_level_rw__(trt)
+            except Exception as e:
+                self._win.graphicsWidget.trigger_rec_type = None
+                self.parameters.child("Acquisition").child('TrigPV').setValue("")
+                self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+                self.default_trigger = None
+                raise e
 
     def update_fdr(self, empty=False):
         """
@@ -98,6 +130,23 @@ class ScopeController:
             c.setLimits(fdr)
             c.setValue("None")
 
+    def __trigger_level_rw__(self, trt):
+        """
+        Set trigger level parameter readable/writable according trigger record type
+
+        Making trigger level writable is not supported in pyqtgraph 0.10. See
+        https://github.com/pyqtgraph/pyqtgraph/issues/263
+
+        Address this again once it is fixed in a newer release of pyqtgraph
+
+        :param trt:
+        :return:
+        """
+        # if trt in ["ai", "ao"]:
+        #     self.parameters.child("Acquisition").child('TriggerLevel').setWritable()
+        # else:
+        #     self.parameters.child("Acquisition").child('TriggerLevel').setReadonly()
+
     def parameter_change(self, params, changes):
         """
 
@@ -115,21 +164,52 @@ class ScopeController:
 
                 if childName == "Acquisition.PV":
                     # stop DAQ and update pv info
-                    self.model.update_pv(data, restart=False)
+                    self.model.update_device(data, restart=False)
                     if data != "":
                         self.update_fdr()
                     else:
                         self.update_fdr(empty=True)
                 elif childName == "Acquisition.TrigPV":
-                    if "://" in data:
-                        # pv comes with format of proto://pvname
-                        p, name = data.split("://")
-                        self.model.update_trigger(name, proto=p.lower())
-                    else:
-                        # PV name only, use default pvAccess protocol
-                        self.model.update_trigger(name)
+                    if data is None:
+                        return
+                    if self._win.graphicsWidget.plotting_started:
+                        self._warning.warningTextBrowse.setText("Please stop plotting first before changing trigger PV")
+                        self._warning.show()
+                        return
+                    data = data.strip()
+                    if data != "":
+                        try:
+                            if "://" in data:
+                                # pv comes with format of proto://pvname
+                                p, name = data.split("://")
+                                trt = self.model.update_trigger(name, proto=p.lower())
+                            else:
+                                # PV name only, use default Channel Access protocol
+                                trt = self.model.update_trigger(data)
+                            self.parameters.child("Acquisition").child('TriggerMode').setWritable()
+                            self._win.graphicsWidget.trigger_rec_type = trt
+                            self.__trigger_level_rw__(trt)
+
+                            # restart trigger if trigger is enabled
+                            if self._win.graphicsWidget.trigger_mode:
+                                self.start_trigger_mode()
+                        except RuntimeError as e:
+                            self._win.graphicsWidget.trigger_rec_type = None
+                            self._warning.warningTextBrowse.setText(repr(e))
+                            self._warning.show()
+                            self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+                            self.stop_trigger_mode()
+                            # TODO clear trigger PV text field
+                        except Exception as e:
+                            self._win.graphicsWidget.trigger_rec_type = None
+                            self._warning.warningTextBrowse.setText("Channel {} timed out. \n{}".format(data, repr(e)))
+                            self._warning.show()
+                            self.stop_trigger_mode()
+                            # TODO clear trigger PV text field
                 elif childName == "Acquisition.TriggerMode":
                     self.set_trigger_mode(data)
+                elif childName == "Acquisition.TriggerLevel":
+                    self._win.graphicsWidget.trigger_level = data
                 elif childName == "Acquisition.PostTrigger":
                     self.set_post_tigger(data)
                 elif childName == "Acquisition.HoldTrigger":
@@ -143,6 +223,8 @@ class ScopeController:
                         self.start_plotting()
                     else:
                         self.stop_plotting()
+                elif childName == "Acquisition.Freeze":
+                    self._win.graphicsWidget.is_freeze = data
                 elif childName == "Display.Mode":
                     self._win.graphicsWidget.set_display_mode(data)
                 elif childName == "Display.N Ave":
@@ -163,8 +245,11 @@ class ScopeController:
                     # avoid changes caused by Statistic updating
                     for i in range(self.channels):
                         if childName == 'Channel %s.Field' % (i + 1):
-                            self.chnames[i] = self.parameters.child(path[0]).child('Field').value()
-                    self._win.graphicsWidget.setup_plot(self.chnames, single_axis=True)
+                            self.chnames[i] = data
+                        elif childName == 'Channel %s.DC offset' % (i + 1):
+                            self._win.graphicsWidget.dc_offsets[i] = data
+                    if "Field" in childName:
+                        self._win.graphicsWidget.setup_plot(self.chnames, single_axis=True)
 
     def set_freshrate(self, value):
         """
@@ -175,7 +260,6 @@ class ScopeController:
         """
         self.stop_plotting()
         self.refresh = value*1000.0
-        # if self.plotting_started:
         if self._win.graphicsWidget.plotting_started:
             self.start_plotting()
 
@@ -184,8 +268,30 @@ class ScopeController:
 
         :return:
         """
+        # stop a model first anyway to ensure it is clean
+        self.model.stop()
+
+        # start a new monitor
         self.model.start(self._win.graphicsWidget.data_process)
-        self.timer.start(self.refresh)
+        try:
+            self.timer.timeout.disconnect()
+            self.timer.stop()
+        except Exception:
+            pass
+
+        if self._win.graphicsWidget.plot_signal_emitter is not None:
+            try:
+                self._win.graphicsWidget.plot_signal_emitter.my_signal.disconnect()
+            except Exception:
+                pass
+
+        if not self._win.graphicsWidget.trigger_mode:
+            self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
+            self.timer.start(self.refresh)
+        elif self._win.graphicsWidget.plot_signal_emitter is not None:
+            self._win.graphicsWidget.plot_signal_emitter.my_signal.connect(self._win.graphicsWidget.update_drawing)
+        else:
+            raise RuntimeError("Unknown mode: neither in trigger mode, nor free run.")
 
     def stop_plotting(self):
         """
@@ -194,6 +300,13 @@ class ScopeController:
         """
         # Stop timer
         self.timer.stop()
+
+        # Stop signal emitter for trigger mode
+        if self._win.graphicsWidget.plot_signal_emitter is not None:
+            try:
+                self._win.graphicsWidget.plot_signal_emitter.my_signal.disconnect()
+            except Exception:
+                pass
         # Stop data source
         self.model.stop()
 
@@ -206,7 +319,7 @@ class ScopeController:
         """
         if value != self.current_arrayid:
             self.current_arrayid = value
-            self._win.graphicsWidget.set_arrayid(self.current_arrayid)
+            self._win.graphicsWidget.current_arrayid = value
 
     def set_xaxes(self, value):
         """
@@ -217,14 +330,59 @@ class ScopeController:
         """
         if value != self.current_xaxes:
             self.current_xaxes = value
-            self._win.graphicsWidget.set_xaxes(self.current_xaxes)
+            self._win.graphicsWidget.current_xaxes = value
 
     def set_trigger_mode(self, value):
         """
+        Set trigger mode.
 
         :param value:
         :return:
         """
+        self.stop_plotting()
+        self._win.graphicsWidget.trigger_mode = value
+        if not self._win.graphicsWidget.trigger_mode:
+            self._win.graphicsWidget.trigger_data_done = True
+
+        if self.model.trigger_chan is not None:
+            if self._win.graphicsWidget.trigger_mode:
+                self.start_trigger_mode()
+            else:
+                self.stop_trigger_mode()
+        else:
+            self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+
+        if self._win.graphicsWidget.plotting_started:
+            self.start_plotting()
+
+    def start_trigger_mode(self):
+        """
+        Process to start DAQ in trigger mode
+
+        :return:
+        """
+        self._win.graphicsWidget.samples_after_trig_cnt = 0
+
+        if not self._win.graphicsWidget.trigger_is_monitor:
+            try:
+                self.model.start_trigger(self._win.graphicsWidget.trigger_process)
+                self._win.graphicsWidget.trigger_count = 0
+                self._win.graphicsWidget.trigger_is_monitor = True
+            except Exception as e:
+                self._win.graphicsWidget.trigger_is_monitor = False
+                raise e
+
+        self._win.graphicsWidget.is_triggered = False
+
+    def stop_trigger_mode(self):
+        """
+        Stop trigger mode
+        :return:
+        """
+        self._win.graphicsWidget.trigger_is_monitor = False
+        self._win.graphicsWidget.trigger_count = 0
+        if self.model.trigger_chan is not None:
+            self.model.stop_trigger()
 
     def set_post_trigger(self, value):
         """
@@ -246,6 +404,13 @@ class ScopeController:
         # TODO need to understand this requirement more to implement it
         # it is currently a place holder
 
+    def accept_warning(self):
+        """
+
+        :return:
+        """
+        self._warning.close()
+
     def update_status(self):
         """
         Update statistics status.
@@ -262,7 +427,6 @@ class ScopeController:
         self.arrays = np.append(self.arrays, n)[-10:]
 
         for q in self.parameters.child("Statistics").children():
-
             if q.name() == 'CPU':
                 q.setValue(cpu)
             elif q.name() == 'Lost Arrays':
@@ -277,12 +441,13 @@ class ScopeController:
                 q.setValue(self._win.graphicsWidget.fps)
             elif q.name() == 'TrigStatus':
                 stat_str = "Not Trig Mode,Not Monitoring"
-                # if self.pvaChannel.trigger_is_monitor:
-                #     stat_str = "Not Trig Mode, Monitoring TrigPV"
-                #     if self.pvaChannel.trigger_mode:
-                #         stat_str = "Waiting for Trigger, Collecting"
-                #         if self.pvaChannel.is_triggered:
-                #             stat_str = "Got Trigger, Collecting"
-                #             if self.pvaChannel.trigger_data_done:
-                #                 stat_str = "Got Trigger, Done Collecting"
+                self._win.graphicsWidget.monitoring_trigger = False
+                if self._win.graphicsWidget.monitoring_trigger:
+                    stat_str = "Not Trig Mode, Monitoring TrigPV"
+                    if self._win.graphicsWidget.trigger_mode:
+                        stat_str = "Waiting for Trigger, Collecting"
+                        if self._win.graphicsWidget.is_triggered:
+                            stat_str = "Got Trigger, Collecting"
+                            if self._win.graphicsWidget.trigger_data_done:
+                                stat_str = "Got Trigger, Done Collecting"
                 q.setValue(stat_str)
