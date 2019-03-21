@@ -164,7 +164,7 @@ class ScopeController:
 
                 if childName == "Acquisition.PV":
                     # stop DAQ and update pv info
-                    self.model.update_pv(data, restart=False)
+                    self.model.update_device(data, restart=False)
                     if data != "":
                         self.update_fdr()
                     else:
