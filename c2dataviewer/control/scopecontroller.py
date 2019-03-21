@@ -341,6 +341,8 @@ class ScopeController:
         """
         self.stop_plotting()
         self._win.graphicsWidget.trigger_mode = value
+        if not self._win.graphicsWidget.trigger_mode:
+            self._win.graphicsWidget.trigger_data_done = True
 
         if self.model.trigger_chan is not None:
             if self._win.graphicsWidget.trigger_mode:
