@@ -25,7 +25,7 @@ class ImageServer:
             'value': ({'ubyteValue': [pvaccess.UBYTE],
                        'byteValue': [pvaccess.BYTE]},),
 
-            'codec': {'string': pvaccess.STRING,
+            'codec': {'name': pvaccess.STRING,
                       'parameters': ()},
 
             'compressedSize': pvaccess.LONG,
