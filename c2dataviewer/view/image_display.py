@@ -12,13 +12,12 @@ PVA object viewer utilities for image display
 import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
-import cv2
 from pvaccess import PvaException
 
 
 class ImagePlotWidget(RawImageWidget):
     def __init__(self, parent=None, **kargs):
-        RawImageWidget.__init__(self, parent=parent)
+        RawImageWidget.__init__(self, parent=parent, scaled=True)
         self._gain = 1.0
         self._black = 0.0
 
@@ -308,8 +307,6 @@ class ImagePlotWidget(RawImageWidget):
             # return
             raise RuntimeError("Image dimension not initialized")
         i = np.resize(i, (self.y, self.x))
-        i = cv2.resize(i, dsize=(int(self.x * self._scaling), int(self.y * self._scaling)),
-                       interpolation=cv2.INTER_AREA)
         if self._agc:
             self._black, white = np.percentile(i, [0.01, 99.99])
             self.slider.setValue(self._black)
