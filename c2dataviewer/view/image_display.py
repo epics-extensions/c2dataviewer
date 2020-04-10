@@ -13,11 +13,18 @@ import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from pvaccess import PvaException
+from PyQt5.QtCore import pyqtSignal
 
 
 class ImagePlotWidget(RawImageWidget):
+    _set_image_signal = pyqtSignal()
+
     def __init__(self, parent=None, **kargs):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
+
+        self._set_image_signal.connect(self._set_image_signal_callback)
+        self._image_mutex = QtCore.QMutex()
+        
         self._gain = 1.0
         self._black = 0.0
 
@@ -320,7 +327,24 @@ class ImagePlotWidget(RawImageWidget):
         # adjust black point and gain
         i = (np.clip(i, self._black, maxVal) - self._black) * self._gain
         i = np.clip(i, 0, maxVal).astype(npdt)
-
-        self.setImage(np.rot90(np.fliplr(i)))
+        i = np.rot90(np.fliplr(i))
+        
+        self._set_image_on_main_thread(i)
 
         self.framesDisplayed += 1
+
+    def _set_image_on_main_thread(self, image):
+        """Calls setImage on the same thread that Qt paintEvent is
+        called on.
+
+        Not doing this will cause race conditions
+        """
+        self._image_mutex.lock()
+        self._image = image
+        self._image_mutex.unlock()
+        self._set_image_signal.emit()
+
+    def _set_image_signal_callback(self):
+        self._image_mutex.lock()
+        self.setImage(self._image)
+        self._image_mutex.unlock()
