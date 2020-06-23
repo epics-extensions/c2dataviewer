@@ -403,11 +403,11 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 self.samples_after_trig_cnt = 0
                 self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
 
-    def data_process(self, data):
+    def data_process(self, data_generator):
         """
         Process raw data off the wire
 
-        :param data: raw data right after off the wire thru EPICS7 pvAccess
+        :param data_generator: generator that yields pvaccess data from the wire as key/value pairs
         :return:
         """
         self.wait()
@@ -423,7 +423,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         vector_data_count = -1
 
         if not self.is_freeze:
-            for k, v in data.get().items():
+            for k, v in data_generator():
                 if k == self.current_arrayid:
                     if self.lastArrayId is not None:
                         if v - self.lastArrayId > 1:
