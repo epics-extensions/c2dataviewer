@@ -66,6 +66,25 @@ class DataSource:
             data = self.channel.get(field)
         return data
 
+    def __flatten_dict(dobj, kprefixs=[]):
+        """
+        Genenerator that can traverse through nested dictionaries and return
+        key/value pairs
+        
+        For example given {'a':{'b':1}, 'c': 2}, it would yield
+        ('a.b', 1) and ('c', 2)
+
+        :param dobj dictionary object
+        :param kprefixs  list of key of the directary and it's predecessors
+        :yields key, value
+        """
+        sep = '.'
+        for k, v in dobj.items():
+            if type(v) == dict:
+                yield from DataSource.__flatten_dict(v, kprefixs + [k])
+            else:
+                yield sep.join(kprefixs + [k]), v
+        
     def get_fdr(self):
         """
         Get EPICS7 PV field description back as a list
@@ -77,7 +96,7 @@ class DataSource:
         fdr_scalar = []
         if self.channel is not None:
             pv = self.channel.get('')
-            for k, v in pv.getStructureDict().items():
+            for k, v in DataSource.__flatten_dict(pv.getStructureDict()):
                 if type(v) == list:
                     # should epics v4 lib not have np, we "fix" it by converting list to np
                     v = np.array(v)
@@ -129,7 +148,9 @@ class DataSource:
         :param data: new data from EPICS7 channel
         :return:
         """
-        self.data = data.get()
+        self.data = {}
+        for k, v in DataSource.__flatten_dict(data.get()):
+            self.data[k] = v
 
     def start(self, routine=None):
         """
@@ -145,7 +166,12 @@ class DataSource:
             if routine is None:
                 self.channel.subscribe('monitorCallback', self.monitor_callback)
             else:
-                self.channel.subscribe('monitorCallback', routine)
+                def pass_generator(data):
+                    def generator():
+                        yield from DataSource.__flatten_dict(data.get())
+                    routine(generator)
+                    
+                self.channel.subscribe('monitorCallback', pass_generator)
             self.channel.startMonitor('')
         except PvaException:
             raise RuntimeError("Cannot connect to EPICS7 PV ({})".format(self.device))
