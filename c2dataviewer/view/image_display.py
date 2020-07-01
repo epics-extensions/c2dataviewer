@@ -108,7 +108,9 @@ class ImagePlotWidget(RawImageWidget):
         :param data:
         :return:
         """
-        x, y = data['dimension']
+        dims = data['dimension']
+        x = dims[0]
+        y = dims[1]
         if (x != self.x) or (y != self.y):
             self.x = x['size']
             self.y = y['size']
