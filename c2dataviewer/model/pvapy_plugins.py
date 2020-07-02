@@ -9,7 +9,6 @@ PVA object viewer utilities using pvaPy as pvAccess binding
 @author: Guobao Shen <gshen@anl.gov>
 """
 
-import numpy as np
 import pvaccess as pva
 from pvaccess import PvaException
 
@@ -60,58 +59,14 @@ class DataSource:
         :param field: EPICS7 field name
         :return:
         """
+        if self.channel is None:
+            return None
+        
         if field is None:
             data = self.channel.get('field()')
         else:
             data = self.channel.get(field)
         return data
-
-    def __flatten_dict(dobj, kprefixs=[]):
-        """
-        Genenerator that can traverse through nested dictionaries and return
-        key/value pairs
-        
-        For example given {'a':{'b':1}, 'c': 2}, it would yield
-        ('a.b', 1) and ('c', 2)
-
-        :param dobj dictionary object
-        :param kprefixs  list of key of the directary and it's predecessors
-        :yields key, value
-        """
-        sep = '.'
-        for k, v in dobj.items():
-            if type(v) == dict:
-                yield from DataSource.__flatten_dict(v, kprefixs + [k])
-            else:
-                yield sep.join(kprefixs + [k]), v
-        
-    def get_fdr(self):
-        """
-        Get EPICS7 PV field description back as a list
-
-        :return: list of field description
-        :raise PvaException: raise pvaccess exception when channel cannot be connected.
-        """
-        fdr = []
-        fdr_scalar = []
-        if self.channel is not None:
-            pv = self.channel.get('')
-            for k, v in DataSource.__flatten_dict(pv.getStructureDict()):
-                if type(v) == list:
-                    # should epics v4 lib not have np, we "fix" it by converting list to np
-                    v = np.array(v)
-                    # Make type comparison compatible with PY2 & PY3
-                    fdr.append(k)
-                elif type(v) == pva.ScalarType:
-                    fdr_scalar.append(k)
-                if type(v) != np.ndarray:
-                    continue
-                if len(v) == 0:
-                    continue
-            fdr.sort()
-            fdr_scalar.sort()
-
-        return fdr, fdr_scalar
 
     def update_device(self, name, restart=False):
         """
@@ -148,9 +103,7 @@ class DataSource:
         :param data: new data from EPICS7 channel
         :return:
         """
-        self.data = {}
-        for k, v in DataSource.__flatten_dict(data.get()):
-            self.data[k] = v
+        self.data = data.get()
 
     def start(self, routine=None):
         """
@@ -166,12 +119,7 @@ class DataSource:
             if routine is None:
                 self.channel.subscribe('monitorCallback', self.monitor_callback)
             else:
-                def pass_generator(data):
-                    def generator():
-                        yield from DataSource.__flatten_dict(data.get())
-                    routine(generator)
-                    
-                self.channel.subscribe('monitorCallback', pass_generator)
+                self.channel.subscribe('monitorCallback', routine)
             self.channel.startMonitor('')
         except PvaException:
             raise RuntimeError("Cannot connect to EPICS7 PV ({})".format(self.device))
