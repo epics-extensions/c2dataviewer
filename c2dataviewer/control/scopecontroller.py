@@ -11,6 +11,7 @@ PVA object viewer utilities
 
 import numpy as np
 import pyqtgraph
+from pvaccess import ScalarType
 
 
 class ScopeController:
@@ -103,6 +104,54 @@ class ScopeController:
                 self.default_trigger = None
                 raise e
 
+    def __flatten_dict(dobj, kprefixs=[]):
+        """
+        Genenerator that can traverse through nested dictionaries and return
+        key/value pairs
+        
+        For example given {'a':{'b':1}, 'c': 2}, it would yield
+        ('a.b', 1) and ('c', 2)
+
+        :param dobj dictionary object
+        :param kprefixs  list of key of the directary and it's predecessors
+        :yields key, value
+        """
+        sep = '.'
+        for k, v in dobj.items():
+            if type(v) == dict:
+                yield from ScopeController.__flatten_dict(v, kprefixs + [k])
+            else:
+                yield sep.join(kprefixs + [k]), v
+
+    def get_fdr(self):
+        """
+        Get EPICS7 PV field description back as a list
+
+        :return: list of field description
+        :raise PvaException: raise pvaccess exception when channel cannot be connected.
+        """
+        fdr = []
+        fdr_scalar = []
+        pv = self.model.get('')
+        
+        if pv is not None:
+            for k, v in ScopeController.__flatten_dict(pv.getStructureDict()):
+                if type(v) == list:
+                    # should epics v4 lib not have np, we "fix" it by converting list to np
+                    v = np.array(v)
+                    # Make type comparison compatible with PY2 & PY3
+                    fdr.append(k)
+                elif type(v) == ScalarType:
+                    fdr_scalar.append(k)
+                if type(v) != np.ndarray:
+                    continue
+                if len(v) == 0:
+                    continue
+            fdr.sort()
+            fdr_scalar.sort()
+
+        return fdr, fdr_scalar
+
     def update_fdr(self, empty=False):
         """
         Update EPICS7 PV field description
@@ -113,7 +162,7 @@ class ScopeController:
             fdr = []
             fdr_scalar = []
         else:
-            fdr, fdr_scalar = self.model.get_fdr()
+            fdr, fdr_scalar = self.get_fdr()
         fdr.insert(0, "None")
         fdr_scalar.insert(0, "None")
 
@@ -263,6 +312,11 @@ class ScopeController:
         if self._win.graphicsWidget.plotting_started:
             self.start_plotting()
 
+    def monitor_callback(self, data):
+        def generator():
+            yield from ScopeController.__flatten_dict(data.get())
+        self._win.graphicsWidget.data_process(generator)
+
     def start_plotting(self):
         """
 
@@ -271,8 +325,8 @@ class ScopeController:
         # stop a model first anyway to ensure it is clean
         self.model.stop()
 
-        # start a new monitor
-        self.model.start(self._win.graphicsWidget.data_process)
+        # start a new monitor                    
+        self.model.start(self.monitor_callback)
         try:
             self.timer.timeout.disconnect()
             self.timer.stop()
