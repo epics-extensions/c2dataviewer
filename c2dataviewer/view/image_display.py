@@ -51,11 +51,11 @@ class ImagePlotWidget(RawImageWidget):
                       "DPX": 0,
                       "DPXLimit": 0xfff0,
                       "CPU": 0,
-                      "CPULimit": 30,
+                      "CPULimit": None,
                       "Net": 0,
-                      "NetLimit": 20,
+                      "NetLimit": None,
                       "FPS": 0,
-                      "FPSLimit": 0.1}
+                      "FPSLimit": None}
 
         self._df = [0]
         self._db = [0]
