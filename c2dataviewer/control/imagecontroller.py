@@ -56,9 +56,14 @@ class ImageController:
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
 
         # # Limit control to avoid overflow network for best performance
-        self._dlg.deadPxLimit.setText(str(self._win.imageWidget._pref["DPXLimit"]))
-        self._dlg.cpuLimit.setText(str(self._win.imageWidget._pref["CPULimit"]))
-        self._dlg.netLimit.setText(str(self._win.imageWidget._pref["NetLimit"]))
+        text = self._win.imageWidget._pref["DPXLimit"] or ''
+        self._dlg.deadPxLimit.setText(str(text))
+
+        text = self._win.imageWidget._pref["CPULimit"] or ''
+        self._dlg.cpuLimit.setText(str(text))
+
+        text = self._win.imageWidget._pref["NetLimit"] or ''
+        self._dlg.netLimit.setText(str(text))
 
         # Adjust limits panel
         self._win.adjustLimits.clicked.connect(lambda: self.adjustLimits())
@@ -132,7 +137,10 @@ class ImageController:
         :return:
         """
         try:
-            self._win.imageWidget._pref[key] = float(value.text())
+            if value.text():
+                self._win.imageWidget._pref[key] = float(value.text())
+            else:
+                self._win.imageWidget._pref[key] = None
         except ValueError:
             value.setText(str(self._win.imageWidget._pref[key]))
 
