@@ -327,8 +327,9 @@ class ImagePlotWidget(RawImageWidget):
             self._agc = False
 
         # adjust black point and gain
-        i = (np.clip(i, self._black, maxVal) - self._black) * self._gain
-        i = np.clip(i, 0, maxVal).astype(npdt)
+        if self._black > 0 or self._gain != 1.0:
+            i = (np.clip(i, self._black, maxVal) - self._black) * self._gain
+            i = np.clip(i, 0, maxVal).astype(npdt)
         i = np.rot90(np.fliplr(i))
         
         self._set_image_on_main_thread(i)
