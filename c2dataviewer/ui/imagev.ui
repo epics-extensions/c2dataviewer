@@ -28,7 +28,7 @@
     <item>
      <widget class="QFrame" name="frame">
       <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+o      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>1</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
@@ -232,15 +232,15 @@
          </rect>
         </property>
         <layout class="QGridLayout" name="gridLayout_3">
-         <item row="2" column="2">
-          <widget class="QLabel" name="label_12">
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_runtime">
            <property name="text">
-            <string>pixels</string>
+            <string>Runtime:</string>
            </property>
           </widget>
          </item>
-         <item row="5" column="1">
-          <widget class="QTextBrowser" name="frameRate">
+         <item row="0" column="1">
+          <widget class="QLabel" name="runtime">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -253,28 +253,14 @@
           </widget>
          </item>
          <item row="1" column="0">
-          <widget class="QLabel" name="label_9">
+          <widget class="QLabel" name="label_runtime">
            <property name="text">
-            <string>Min:</string>
+            <string>Frames:</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="2">
-          <widget class="QLabel" name="label_8">
-           <property name="text">
-            <string>px val</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="0">
-          <widget class="QLabel" name="label_15">
-           <property name="text">
-            <string>Net:</string>
-           </property>
-          </widget>
-         </item>
-         <item row="4" column="1">
-          <widget class="QTextBrowser" name="netLoad">
+         <item row="1" column="1">
+          <widget class="QLabel" name="nFrames">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -286,79 +272,143 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="2">
-          <widget class="QLabel" name="label_10">
-           <property name="text">
-            <string>px val</string>
-           </property>
-          </widget>
-         </item>
-         <item row="3" column="1">
-          <widget class="QTextBrowser" name="cpuUsage">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::Box</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Sunken</enum>
-           </property>
-           <property name="acceptRichText">
-            <bool>false</bool>
-           </property>
-           <property name="textInteractionFlags">
-            <set>Qt::NoTextInteraction</set>
-           </property>
-           <property name="openLinks">
-            <bool>false</bool>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="0">
+         <item row="2" column="0">
           <widget class="QLabel" name="label_7">
            <property name="text">
             <string>Max:</string>
            </property>
           </widget>
          </item>
+         <item row="2" column="1">
+          <widget class="QLabel" name="maxPixel">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="2">
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>px val</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="0">
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Min:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="3" column="1">
+          <widget class="QLabel" name="minPixel">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
          <item row="3" column="2">
-          <widget class="QLabel" name="label_13">
+          <widget class="QLabel" name="label_10">
            <property name="text">
-            <string>%</string>
+            <string>px val</string>
            </property>
           </widget>
          </item>
-         <item row="6" column="0" colspan="3">
-          <widget class="QPushButton" name="adjustLimits">
-           <property name="text">
-            <string>Adjust Limits</string>
-           </property>
-          </widget>
-         </item>
-         <item row="2" column="0">
+         <item row="4" column="0">
           <widget class="QLabel" name="label_11">
            <property name="text">
             <string>Dead</string>
            </property>
           </widget>
          </item>
-         <item row="3" column="0">
+         <item row="4" column="1">
+          <widget class="QLabel" name="deadPixel">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="4" column="2">
+          <widget class="QLabel" name="label_12">
+           <property name="text">
+            <string>pixels</string>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="0">
           <widget class="QLabel" name="label_14">
            <property name="text">
             <string>CPU:</string>
            </property>
           </widget>
          </item>
-         <item row="4" column="2">
+         <item row="5" column="1">
+          <widget class="QLabel" name="cpuUsage">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="5" column="2">
+          <widget class="QLabel" name="label_13">
+           <property name="text">
+            <string>%</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="0">
+          <widget class="QLabel" name="label_15">
+           <property name="text">
+            <string>Net:</string>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="1">
+          <widget class="QLabel" name="netLoad">
+           <property name="enabled">
+            <bool>false</bool>
+           </property>
+           <property name="frameShape">
+            <enum>QFrame::Box</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Sunken</enum>
+           </property>
+          </widget>
+         </item>
+         <item row="6" column="2">
           <widget class="QLabel" name="label_16">
            <property name="text">
             <string>MB/s</string>
            </property>
           </widget>
          </item>
-         <item row="2" column="1">
-          <widget class="QTextBrowser" name="deadPixel">
+         <item row="7" column="1">
+          <widget class="QLabel" name="frameRate">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -370,8 +420,8 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="1">
-          <widget class="QTextBrowser" name="minPixel">
+         <item row="8" column="1">
+          <widget class="QLabel" name="averageFrameRate">
            <property name="enabled">
             <bool>false</bool>
            </property>
@@ -383,34 +433,24 @@
            </property>
           </widget>
          </item>
-         <item row="5" column="0">
+         <item row="9" column="0" colspan="3">
+          <widget class="QPushButton" name="adjustLimits">
+           <property name="text">
+            <string>Adjust Limits</string>
+           </property>
+          </widget>
+         </item>
+         <item row="7" column="0">
           <widget class="QLabel" name="label_17">
            <property name="text">
-            <string>FPS:</string>
+            <string>Current FPS:</string>
            </property>
           </widget>
          </item>
-         <item row="0" column="1">
-          <widget class="QTextBrowser" name="maxPixel">
-           <property name="enabled">
-            <bool>false</bool>
-           </property>
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="font">
-            <font>
-             <kerning>true</kerning>
-            </font>
-           </property>
-           <property name="frameShape">
-            <enum>QFrame::Box</enum>
-           </property>
-           <property name="frameShadow">
-            <enum>QFrame::Sunken</enum>
+         <item row="8" column="0">
+          <widget class="QLabel" name="label_18">
+           <property name="text">
+            <string>Average FPS:</string>
            </property>
           </widget>
          </item>
