@@ -28,7 +28,7 @@
     <item>
      <widget class="QFrame" name="frame">
       <property name="sizePolicy">
-o      <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>1</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
