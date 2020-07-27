@@ -9,7 +9,7 @@ PVA object viewer utilities
 @author: Guobao Shen <gshen@anl.gov>
 """
 
-
+import datetime
 import pyqtgraph.ptime as ptime
 
 class ImageController:
@@ -81,6 +81,7 @@ class ImageController:
         self._timer.start(1000)
 
         self.frameRateChanged()
+        self._startTime = ptime.time()
 
     def black_changed(self):
         """
@@ -241,11 +242,13 @@ class ImageController:
         :return:
         """
         now = ptime.time()
+        runtime = now-self._startTime
 
         df = self._win.imageWidget.framesDisplayed - self._lastFrames
         db = self._win.imageWidget.mbReceived - self._lastMbReceived
         self._lastFrames = self._win.imageWidget.framesDisplayed
         self._lastMbReceived = self._win.imageWidget.mbReceived
+        averageFrameRate = self._win.imageWidget.framesDisplayed/runtime
 
         dt = now - self._lastTime
         self._lastTime = now
@@ -269,6 +272,10 @@ class ImageController:
         with self._win._proc.oneshot():
             cpu = self._win._proc.cpu_percent(None)
 
+        self._win.runtime.setText(str(datetime.timedelta(seconds=round(runtime))))
+        self._win.setStyleSheet('color: black; font-weight: normal')
+        self.statistics_update(self._win.nFrames, self._win.imageWidget.framesDisplayed, fmt='%d')
+        self.statistics_update(self._win.averageFrameRate, averageFrameRate, fmt='%.1f')
         self.statistics_update(self._win.frameRate, self._fps,
                                lolimit=self._win.imageWidget._pref['FPSLimit'])
         self.statistics_update(self._win.maxPixel, max(self._win.imageWidget._max), fmt='%.0f')
