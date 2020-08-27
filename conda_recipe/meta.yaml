@@ -12,6 +12,10 @@ build:
   entry_points:
     - c2dv = c2dataviewer.c2dv:main
 
+test:
+  source_files:
+    - test
+  
 requirements:
   build:
     - python {{ python }}
