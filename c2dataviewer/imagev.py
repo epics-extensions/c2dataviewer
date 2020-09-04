@@ -20,6 +20,59 @@ from .control import ImageController
 from .model import DataSource as DataReceiver
 
 
+form_path = os.path.join(os.path.dirname(__file__), "ui/imagev.ui")
+form_class = uic.loadUiType(form_path)[0]
+
+class ImageWindow(QtWidgets.QMainWindow, form_class):
+    resized = QtCore.pyqtSignal()
+
+    def __init__(self, parent=None):
+        """
+
+        :param parent:
+        """
+        super(ImageWindow, self).__init__(parent=parent)
+        self._proc = psutil.Process()
+        self.setupUi(self)
+        self.show()
+
+        self.resized.connect(self.resizedCallback)
+
+    def resizeEvent(self, event):
+        """
+
+        :param event:
+        :return:
+        """
+        self.resized.emit()
+        return super(ImageWindow, self).resizeEvent(event)
+
+    def resizedCallback(self):
+        """
+
+        :return:
+        """
+        self.imageWidget.set_scaling()
+
+
+dlg_path = os.path.join(os.path.dirname(__file__), "ui/imagev_limit_pane.ui")
+dlg_class = uic.loadUiType(dlg_path)[0]
+
+class LimitDialog(QtWidgets.QDialog, dlg_class):
+    def __init__(self, parent=None):
+        super(LimitDialog, self).__init__(parent=parent)
+        self.setupUi(self)
+
+
+warning_path = os.path.join(os.path.dirname(__file__), "ui/warning.ui")
+warning_class = uic.loadUiType(warning_path)[0]
+
+class WarningDialog(QtWidgets.QDialog, warning_class):
+    def __init__(self, parent=None):
+        super(WarningDialog, self).__init__(parent=parent)
+        self.setupUi(self)
+
+
 def imagev(pv, label, scale=None, noAGC=True):
     """
     Main function for image display
@@ -30,55 +83,6 @@ def imagev(pv, label, scale=None, noAGC=True):
     :param noAGC: No automatic gain adjust, True by default
     :return:
     """
-    form_path = os.path.join(os.path.dirname(__file__), "ui/imagev.ui")
-    form_class = uic.loadUiType(form_path)[0]
-
-    class ImageWindow(QtWidgets.QMainWindow, form_class):
-        resized = QtCore.pyqtSignal()
-
-        def __init__(self, parent=None):
-            """
-
-            :param parent:
-            """
-            super(ImageWindow, self).__init__(parent=parent)
-            self._proc = psutil.Process()
-            self.setupUi(self)
-            self.show()
-
-            self.resized.connect(self.resizedCallback)
-
-        def resizeEvent(self, event):
-            """
-
-            :param event:
-            :return:
-            """
-            self.resized.emit()
-            return super(ImageWindow, self).resizeEvent(event)
-
-        def resizedCallback(self):
-            """
-
-            :return:
-            """
-            self.imageWidget.set_scaling()
-
-    dlg_path = os.path.join(os.path.dirname(__file__), "ui/imagev_limit_pane.ui")
-    dlg_class = uic.loadUiType(dlg_path)[0]
-
-    class LimitDialog(QtWidgets.QDialog, dlg_class):
-        def __init__(self, parent=None):
-            super(LimitDialog, self).__init__(parent=parent)
-            self.setupUi(self)
-
-    warning_path = os.path.join(os.path.dirname(__file__), "ui/warning.ui")
-    warning_class = uic.loadUiType(warning_path)[0]
-
-    class WarningDialog(QtWidgets.QDialog, warning_class):
-        def __init__(self, parent=None):
-            super(WarningDialog, self).__init__(parent=parent)
-            self.setupUi(self)
 
     # Check for an instance of a QtWidgets.QApplication, if so use it...
     app = QtWidgets.QApplication.instance()
