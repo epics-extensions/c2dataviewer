@@ -2,7 +2,7 @@
 
 package:
   name: c2dataviewer
-  version: {{ data.get('version') }}
+  version: {{ GIT_DESCRIBE_TAG }}
 
 source:
   path: ..
