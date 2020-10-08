@@ -13,9 +13,12 @@ build:
     - c2dv = c2dataviewer.c2dv:main
 
 test:
+  requires:
+    - xvfbwrapper
+    - pyqt
   source_files:
     - test
-  
+
 requirements:
   build:
     - python {{ python }}

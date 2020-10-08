@@ -8,7 +8,6 @@ PVA object viewer utilities for image display
 
 @author: Guobao Shen <gshen@anl.gov>
 """
-
 import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
@@ -24,15 +23,13 @@ class ImagePlotWidget(RawImageWidget):
 
         self._set_image_signal.connect(self._set_image_signal_callback)
         self._image_mutex = QtCore.QMutex()
-        
-        self._gain = 1.0
-        self._black = 0.0
 
         self._noagc = kargs.get("noAGC", False)
         # self.camera_changed()
         self._agc = False
         self._lastTimestamp = None
 
+        self.dataType = None
         self.mbReceived = 0.0
         self.framesDisplayed = 0
 
@@ -43,7 +40,11 @@ class ImagePlotWidget(RawImageWidget):
 
         # max value of image pixel
         self.maxVal = 0
+        self.minVal = 0
         self.mutex = QtCore.QMutex()
+
+        self._white = 255.0
+        self._black = 0.0
 
         # Limit control to avoid overflow network for best performance
         self._pref = {"Max": 0,
@@ -57,6 +58,8 @@ class ImagePlotWidget(RawImageWidget):
                       "FPS": 0,
                       "FPSLimit": None}
 
+        self._isInputValid = False
+        self._inputType = ""
         self._df = [0]
         self._db = [0]
         self._dt = [1]
@@ -68,12 +71,29 @@ class ImagePlotWidget(RawImageWidget):
         self._agc = True
         self._lastTimestamp = None
 
-        # Gain controller slider widget
-        self.slider = None
-        self.gain = None
+        # Imagecontroller callbacks
+        self.updateGuiBlackLimits = None
+        self.updateGuiWhiteLimits = None
+        self.getGuiBlackLimits = None
+        self.getGuiWhiteLimits = None
+        self.updateGuiBlack = None
+        self.updateGuiWhite = None
 
         self.datasource = None
         self.data = None
+
+        self.dataTypesDict = {
+            'byteValue' :   {'minVal' : int(-2**8 / 2),   'maxVal' : int(2**8 / 2 - 1),  'npdt' : "int8",   'embeddedDataLen' : 40},
+            'ubyteValue' :  {'minVal' : 0           ,     'maxVal' : int(2**8 - 1),      'npdt' : "uint8",  'embeddedDataLen' : 40},
+            'shortValue' :  {'minVal' : int(-2**16 / 2),  'maxVal' : int(2**16 / 2 - 1), 'npdt' : "int16",  'embeddedDataLen' : 20},
+            'ushortValue' : {'minVal' : 0               , 'maxVal' : int(2**16 - 1),     'npdt' : "uint16", 'embeddedDataLen' : 20},
+            'intValue' :    {'minVal' : int(-2**32 / 2),  'maxVal' : int(2**32 / 2 - 1), 'npdt' : "int32",  'embeddedDataLen' : 0},
+            'uintValue' :   {'minVal' : 0               , 'maxVal' : int(2**32 - 1),     'npdt' : "uint32", 'embeddedDataLen' : 0},
+            'longValue' :   {'minVal' : int(-2**64 / 2),  'maxVal' : int(2**64 / 2 - 1), 'npdt' : "int64",  'embeddedDataLen' : 0},
+            'ulongValue' :  {'minVal' : 0               , 'maxVal' : int(2**64 - 1),     'npdt' : "uint64", 'embeddedDataLen' : 0},
+            'floatValue' :  {'minVal' : int(-2**24),      'maxVal' : int(2**24),         'npdt' : "float32",'embeddedDataLen' : 0},
+            'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",'embeddedDataLen' : 0},
+        }
 
         self.timer = kargs.get("timer", QtCore.QTimer())
 
@@ -98,9 +118,10 @@ class ImagePlotWidget(RawImageWidget):
         :param source:
         :return:
         """
-        self.datasource = source
-        self.__update_dimension(self.datasource.get())
-        self.timer.timeout.connect(self.get)
+        if source is not None:
+            self.datasource = source
+            self.__update_dimension(self.datasource.get())
+            self.timer.timeout.connect(self.get)
 
     def __update_dimension(self, data):
         """
@@ -123,13 +144,29 @@ class ImagePlotWidget(RawImageWidget):
         """
         self._black = value
 
-    def set_gain(self, value):
+    def get_black(self):
         """
 
         :param value:
         :return:
         """
-        self._gain = value
+        return self._black
+
+    def set_white(self, value):
+        """
+
+        :param value:
+        :return:
+        """
+        self._white = value
+
+    def get_white(self):
+        """
+
+        :param value:
+        :return:
+        """
+        return self._white
 
     def start(self):
         """
@@ -148,7 +185,8 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.timer.stop()
         try:
-            self.datasource.stop()
+            if self.datasource is not None:
+                self.datasource.stop()
         except RuntimeError as e:
             print(repr(e))
 
@@ -232,21 +270,51 @@ class ImagePlotWidget(RawImageWidget):
             self.signal()
             raise e
 
-    def enable_auto_gain(self):
+    def enable_auto_white(self):
         """
-        Enable auto gain calibration for image
+        Enable auto white calibration for image
 
         :return:
         """
         self._agc = True
 
-    def gain_controller(self, slider, gain):
+    def set_BlackLimitsCallback(self, function):
         """
 
         :return:
         """
-        self.slider = slider
-        self.gain = gain
+        self.updateGuiBlackLimits = function
+
+    def set_WhiteLimitsCallback(self, function):
+        """
+
+        :return:
+        """
+        self.updateGuiWhiteLimits = function
+
+
+    def set_getBlackWhiteLimits(self, getBlackLimitsFunction, getWhiteLimitsFunction):
+        """
+
+        :return:
+        """
+        self.getGuiBlackLimits = getBlackLimitsFunction
+        self.getGuiWhiteLimits = getWhiteLimitsFunction
+
+    def set_BlackCallback(self, function):
+        """
+
+        :return:
+        """
+        self.updateGuiBlack = function
+
+    def set_WhiteCallback(self, function):
+        """
+
+        :return:
+        """
+        self.updateGuiWhite = function
+
 
     def set_scaling(self, scale=None):
         """
@@ -269,27 +337,40 @@ class ImagePlotWidget(RawImageWidget):
         :param data:
         :return:
         """
+
+        # Determinate input data type
         data_types = data['value'][0].keys()
-        if 'ushortValue' in data_types:
-            i = data['value'][0]['ushortValue']
-            sz = i.nbytes
-            maxVal = 65535
-            npdt = 'uint16'
-            embeddedDataLen = 20
-        elif 'ubyteValue' in data_types:
-            i = data['value'][0]['ubyteValue']
-            sz = i.nbytes
-            maxVal = 255
-            npdt = 'uint8'
-            embeddedDataLen = 40
-        else:
-            self.stop()
+        assert len(list(data_types)) == 1
+        inputType = list(data_types)[0]
+
+        # Check if the input is valid
+        if not inputType in self.dataTypesDict:
+            self._isInputValid = False
             raise RuntimeError('No recognized image data received.')
+        else:
+            self._isInputValid = True
 
-        # self.__update_dimension(data)
 
+        # Lookup required infomartion for the current input type
+        i = data['value'][0][inputType]
+        sz = i.nbytes
+        maxVal = self.dataTypesDict[inputType]['maxVal']
+        minVal = self.dataTypesDict[inputType]['minVal']
+        npdt = self.dataTypesDict[inputType]['npdt']
+        embeddedDataLen = self.dataTypesDict[inputType]['embeddedDataLen']
+
+        # Configure GUI for the correct type
+        if inputType != self._inputType:
+            self.configureGuiLimits(inputType)
+
+        self._inputType = inputType
+
+        # Get image statistics
         if maxVal != self.maxVal:
             self.maxVal = maxVal
+        if minVal != self.minVal:
+            self.minVal = minVal
+
         self.mbReceived += sz/1024.0/1024.0
 
         ts = data['timeStamp']
@@ -299,11 +380,13 @@ class ImagePlotWidget(RawImageWidget):
         self._lastTimestamp = ts
 
         # count dead pixels
+        # TODO: Dead pixel count was requested for the specific type of the camera,
+        # as the DPXLimit is hardcoded value to 0xfff0. Consequently all all pixels
+        # on the cameras with image depth higher than UInt16 can be counted as dead.
+        # Discussion about this is on the Gitlab: https://git.aps.anl.gov/C2/conda/data-viewer/-/merge_requests/17
         dpx = (i[embeddedDataLen:] > self._pref["DPXLimit"]).sum()
         self._dpx.append(dpx)
         self._dpx = self._dpx[-3:]
-
-        # self._win.deadPixel.updateDeadPixels(dpx)
 
         # record max/min pixel values
         self._max.append(i[embeddedDataLen:].max())
@@ -316,25 +399,47 @@ class ImagePlotWidget(RawImageWidget):
             # return
             raise RuntimeError("Image dimension not initialized")
         i = np.resize(i, (self.y, self.x))
+
         if self._agc:
-            self._black, white = np.percentile(i, [0.01, 99.99])
-            self.slider.setValue(self._black)
-            if (white - self._black) == 0.0:
-                self._gain = 1.0
-            else:
-                self._gain = maxVal / (white - self._black)
-            self.gain.setValue(self._gain * 10.0)
+            black, white = np.percentile(i, [0.01, 99.99])
+
+            if self.getGuiBlackLimits and self.getGuiWhiteLimits:
+                blackMin, blackMax = self.getGuiBlackLimits()
+                whiteMin, whiteMax = self.getGuiWhiteLimits()
+                black = np.clip(black, blackMin, blackMax)
+                white = np.clip(white, whiteMin, whiteMax)
+
+            self.set_black(black)
+            if self.updateGuiBlack is not None:
+                self.updateGuiBlack(self.get_black())
+            self.set_white(white)
+            if self.updateGuiWhite is not None:
+                self.updateGuiWhite(self.get_white())
+
             self._agc = False
 
-        # adjust black point and gain
-        if self._black > 0 or self._gain != 1.0:
-            i = (np.clip(i, self._black, maxVal) - self._black) * self._gain
-            i = np.clip(i, 0, maxVal).astype(npdt)
-        i = np.rot90(np.fliplr(i))
-        
+        # Flip and rotate the image for 90 degrees (TODO: add description why)
+        i = np.rot90(np.fliplr(i)).astype(npdt)
+
         self._set_image_on_main_thread(i)
 
         self.framesDisplayed += 1
+
+    def configureGuiLimits(self, dataType):
+        """
+        Configure the limits for the black and white settings on the GUI.
+
+        :param dataType: (String) String representation of the incoming datatype. (E.g. 'ubyteValue')
+        """
+        blackMin = self.dataTypesDict[dataType]['minVal']
+        blackMax = self.dataTypesDict[dataType]['maxVal']
+        whiteMin = self.dataTypesDict[dataType]['minVal']
+        whiteMax = self.dataTypesDict[dataType]['maxVal']
+
+        if self.updateGuiBlackLimits is not None:
+            self.updateGuiBlackLimits(blackMin, blackMax)
+        if self.updateGuiWhiteLimits is not None:
+            self.updateGuiWhiteLimits(whiteMin, whiteMax)
 
     def _set_image_on_main_thread(self, image):
         """Calls setImage on the same thread that Qt paintEvent is
@@ -348,6 +453,12 @@ class ImagePlotWidget(RawImageWidget):
         self._set_image_signal.emit()
 
     def _set_image_signal_callback(self):
+        """
+        Update image on the widget.
+
+        :return: None
+        """
         self._image_mutex.lock()
-        self.setImage(self._image)
+        levels = [self.get_black(), self.get_white()]
+        self.setImage(self._image, levels = levels)
         self._image_mutex.unlock()
