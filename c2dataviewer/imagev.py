@@ -63,6 +63,14 @@ class LimitDialog(QtWidgets.QDialog, dlg_class):
         super(LimitDialog, self).__init__(parent=parent)
         self.setupUi(self)
 
+blackGainDlg_path = os.path.join(os.path.dirname(__file__), "ui/imagev_blackWhiteLimit_pane.ui")
+blackGainDlg_class = uic.loadUiType(blackGainDlg_path)[0]
+
+class BlackWhiteLimitDialog(QtWidgets.QDialog, blackGainDlg_class):
+    def __init__(self, parent=None):
+        super(BlackWhiteLimitDialog, self).__init__(parent=parent)
+        self.setupUi(self)
+
 
 warning_path = os.path.join(os.path.dirname(__file__), "ui/warning.ui")
 warning_class = uic.loadUiType(warning_path)[0]
@@ -92,13 +100,13 @@ def imagev(pv, label, scale=None, noAGC=True):
         print('QApplication instance already exists: %s' % str(app))
 
     w = ImageWindow(None)
-    w.imageWidget.gain_controller(w.imageBlackSlider, w.imageGainSlider)
     data = DataReceiver(default=list(pv.values())[0])
     w.imageWidget.set_datasource(data)
 
     dlg = LimitDialog(None)
+    blackGainDlg = BlackWhiteLimitDialog(None)
     warning = WarningDialog(None)
-    ImageController(w, LIMIT=dlg, WARNING=warning,
+    ImageController(w, LIMIT=dlg, BLACKWHITELIMIT = blackGainDlg, WARNING=warning,
                     PV=label, timer=QtCore.QTimer(), data=data)
 
     # set initial scaling factor

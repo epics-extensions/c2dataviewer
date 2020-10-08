@@ -12,12 +12,12 @@ and Area Detector images from the AD pva plugin.
 
 To build a conda package:
 ```bash
-conda build . -c epics
+conda build . -c default -c epics -c conda-forge
 ```
 
 To install build package in a new environment:
 ```bash
-conda create -n c2dv.0001 local::c2dataviewer -c epics
+conda create -n c2dv.0001 local::c2dataviewer -c default -c epics -c conda-forge
 ```
 
 To run app from new environment:
@@ -25,4 +25,3 @@ To run app from new environment:
 source activate c2dv.0001
 c2dv --app scope
 ```
-

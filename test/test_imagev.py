@@ -18,12 +18,37 @@ from c2dataviewer.imagev import ImageWindow
 from PyQt5.QtCore import QPoint
 
 
-app = QtWidgets.QApplication(sys.argv)
+from xvfbwrapper import Xvfb
+
 
 class TestImagev(unittest.TestCase):
 
     def setUp(self):
+        """
+        Build the environment for each unit test case.
+        This method is called before each test.
+
+        :return:
+        """
+        # Create virtual desktop so it can be run on headless platform
+        self.xvfb = Xvfb(width=1280, height=720)
+        self.xvfb.start()
+
+        # Create Qt application
+        self.app = QtWidgets.QApplication(sys.argv)
+
+        # Build image window
         self.window = ImageWindow()
+
+    def tearDown(self):
+        """
+        Tear down the environment after each test case.
+        This mentod is called after each test.
+
+        :return:
+        """
+        self.app.quit()
+        self.xvfb.stop()
 
     def test_widgetVisibility2WindowSize(self):
         """

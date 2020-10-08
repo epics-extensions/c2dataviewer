@@ -8,11 +8,17 @@ PVA object viewer utilities
 
 @author: Guobao Shen <gshen@anl.gov>
 """
-
 import datetime
 import pyqtgraph.ptime as ptime
 
+
 class ImageController:
+
+    SLIDER_MAX_VAL = 1_000_000_000
+    SLIDER_MIN_VAL = -SLIDER_MAX_VAL
+    SPINNER_MAX_VAL = 1.7976931348623157e+308
+    SPINNER_MIN_VAL = -SPINNER_MAX_VAL
+
     def __init__(self, widget, **kargs):
         """
 
@@ -33,6 +39,7 @@ class ImageController:
         self._win.pvPrefix.currentIndexChanged.connect(lambda: self.camera_changed())
 
         self._dlg = kargs.get("LIMIT", None)
+        self._blackWhiteDlg = kargs.get("BLACKWHITELIMIT", None)
         self._warning = kargs.get("WARNING", None)
 
         self._lastFrames = 0
@@ -41,13 +48,43 @@ class ImageController:
         self._net = 0.0
         self._lastMbReceived = 0
 
-        # Gain control and adjust
-        self._win.imageBlackSlider.valueChanged.connect(lambda: self.black_changed())
-        self._win.imageGainSlider.valueChanged.connect(lambda: self.gain_changed())
-        self._win.imageAutoAdjust.clicked.connect(lambda: self.auto_gain_cal())
-        self._win.imageBlackSlider.setMinimum(0)
-        self._win.imageGainSlider.setMaximum(40960)
-        self._win.imageGainSlider.setMinimum(1)
+        # GUI styles
+        self._inputTypeDefaultStyle = self._win.lblValidInput.styleSheet()
+
+        # Black control
+        self._win.imageBlackSlider.valueChanged.connect(lambda: self._callback_black_changed_slider())
+        self._win.imageBlackSpinBox.valueChanged.connect(lambda: self._callback_black_changed_spin())
+        self.changeimageBlackLimits(0, self.SLIDER_MAX_VAL)
+        self._imageBlackSliderFactor = 1
+        self._win.imageWidget.set_BlackLimitsCallback(self.changeimageBlackLimits)
+        self._win.imageWidget.set_BlackCallback(self.updateGuiBlack)
+
+        # White control
+        self._win.imageWhiteSlider.valueChanged.connect(lambda: self._callback_white_changed_slider())
+        self._win.imageWhiteSpinBox.valueChanged.connect(lambda: self._callback_white_changed_spin())
+        self.changeimageWhiteLimits(1, self.SLIDER_MAX_VAL)
+        self._imageWhiteSliderFactor = 1
+        self._win.imageWidget.set_WhiteLimitsCallback(self.changeimageWhiteLimits)
+        self._win.imageWidget.set_WhiteCallback(self.updateGuiWhite)
+
+        # Auto adjust black/white
+        self._win.imageAutoAdjust.clicked.connect(lambda: self.auto_levels_cal())
+        self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
+
+        # Set limits on the dialog widgets
+        self._blackWhiteDlg.blackMin.setMinimum(self.SPINNER_MIN_VAL)
+        self._blackWhiteDlg.blackMin.setMaximum(self.SPINNER_MAX_VAL)
+        self._blackWhiteDlg.blackMax.setMinimum(self.SPINNER_MIN_VAL)
+        self._blackWhiteDlg.blackMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._blackWhiteDlg.whiteMin.setMinimum(self.SPINNER_MIN_VAL)
+        self._blackWhiteDlg.whiteMin.setMaximum(self.SPINNER_MAX_VAL)
+        self._blackWhiteDlg.whiteMax.setMinimum(self.SPINNER_MIN_VAL)
+        self._blackWhiteDlg.whiteMax.setMaximum(self.SPINNER_MAX_VAL)
+
+        # Adjust limits for black and white
+        self._win.imageLimitsAdjust.clicked.connect(lambda: self._callback_adjustBlackWhiteLimits())
+        self._blackWhiteDlg.okButton.clicked.connect(lambda: self._callback_acceptNewBlackWhiteLimits())
+        self._blackWhiteDlg.cancelButton.clicked.connect(lambda: self._callback_cancelNewBlackWhiteLimits())
 
         # Frame DAQ control
         self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1}
@@ -83,32 +120,74 @@ class ImageController:
         self.frameRateChanged()
         self._startTime = ptime.time()
 
-    def black_changed(self):
+    def _callback_black_changed_slider(self):
         """
+        This callback is called when user change the value on the "black" slider.
 
         :return:
         """
         try:
-            self._win.imageWidget.set_black(self._win.imageBlackSlider.value())
+            black = self._win.imageBlackSlider.value() / self._imageBlackSliderFactor
+            self._win.imageWidget.set_black(black)
+            self._win.imageBlackSpinBox.blockSignals(True)
+            self._win.imageBlackSpinBox.setValue(black)
+            self._win.imageBlackSpinBox.blockSignals(False)
         except:
             pass
+        self._win.imageBlackSlider.blockSignals(False)
 
-    def gain_changed(self):
+    def _callback_black_changed_spin(self):
         """
+        This callback is called when user change the value on the "black" spinner.
 
         :return:
         """
         try:
-            self._win.imageWidget.set_gain(self._win.imageGainSlider.value() / 10.0)
+            black = self._win.imageBlackSpinBox.value()
+            self._win.imageWidget.set_black(black)
+            self._win.imageBlackSlider.blockSignals(True)
+            self._win.imageBlackSlider.setValue(black * self._imageBlackSliderFactor)
+            self._win.imageBlackSlider.blockSignals(False)
         except:
             pass
 
-    def auto_gain_cal(self):
+    def _callback_white_changed_slider(self):
+        """
+        This callback is called when user change the value on the "white" slider.
+
+        :return:
+        """
+        try:
+            white = self._win.imageWhiteSlider.value() / self._imageWhiteSliderFactor
+            self._win.imageWidget.set_white(white)
+            self._win.imageWhiteSpinBox.blockSignals(True)
+            self._win.imageWhiteSpinBox.setValue(white)
+            self._win.imageWhiteSpinBox.blockSignals(False)
+        except:
+            pass
+
+    def _callback_white_changed_spin(self):
+        """
+        This callback is called when user change the value on the "white" spinner.
+
+        :return:
+        """
+        try:
+            white = self._win.imageWhiteSpinBox.value()
+            self._win.imageWidget.set_white(white)
+            self._win.imageWhiteSlider.blockSignals(True)
+            self._win.imageWhiteSlider.setValue(white * self._imageWhiteSliderFactor)
+            self._win.imageWhiteSlider.blockSignals(False)
+
+        except:
+            pass
+
+    def auto_levels_cal(self):
         """
 
         :return:
         """
-        self._win.imageWidget.enable_auto_gain()
+        self._win.imageWidget.enable_auto_white()
 
     def frameRateChanged(self):
         """
@@ -129,6 +208,44 @@ class ImageController:
         :return:
         """
         self._dlg.exec_()
+
+    def _callback_adjustBlackWhiteLimits(self):
+        """
+        This callback is called when user press the "Adjust limits" in the Image Adjustment section.
+        It will open the pop screen which allow to change the min and the max values for the
+        black and white slider/spinner box.
+
+        :return:
+        """
+        # Set current values
+        self._blackWhiteDlg.blackMin.setValue(self._win.imageBlackSpinBox.minimum())
+        self._blackWhiteDlg.blackMax.setValue(self._win.imageBlackSpinBox.maximum())
+        self._blackWhiteDlg.whiteMin.setValue(self._win.imageWhiteSpinBox.minimum())
+        self._blackWhiteDlg.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
+
+        # Launch the dialog
+        self._blackWhiteDlg.exec_()
+
+
+    def _callback_acceptNewBlackWhiteLimits(self):
+        """
+        This callback is called when the user confirms the new limits for the black and the white limits.
+
+        :return:
+        """
+        self.changeimageBlackLimits(self._blackWhiteDlg.blackMin.value(),
+                                    self._blackWhiteDlg.blackMax.value())
+        self.changeimageWhiteLimits(self._blackWhiteDlg.whiteMin.value(),
+                                   self._blackWhiteDlg.whiteMax.value())
+        self._blackWhiteDlg.close()
+
+    def _callback_cancelNewBlackWhiteLimits(self):
+        """
+        This callback is called when user cancels the new limits for the black and the white limits.
+
+        :return:
+        """
+        self._blackWhiteDlg.reject()
 
     def __update_limits(self, key, value):
         """
@@ -272,6 +389,12 @@ class ImageController:
         with self._win._proc.oneshot():
             cpu = self._win._proc.cpu_percent(None)
 
+        self._win.lblValidInput.setText(self._win.imageWidget._inputType + " "  + ("" if self._win.imageWidget._isInputValid else "(Invalid)"))
+        if self._win.imageWidget._isInputValid:
+            self._win.lblValidInput.setStyleSheet(self._inputTypeDefaultStyle)
+        else:
+            self._win.lblValidInput.setStyleSheet('background-color : red;')
+
         self._win.runtime.setText(str(datetime.timedelta(seconds=round(runtime))))
         self._win.setStyleSheet('color: black; font-weight: normal')
         self.statistics_update(self._win.nFrames, self._win.imageWidget.framesDisplayed, fmt='%d')
@@ -288,3 +411,99 @@ class ImageController:
         self.statistics_update(self._win.netLoad, self._net, fmt='%.0f',
                                hilimit=self._win.imageWidget._pref['NetLimit'],
                                callback=True)
+
+
+    def changeimageBlackLimits(self, minVal, maxVal):
+        """
+        Set the minimum and the maximum for the black settings widgets (slider and the spinner).
+        If the value is too big or too small for the slider, factor will be calculated, by which
+        the value is multiplied/divided.
+
+        :param minVal: (Number) Minimum possible setting for the slider and the spinner.
+        :param maxVal: (Number) Maximum possible setting for the slider and the spinner.
+        :return:
+        """
+        sliderFactor = 1
+        if (maxVal > self.SLIDER_MAX_VAL or minVal < self.SLIDER_MIN_VAL):
+            sliderFactor = max(self.SLIDER_MIN_VAL / minVal if minVal != 0 else 0,
+                               self.SLIDER_MAX_VAL / maxVal if maxVal != 0 else 0,)
+
+        self._imageBlackSliderFactor = sliderFactor
+        self._win.imageBlackSlider.setMinimum(minVal * sliderFactor)
+        self._win.imageBlackSlider.setMaximum(maxVal * sliderFactor)
+
+        self._win.imageBlackSpinBox.setMinimum(minVal)
+        self._win.imageBlackSpinBox.setMaximum(maxVal)
+
+    def getimageBlackLimits(self):
+        """
+        Get the current settings for the black limits.
+
+        :return: (Number, Number) Tuple of min and max values.
+        """
+        return (self._win.imageBlackSpinBox.minimum(),
+                self._win.imageBlackSpinBox.maximum())
+
+    def changeimageWhiteLimits(self, minVal, maxVal):
+        """
+        Set the minimum and the maximum for the black settings widgets (slider and the spinner).
+        If the value is too big or too small for the slider, factor will be calculated, by which
+        the value is multiplied/divided.
+
+        :param minVal: (Number) Minimum possible setting for the slider and the spinner.
+        :param maxVal: (Number) Maximum possible setting for the slider and the spinner.
+        :return:
+        """
+        sliderFactor = 1
+        if (maxVal > self.SLIDER_MAX_VAL or minVal < self.SLIDER_MIN_VAL):
+            sliderFactor = max(self.SLIDER_MIN_VAL / minVal if minVal != 0 else 0,
+                               self.SLIDER_MAX_VAL / maxVal if maxVal != 0 else 0,)
+
+        self._imageWhiteSliderFactor = sliderFactor
+        self._win.imageWhiteSlider.setMinimum(minVal * sliderFactor)
+        self._win.imageWhiteSlider.setMaximum(maxVal * sliderFactor)
+
+        self._win.imageWhiteSpinBox.setMinimum(minVal)
+        self._win.imageWhiteSpinBox.setMaximum(maxVal)
+
+    def getimageWhiteLimits(self):
+        """
+        Get the current settings for the white limits.
+
+        :return: (Number, Number) Tuple of min and max values.
+        """
+        return (self._win.imageWhiteSpinBox.minimum(),
+                self._win.imageWhiteSpinBox.maximum())
+
+    def updateGuiBlack(self, value):
+        """
+        Update values on the black slider and spinner.
+
+        :param value: (Number) Value to be set to the black slider and spinner.
+        :return:
+        """
+        # Update the text spinner
+        self._win.imageBlackSpinBox.blockSignals(True)
+        self._win.imageBlackSpinBox.setValue(value)
+        self._win.imageBlackSpinBox.blockSignals(False)
+
+        self._win.imageBlackSlider.blockSignals(True)
+        self._win.imageBlackSlider.setValue(value * self._imageBlackSliderFactor)
+        self._win.imageBlackSlider.blockSignals(False)
+
+    def updateGuiWhite(self, value):
+        """
+        Update values on the white slider and spinner.
+
+        :param value: (Number) Value to be set to the white slider and spinner.
+        :return:
+        """
+        # Update the text spinner
+        self._win.imageWhiteSpinBox.blockSignals(True)
+        self._win.imageWhiteSpinBox.setValue(value)
+        self._win.imageWhiteSpinBox.blockSignals(False)
+
+        # Update the slider
+        self._win.imageWhiteSlider.blockSignals(True)
+        self._win.imageWhiteSlider.setValue(value * self._imageWhiteSliderFactor)
+        self._win.imageWhiteSlider.blockSignals(False)
