@@ -12,7 +12,7 @@ and Area Detector images from the AD pva plugin.
 
 To build a conda package:
 ```bash
-conda build . -c default -c epics -c conda-forge
+make
 ```
 
 To install build package in a new environment:
@@ -24,4 +24,26 @@ To run app from new environment:
 ```bash
 source activate c2dv.0001
 c2dv --app scope
+```
+
+# Pip Packaging
+
+To install pip dependencies:
+```bash
+make pip-dependecies
+```
+
+To build a pip package:
+```bash
+make pip-build
+```
+
+To upload the package on PyPI:
+```bash
+make pip-upload
+```
+
+To run the unit tests run:
+```bash
+make pip-test
 ```

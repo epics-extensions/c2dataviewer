@@ -2,3 +2,15 @@
 .vscode/
 *.pyc
 */*.pyc
+
+# setup py is generated druing build, which depends if it's conda or pip
+setup.py
+
+# PIP build output
+build
+*.egg-info
+dist
+.eggs
+
+# Tox unit tests
+.tox
