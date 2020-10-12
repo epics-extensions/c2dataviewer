@@ -17,6 +17,7 @@ from pyqtgraph.Qt import QtWidgets
 from c2dataviewer.imagev import ImageWindow
 from PyQt5.QtCore import QPoint
 
+from xvfbwrapper import Xvfb
 
 from xvfbwrapper import Xvfb
 
