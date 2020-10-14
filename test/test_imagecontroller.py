@@ -8,7 +8,7 @@ Unit tests for Imagev
 
 @author: Matic Pogacnik <mpogacnik@anl.gov>
 """
-
+import os
 import sys
 import unittest
 from pvaccess import PvObject
@@ -25,7 +25,7 @@ from c2dataviewer.imagev import ImageController
 from c2dataviewer.imagev import ImageWindow
 
 
-from xvfbwrapper import Xvfb
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 class TestImageDisplay(unittest.TestCase):
 
@@ -36,9 +36,6 @@ class TestImageDisplay(unittest.TestCase):
 
         :return:
         """
-        # Create virtual desktop so it can be run on headless platform
-        self.xvfb = Xvfb(width=1280, height=720)
-        self.xvfb.start()
 
         # Create Qt application
         self.app = QtWidgets.QApplication(sys.argv)
@@ -64,7 +61,6 @@ class TestImageDisplay(unittest.TestCase):
         :return:
         """
         self.app.quit()
-        self.xvfb.stop()
 
     def test_blackSetting(self):
         """
