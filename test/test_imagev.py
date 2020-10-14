@@ -8,7 +8,7 @@ Unit tests for Imagev
 
 @author: Matic Pogacnik <mpogacnik@anl.gov>
 """
-
+import os
 import sys
 import unittest
 from PyQt5.QtWidgets import QWidget
@@ -17,10 +17,7 @@ from pyqtgraph.Qt import QtWidgets
 from c2dataviewer.imagev import ImageWindow
 from PyQt5.QtCore import QPoint
 
-from xvfbwrapper import Xvfb
-
-from xvfbwrapper import Xvfb
-
+os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 class TestImagev(unittest.TestCase):
 
@@ -31,9 +28,6 @@ class TestImagev(unittest.TestCase):
 
         :return:
         """
-        # Create virtual desktop so it can be run on headless platform
-        self.xvfb = Xvfb(width=1280, height=720)
-        self.xvfb.start()
 
         # Create Qt application
         self.app = QtWidgets.QApplication(sys.argv)
@@ -49,7 +43,6 @@ class TestImagev(unittest.TestCase):
         :return:
         """
         self.app.quit()
-        self.xvfb.stop()
 
     def test_widgetVisibility2WindowSize(self):
         """

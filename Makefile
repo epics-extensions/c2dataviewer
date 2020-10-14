@@ -14,7 +14,7 @@ conda: conda-build
 .PHONY:conda-build
 conda-build:
 	cp -f setup_conda.py setup.py
-	conda build . -c default -c epics -c conda-forge
+	conda build . -c epics
 
 .PHONY:conda-clean
 conda-clean:
@@ -26,10 +26,10 @@ pip: pip-build pip-test
 .PHONY:pip-dependencies
 pip-dependencies:
 	$(PYTHON) -m pip install --upgrade setuptools wheel
-	$(PYTHON) -m pip install --upgrade twine 
+	$(PYTHON) -m pip install --upgrade twine
 	$(PYTHON) -m pip install --upgrade tox
 
-.PHONY:pip-test
+.PHONY:pip-build
 pip-build:
 	cp -f setup_pip.py setup.py
 	$(PYTHON) setup.py sdist bdist_wheel
