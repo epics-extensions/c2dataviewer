@@ -16,9 +16,12 @@ conda-build:
 	cp -f setup_conda.py setup.py
 	conda build . -c epics
 
+.PHONY:conda-install
+conda-install:
+	conda install -c local -c epics c2dataviewer
+
 .PHONY:conda-clean
 conda-clean:
-
 
 .PHONY:pip
 pip: pip-build pip-test

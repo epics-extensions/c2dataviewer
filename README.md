@@ -17,7 +17,7 @@ make
 
 To install build package in a new environment:
 ```bash
-conda create -n c2dv.0001 local::c2dataviewer -c default -c epics -c conda-forge
+conda create -n c2dv.0001 local::c2dataviewer -c epics
 ```
 
 To run app from new environment:
