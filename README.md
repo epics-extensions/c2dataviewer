@@ -1,4 +1,3 @@
-
 <p align="center">
   <h1 align="center">C2DataViewer: EPICS7 pvObject Data Viewer</h1>
 </p>
@@ -8,7 +7,7 @@ It is developed with pyqtgraph, PyQt, and uses pvaPy as pvAccess Python binding.
 This is a viewer for pvData structured data objects as transported by pvAccess. Some use cases are a 'scope viewer',
 and Area Detector images from the AD pva plugin.
 
-# Quick start
+# Quick Start
 
 To build a conda package:
 ```bash
@@ -26,12 +25,12 @@ source activate c2dv.0001
 c2dv --app scope
 ```
 
-# Image view
-Image view displays images from an areaDetector pvAccess channel.  To start:
+# Image Application
+Image application displays images from an areaDetector pvAccess channel.  To start:
 ```bash
 c2dv --app image --pv <CHANNELNAME>
 ```
-## Image levels
+## Image Adjustment
 Image display can be adjusted by setting the black and white points.  "Auto" button automatically adjusts the black and white points to the minimum and maximum values in the image.  
 Minimum and maximum values of the black and white points can be set throught the Image Levels Adjustment "Adjust limits" window.
 
@@ -55,14 +54,14 @@ User can the "Requested Frame Rate" menu to control rate the viewer processes th
 - *Net* - Maximum data rate allowed.  By default unset.
 
 
-# Scope view
-Scope view displays arbitrary information from a pvAccess channel in a 2D graph. To start:
+# Scope Application
+Scope application displays arbitrary information from a pvAccess channel in a 2D graph. To start:
 
 ```bash
 c2dv --app scope
 ```
 
-# Developers guide
+# Developers Guide
 
 The following information are maintaining and developing C2 Data viewer
 
