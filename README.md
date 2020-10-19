@@ -31,8 +31,8 @@ Image view displays images from an areaDetector pvAccess channel.  To start:
 ```bash
 c2dv --app image --pv <CHANNELNAME>
 ```
-## Adjusting image display
-Image display can be adjusted by setting the black and white points.  "Auto" button automatically adjusts the black and white points to the minimum and maximum values in the display.  
+## Image levels
+Image display can be adjusted by setting the black and white points.  "Auto" button automatically adjusts the black and white points to the minimum and maximum values in the image.  
 Minimum and maximum values of the black and white points can be set throught the Image Levels Adjustment "Adjust limits" window.
 
 ## Statistics
@@ -42,11 +42,11 @@ Along with the image, the following statistics are displayed:
 - *Runtime* - total time data viewer has been running
 - *Frames* - total number of images viewer has processed
 - *Max/Min* - maximum and minimum values in the image
-- *Dead* - number of "dead" pixels that exceed the dead pixel threshold.
-- *CPU* - percent CPU usage of data viewer 
+- *Dead* - number of pixels that exceed the dead pixel threshold.
+- *CPU* - CPU usage of data viewer 
 - *Net* - Data rate images are being processed
-- *Current FPS* - frames per second since
-- *Average FPS* - frames per second since data viewer has started running
+- *Current FPS* - frame rate since 1 second ago
+- *Average FPS* - frame rate since data viewer has started running
 
 User can the "Requested Frame Rate" menu to control rate the viewer processes the images.  User can also use the Statistics "Adjust Limits" window to set additional limits. The window has the following settings
 
