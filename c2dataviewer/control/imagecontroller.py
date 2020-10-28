@@ -51,6 +51,11 @@ class ImageController:
         # GUI styles
         self._inputTypeDefaultStyle = self._win.lblValidInput.styleSheet()
 
+        # Image and zoom
+        self._win.lblXsize.setToolTip("Number of pixels image has in X direction. \nIf ROI is selected, numbers in parentheses \nshow the range of displayed pixels.")
+        self._win.lblYsize.setToolTip("Number of pixels image has in Y direction. \nIf ROI is selected, numbers in parentheses \nshow the range of displayed pixels.")
+        self._win.resetZoomButton.clicked.connect(lambda: self._callback_reset_zoom_button())
+
         # Black control
         self._win.imageBlackSlider.valueChanged.connect(lambda: self._callback_black_changed_slider())
         self._win.imageBlackSpinBox.valueChanged.connect(lambda: self._callback_black_changed_spin())
@@ -101,6 +106,11 @@ class ImageController:
 
         text = self._win.imageWidget._pref["NetLimit"] or ''
         self._dlg.netLimit.setText(str(text))
+
+        # Add tooltips for statistics
+        self._win.maxPixel.setToolTip("Maximum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.minPixel.setToolTip("Minimum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
 
         # Adjust limits panel
         self._win.adjustLimits.clicked.connect(lambda: self.adjustLimits())
@@ -181,6 +191,14 @@ class ImageController:
 
         except:
             pass
+
+    def _callback_reset_zoom_button(self):
+        """
+        This callback is called when user click on the "Reset Zoom" button.
+
+        :return:
+        """
+        self._win.imageWidget.reset_zoom()
 
     def auto_levels_cal(self):
         """
@@ -318,10 +336,17 @@ class ImageController:
 
     def statistics_update(self, valuefield, value, **kargs):
         """
+        Update widget with a new value on the GUI. If limits are specified and value is outside them, text on the widget
+        will become red.
 
-        :param valuefield:
-        :param value:
-        :param kargs:
+        :param valuefield: (QWidget) Widget where status should be writen. It must support "setText" and  "setStyleSheet" methods.
+        :param value: (Object or Tuple/List of objects) Value which should be written to the widget. Multiple values can be passed as
+                        tuple or array. If this is the case, **kargs must contain a formatting string that supports supplied number of values.
+        :param kargs: (dict) Following keyword parameters are supported:
+                                * "fmt" - (str) Formating string. Default value is "%.1f".
+                                * "hilimit"  - (number) High limit. If the max value exceeds this value, text on the widget will become bold and red. Default is None.
+                                * "lowlimit" - (number) Low limit. If the min value is less than this value, text on the widget will become bold and red. Default is None.
+                                * "callback" - (bool) If this is the True and high or low limits are reached, *throttleBack* method is called. The default value is False.
         :return:
         """
         fmt = kargs.get('fmt', '%.1f')
@@ -330,11 +355,13 @@ class ImageController:
         callback = kargs.get('callback', False)
 
         valuefield.setText(str(fmt) % value)
-        if hilimit is not None and value > hilimit:
+        maxValue = max(value) if isinstance(value, (list, tuple)) else value
+        minValue = min(value) if isinstance(value, (list, tuple)) else value
+        if hilimit is not None and maxValue > hilimit:
             valuefield.setStyleSheet('color: red; font-weight: bold')
             if callback:
                 self.throttleBack()
-        elif lolimit is not None and value < lolimit:
+        elif lolimit is not None and minValue < lolimit:
             valuefield.setStyleSheet('color: red; font-weight: bold')
             if callback:
                 self.throttleBack()
@@ -360,6 +387,24 @@ class ImageController:
         """
         now = ptime.time()
         runtime = now-self._startTime
+
+        isZoomedImage = self._win.imageWidget.is_zoomed()
+        xOffset, yOffset, width, height = self._win.imageWidget.get_zoom_region()
+
+        zoomMsg = ""
+        zoomMsgStyle = "color: black"
+        if (isZoomedImage and width == self._win.imageWidget.ZOOM_LENGTH_MIN
+                          and height == self._win.imageWidget.ZOOM_LENGTH_MIN):
+            zoomMsg = "Maximum zoom reached"
+            zoomMsgStyle = "color: red"
+        elif isZoomedImage and width == self._win.imageWidget.ZOOM_LENGTH_MIN:
+            zoomMsg = "Maximum zoom in X direction reached"
+            zoomMsgStyle = "color: red"
+        elif isZoomedImage and height == self._win.imageWidget.ZOOM_LENGTH_MIN:
+            zoomMsg = "Maximum zoom in Y direction reached"
+            zoomMsgStyle = "color: red"
+        self._win.zoomStatusLabel.setText(zoomMsg)
+        self._win.zoomStatusLabel.setStyleSheet(zoomMsgStyle)
 
         df = self._win.imageWidget.framesDisplayed - self._lastFrames
         db = self._win.imageWidget.mbReceived - self._lastMbReceived
@@ -401,10 +446,32 @@ class ImageController:
         self.statistics_update(self._win.averageFrameRate, averageFrameRate, fmt='%.1f')
         self.statistics_update(self._win.frameRate, self._fps,
                                lolimit=self._win.imageWidget._pref['FPSLimit'])
-        self.statistics_update(self._win.maxPixel, max(self._win.imageWidget._max), fmt='%.0f')
-        self.statistics_update(self._win.minPixel, max(self._win.imageWidget._min), fmt='%.0f')
-        self.statistics_update(self._win.deadPixel, max(self._win.imageWidget._dpx), fmt='%.0f',
-                               hilimit=self._win.imageWidget._pref["DPXLimit"])
+
+        if isZoomedImage:
+            values = (self._win.imageWidget._max[-1], self._win.imageWidget._maxRoi[-1])
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (self._win.imageWidget._max[-1])
+            fmt = '%.0f'
+        self.statistics_update(self._win.maxPixel, values, fmt=fmt)
+
+        if isZoomedImage:
+            values = (self._win.imageWidget._min[-1], self._win.imageWidget._minRoi[-1])
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (self._win.imageWidget._min[-1])
+            fmt = '%.0f'
+        self.statistics_update(self._win.minPixel, values, fmt=fmt)
+
+        if isZoomedImage:
+            values = (max(self._win.imageWidget._dpx), max(self._win.imageWidget._dpxRoi))
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (max(self._win.imageWidget._dpx))
+            fmt = '%.0f'
+        self.statistics_update(self._win.deadPixel, values, fmt=fmt,
+                                hilimit=self._win.imageWidget._pref["DPXLimit"])
+
         self.statistics_update(self._win.cpuUsage, cpu,
                                hilimit=self._win.imageWidget._pref['CPULimit'],
                                callback=True)
@@ -412,6 +479,13 @@ class ImageController:
                                hilimit=self._win.imageWidget._pref['NetLimit'],
                                callback=True)
 
+        # Update image and zoom section
+        self._win.lblXsize.setText(' '.join([str(self._win.imageWidget.x),
+                '' if not isZoomedImage else f"({xOffset}-{xOffset+width})"
+                                            ]))
+        self._win.lblYsize.setText(' '.join([str(self._win.imageWidget.y),
+                '' if not isZoomedImage else f"({yOffset}-{yOffset+height})"
+                                            ]))
 
     def changeimageBlackLimits(self, minVal, maxVal):
         """

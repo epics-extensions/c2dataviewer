@@ -30,8 +30,18 @@ Image application displays images from an areaDetector pvAccess channel.  To sta
 ```bash
 c2dv --app image --pv <CHANNELNAME>
 ```
+## Image and zoom
+This section presents basic information about the displayed image:
+
+- *Size X [px]* - Number of pixels full image has in X direction. If ROI is selected, numbers in parentheses show the range of displayed pixels.
+- *Size Y [px]* - Number of pixels full image has in Y direction. If ROI is selected, numbers in parentheses show the range of displayed pixels.
+- *Reset zoom* - This button resets  (ROI) to the default settings (Display whole image).
+
+Users can zoom into the image by selecting the region of interest. This can be done by drawing the rectangle around the desired area while the mouse button is pressed.
+To restore the full image *Reset zoom* should be pressed.
+
 ## Image Adjustment
-Image display can be adjusted by setting the black and white points.  "Auto" button automatically adjusts the black and white points to the minimum and maximum values in the image.  
+Image display can be adjusted by setting the black and white points.  "Auto" button automatically adjusts the black and white points to the minimum and maximum values in the image.
 Minimum and maximum values of the black and white points can be set throught the Image Levels Adjustment "Adjust limits" window.
 
 ## Statistics
@@ -40,9 +50,9 @@ Along with the image, the following statistics are displayed:
 - *Input type* - image data type
 - *Runtime* - total time data viewer has been running
 - *Frames* - total number of images viewer has processed
-- *Max/Min* - maximum and minimum values in the image
-- *Dead* - number of pixels that exceed the dead pixel threshold.
-- *CPU* - CPU usage of data viewer 
+- *Max/Min* - Maximum and minimum values in the image. If ROI is selected, value in the parentheses apply for the selected area.
+- *Dead* - Number of pixels that exceed the dead pixel threshold. If ROI is selected, value in the parentheses apply for the selected area.
+- *CPU* - CPU usage of data viewer
 - *Net* - Data rate images are being processed
 - *Current FPS* - frame rate since 1 second ago
 - *Average FPS* - frame rate since data viewer has started running
@@ -52,7 +62,6 @@ User can the "Requested Frame Rate" menu to control rate the viewer processes th
 - *Dead Px Threshold* - Dead pixel threshold.  Default to 0xfff0 or 65520.
 - *CPU* - Maximum allowed % CPU used.  By default unset
 - *Net* - Maximum data rate allowed.  By default unset.
-
 
 # Scope Application
 Scope application displays arbitrary information from a pvAccess channel in a 2D graph. To start:

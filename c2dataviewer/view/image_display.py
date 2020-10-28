@@ -10,12 +10,16 @@ PVA object viewer utilities for image display
 """
 import numpy as np
 from pyqtgraph import QtCore
+from pyqtgraph.Qt import QtGui
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from pvaccess import PvaException
 from PyQt5.QtCore import pyqtSignal
 
 
 class ImagePlotWidget(RawImageWidget):
+
+    ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
+
     _set_image_signal = pyqtSignal()
 
     def __init__(self, parent=None, **kargs):
@@ -46,6 +50,19 @@ class ImagePlotWidget(RawImageWidget):
         self._white = 255.0
         self._black = 0.0
 
+        # Last images original and zoomed/modified to display
+        self.originalImage = None
+
+        # Zoom parameters
+        self.__zoomSelectionIndicator = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
+        self.__zoomDict = {
+            "isZoom": False,
+            'xoffset': 0,
+            'yoffset': 0,
+            'width': 0,
+            'height': 0,
+        }
+
         # Limit control to avoid overflow network for best performance
         self._pref = {"Max": 0,
                       "Min": 0,
@@ -66,6 +83,9 @@ class ImagePlotWidget(RawImageWidget):
         self._dpx = [0]
         self._max = [0]
         self._min = [0]
+        self._dpxRoi = [0]
+        self._maxRoi = [0]
+        self._minRoi = [0]
 
         self._scaling = 1.0
         self._agc = True
@@ -96,6 +116,178 @@ class ImagePlotWidget(RawImageWidget):
         }
 
         self.timer = kargs.get("timer", QtCore.QTimer())
+
+    def mousePressEvent(self, event):
+        """
+        This method is event handler for the mouse click event and is called by the Qt framework.
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # Mouse buttom was pressed. We start panning.
+        self.panOrigin = event.pos()
+        self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.panOrigin, QtCore.QSize()))
+        self.__zoomSelectionIndicator.show()
+
+    def mouseMoveEvent(self, event):
+        """
+        This method is event handler for the mouse move event and is called by the Qt framework.
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # Mouse is moving, while selecting roi. Redraw the selection rectangle.
+        self.__zoomSelectionIndicator.setGeometry(
+            QtCore.QRect(self.panOrigin, event.pos()).normalized())
+
+    def mouseReleaseEvent(self, event):
+        """
+        This method is event handler for the mouse button release event and is called by the Qt framework.
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # We made the roi selection
+        # Hide selection rectangle
+        self.__zoomSelectionIndicator.hide()
+
+        # Get information about the widget dimensions
+        panEnd = QtCore.QPoint(event.pos())
+        imageGeometry = self.geometry().getRect()
+        widget_width = imageGeometry[2]
+        widget_hight = imageGeometry[3]
+
+        # Calculate x parameters, x min/max and size in pixels
+        xmin = self.panOrigin.x()
+        xmax = panEnd.x()
+        if xmin > xmax:
+            xmax, xmin = xmin, xmax
+        if xmin < 0:
+            xmin = 0
+        if xmax > widget_width:
+            xmax = widget_width
+
+        # Calculate y parameters, y min/max and size in pixels
+        ymin = self.panOrigin.y()
+        ymax = panEnd.y()
+        if ymin > ymax:
+            ymax, ymin = ymin, ymax
+        if ymin < 0:
+            ymin = 0
+        if ymax > widget_hight:
+            ymax = widget_hight
+
+        # Calculate zoomed image parameters
+        self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
+
+    def __calculateZoomParameters(self, xminMouse, xmaxMouse, yminMouse, ymaxMouse):
+        """
+        This method calculate pixel offsets and sizes of the image to get zoomed image on the selected ROI.
+
+        :param xminMouse: (Int) Min X coordinate of the selection in the display pixels. Relative to the widget.
+        :param xmaxMouse: (Int) Max X coordinate of the selection in the display pixels. Relative to the widget.
+        :param yminMouse: (Int) Min Y coordinate of the selection in the display pixels. Relative to the widget.
+        :param ymaxMouse: (Int) Max Y coordinate of the selection in the display pixels. Relative to the widget.
+        :return: (None)
+        """
+        # Widget sizes
+        wWidth = self.width()
+        wHeight = self.height()
+
+        # Current zoom parameters
+        xOffset, yOffset, width, height = self.get_zoom_region()
+
+        # Get pixel size
+        pixelSize = min (
+            wWidth / width,
+            wHeight / height
+        )
+
+        # Calculate new x direction zoom parameters
+        xOffset += int(xminMouse / pixelSize)
+        width = int((xmaxMouse - xminMouse) / pixelSize)
+
+        # Calculate new y direction zoom parameters
+        yOffset += int(yminMouse / pixelSize)
+        height = int((ymaxMouse - yminMouse) / pixelSize)
+
+        # Write to dict
+        self.set_zoom_region(xOffset, yOffset, width, height)
+
+    def set_zoom_region(self, xOffset, yOffset, width, height):
+        """
+        Set zoom region. If values are out of range, values will be clipped.
+
+        :param xOffset: (int) Offset in X direction from start of the image in image pixels.
+        :param yOffset: (int) Offset in Y direction from start of the image in image pixels.
+        :param width: (int) Width of the image in image pixels to display.
+        :param height: (int) Height of the image in image pixels to display.
+        """
+        if width < self.ZOOM_LENGTH_MIN:
+            width = self.ZOOM_LENGTH_MIN
+        if height < self.ZOOM_LENGTH_MIN:
+            height = self.ZOOM_LENGTH_MIN
+
+        if xOffset < self.x - self.ZOOM_LENGTH_MIN:
+            self.__zoomDict['xoffset'] = xOffset
+        else:
+            self.__zoomDict['xoffset'] = self.x - self.ZOOM_LENGTH_MIN
+
+        if yOffset < self.y - self.ZOOM_LENGTH_MIN:
+            self.__zoomDict['yoffset'] = yOffset
+        else:
+            self.__zoomDict['yoffset'] = self.y - self.ZOOM_LENGTH_MIN
+
+        if self.__zoomDict['xoffset'] + width <= self.x:
+            self.__zoomDict['width'] = width
+        else:
+            self.__zoomDict['width'] = self.x - self.__zoomDict['xoffset']
+
+        if self.__zoomDict['yoffset'] + height <= self.y:
+            self.__zoomDict['height'] = height
+        else:
+            self.__zoomDict['height'] = self.y - self.__zoomDict['yoffset']
+
+        self.__zoomDict['isZoom'] = True
+
+        if self.data:
+            self.display(self.data, zoomUpdate=True)
+
+    def reset_zoom(self):
+        """
+        This method will reset __zoomDict to the default values (no zoom).
+
+        :return: (None)
+        """
+        self.__zoomDict['isZoom'] = False
+        self.__zoomDict['xoffset'] = 0
+        self.__zoomDict['yoffset'] = 0
+        self.__zoomDict['width'] = self.x
+        self.__zoomDict['height'] = self.y
+
+        if self.data:
+            self.display(self.data, zoomUpdate=True)
+
+    def is_zoomed(self):
+        """
+        Check if displayed image is zoomed.
+
+        :return: (bool) True if image is zoomed, False otherwise.
+        """
+        return self.__zoomDict['isZoom']
+
+    def get_zoom_region(self):
+        """
+        Get displayed region in image pixels.
+
+        :return: (None or tuple)
+        """
+        return (
+                self.__zoomDict['xoffset'],
+                self.__zoomDict['yoffset'],
+                self.__zoomDict['width'],
+                self.__zoomDict['height'],
+                )
 
     def wait(self):
         """
@@ -135,6 +327,7 @@ class ImagePlotWidget(RawImageWidget):
         if (x != self.x) or (y != self.y):
             self.x = x['size']
             self.y = y['size']
+            self.reset_zoom()
 
     def set_black(self, value):
         """
@@ -292,7 +485,6 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.updateGuiWhiteLimits = function
 
-
     def set_getBlackWhiteLimits(self, getBlackLimitsFunction, getWhiteLimitsFunction):
         """
 
@@ -315,7 +507,6 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.updateGuiWhite = function
 
-
     def set_scaling(self, scale=None):
         """
 
@@ -330,14 +521,16 @@ class ImagePlotWidget(RawImageWidget):
         else:
             self._scaling = scale
 
-    def display(self, data):
+    def display(self, data, zoomUpdate = False):
         """
-        Display and update image using data received
+        Display and update image using passed data.
 
-        :param data:
+        :param data: Channel PV data.
+        :param zoomUpdate: (bool) Must be False to display new image. True if method
+                            is called to update the current displayed image with new
+                            zoom.
         :return:
         """
-
         # Determinate input data type
         data_types = data['value'][0].keys()
         assert len(list(data_types)) == 1
@@ -352,8 +545,8 @@ class ImagePlotWidget(RawImageWidget):
 
 
         # Lookup required infomartion for the current input type
-        i = data['value'][0][inputType]
-        sz = i.nbytes
+        imgArray = data['value'][0][inputType]
+        sz = imgArray.nbytes
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']
@@ -365,43 +558,67 @@ class ImagePlotWidget(RawImageWidget):
 
         self._inputType = inputType
 
+        # Handle timestamp
+        ts = data['timeStamp']
+        if ts == self._lastTimestamp and not zoomUpdate:
+            # if timstamp hasn't changed, its not a new image
+            return
+        self._lastTimestamp = ts
+
+        # Update numbers of MBytes received (bytes => kBytes => MBytes conversion)
+        if not zoomUpdate:
+            self.mbReceived += sz/1024.0/1024.0
+
         # Get image statistics
         if maxVal != self.maxVal:
             self.maxVal = maxVal
         if minVal != self.minVal:
             self.minVal = minVal
 
-        self.mbReceived += sz/1024.0/1024.0
+        # Resize to get a 2D array from 1D data structure
+        if self.x == 0 or self.y == 0:
+            # return
+            raise RuntimeError("Image dimension not initialized")
+        img = np.resize(imgArray, (self.y, self.x))
+        self.originalImage = img
 
-        ts = data['timeStamp']
-        if ts == self._lastTimestamp:
-            # if timstamp hasn't changed, its not a new image
-            return
-        self._lastTimestamp = ts
-
-        # count dead pixels
+        # Count dead pixels
         # TODO: Dead pixel count was requested for the specific type of the camera,
         # as the DPXLimit is hardcoded value to 0xfff0. Consequently all all pixels
         # on the cameras with image depth higher than UInt16 can be counted as dead.
         # Discussion about this is on the Gitlab: https://git.aps.anl.gov/C2/conda/data-viewer/-/merge_requests/17
-        dpx = (i[embeddedDataLen:] > self._pref["DPXLimit"]).sum()
+        dpx = (imgArray[embeddedDataLen:] > self._pref["DPXLimit"]).sum()
         self._dpx.append(dpx)
         self._dpx = self._dpx[-3:]
 
-        # record max/min pixel values
-        self._max.append(i[embeddedDataLen:].max())
+        # Record max/min pixel values on ROI
+        self._max.append(imgArray[embeddedDataLen:].max())
         self._max = self._max[-3:]
-        self._min.append(i[embeddedDataLen:].min())
+        self._min.append(imgArray[embeddedDataLen:].min())
         self._min = self._min[-3:]
 
-        # resize to get a 2D array from 1D data structure
-        if self.x == 0 or self.y == 0:
-            # return
-            raise RuntimeError("Image dimension not initialized")
-        i = np.resize(i, (self.y, self.x))
+        # Handle image transformation
+        if self.is_zoomed():
+            xoffset, yoffset, width, height = self.get_zoom_region()
+            endx = xoffset + width
+            endy = yoffset + height
+            img = img[yoffset:endy, xoffset:endx]
+            imgArray = img.flatten()
 
+        # Count dead pixels on ROI
+        dpx = (imgArray > self._pref["DPXLimit"]).sum()
+        self._dpxRoi.append(dpx)
+        self._dpxRoi = self._dpxRoi[-3:]
+
+        # Record max/min pixel values on ROI
+        self._maxRoi.append(imgArray.max())
+        self._maxRoi = self._maxRoi[-3:]
+        self._minRoi.append(imgArray.min())
+        self._minRoi = self._minRoi[-3:]
+
+        # Auto calculate black/white levels
         if self._agc:
-            black, white = np.percentile(i, [0.01, 99.99])
+            black, white = np.percentile(img, [0.01, 99.99])
 
             if self.getGuiBlackLimits and self.getGuiWhiteLimits:
                 blackMin, blackMax = self.getGuiBlackLimits()
@@ -419,11 +636,12 @@ class ImagePlotWidget(RawImageWidget):
             self._agc = False
 
         # Flip and rotate the image for 90 degrees (TODO: add description why)
-        i = np.rot90(np.fliplr(i)).astype(npdt)
+        img = np.rot90(np.fliplr(img)).astype(npdt)
 
-        self._set_image_on_main_thread(i)
+        self._set_image_on_main_thread(img)
 
-        self.framesDisplayed += 1
+        if not zoomUpdate:
+            self.framesDisplayed += 1
 
     def configureGuiLimits(self, dataType):
         """

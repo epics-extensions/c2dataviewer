@@ -17,6 +17,7 @@ from pvaccess import PvDimension
 from pvaccess import BYTE, UBYTE, SHORT, USHORT, INT, UINT, LONG, ULONG, FLOAT, DOUBLE
 import numpy as np
 from pyqtgraph.Qt import QtWidgets
+from pyqtgraph.Qt import QtCore, QtTest
 
 from c2dataviewer.imagev import ImageWindow
 
@@ -53,7 +54,6 @@ class TestImageDisplay(unittest.TestCase):
 ############################################
 # Test datatypes (display method)
 ############################################
-
 
     def runDatatypeSupportTest(self, dataType, xDim, yDim, arrayValue, inputValid = True):
         """
@@ -291,3 +291,104 @@ class TestImageDisplay(unittest.TestCase):
             ]
 
         self.runDatatypeSupportTest(DOUBLE, x, y, arrayValue)
+
+
+############################################
+# Test zoom capability
+############################################
+
+    def test_zoom(self):
+        """
+
+        """
+        # Build test image
+        arrayValue = [
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            ]
+        data = NtNdArray()
+        data.setValue(PvObject({"ubyteValue" : [UBYTE]},
+                               {"ubyteValue" : arrayValue},
+                     ))
+
+
+        # Display original image
+        # Call __update_dimension directly, as we do not have a datasource we could set here
+        # by calling set_datasource, which then updates the dimensions
+        dimsData = {}
+        dimsData['dimension'] = ({'size' : 10}, {'size' : 10})
+        self.imageWidget._ImagePlotWidget__update_dimension(dimsData)
+        self.imageWidget.display(data)
+
+        # Test zoom parameters
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertFalse(self.imageWidget.is_zoomed())
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(10, width)
+        self.assertEqual(10, height)
+
+        # Change ROI programmatically
+        self.imageWidget._ImagePlotWidget__calculateZoomParameters(100, 500, 50, 470)
+
+        # Test zoom dist values
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertTrue(self.imageWidget.is_zoomed())
+        self.assertEqual(1, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(6, width)
+        self.assertEqual(7, height)
+
+        # Call reset zoom programmatically as we do not have the button available here
+        self.imageWidget.reset_zoom()
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertFalse(self.imageWidget.is_zoomed())
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(10, width)
+        self.assertEqual(10, height)
+
+        # Select roi by simulating mouse clicks
+        QtTest.QTest.mousePress(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(500, 470), -1)
+        QtTest.QTest.mouseRelease(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(100, 50), 500)
+
+        # Test if roi was zoomed
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertTrue(self.imageWidget.is_zoomed())
+        self.assertEqual(1, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(6, width)
+        self.assertEqual(7, height)
+
+        # Try to select again
+        QtTest.QTest.mousePress(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(50, 150), -1)
+        QtTest.QTest.mouseRelease(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(550, 7000), 50)
+
+        # Test if roi was zoomed again
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertTrue(self.imageWidget.is_zoomed())
+        self.assertEqual(1, xOffset)
+        self.assertEqual(1, yOffset)
+        self.assertEqual(5, width)
+        self.assertEqual(7, height)
+
+        # Call reset zoom programmatically as we do not have the button available here
+        self.imageWidget.reset_zoom()
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertFalse(self.imageWidget.is_zoomed())
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(10, width)
+        self.assertEqual(10, height)
