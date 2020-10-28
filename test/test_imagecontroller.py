@@ -149,3 +149,75 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual(self.ic.SLIDER_MAX_VAL * 1.5, self.ic._win.imageWhiteSpinBox.value())
         self.assertEqual(0, self.ic._win.imageWhiteSpinBox.minimum())
         self.assertEqual(self.ic.SLIDER_MAX_VAL * 2, self.ic._win.imageWhiteSpinBox.maximum())
+
+    def test_zoomInformation(self):
+        """
+        Test if zoom information is properly displayed on the GUI
+
+        :return:
+        """
+
+        # Setup image inside the ImagePlotWidget
+                # Build test image
+        arrayValue = [
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            ]
+        data = NtNdArray()
+        data.setValue(PvObject({"ubyteValue" : [UBYTE]},
+                               {"ubyteValue" : arrayValue},
+                     ))
+
+
+        # Display original image
+        # Call __update_dimension directly, as we do not have a datasource we could set here
+        # by calling set_datasource, which then updates the dimensions
+        dimsData = {}
+        dimsData['dimension'] = ({'size' : 10}, {'size' : 10})
+        self.ic._win.imageWidget._ImagePlotWidget__update_dimension(dimsData)
+        self.ic._win.imageWidget.display(data)
+        self.ic._win.imageWidget.data = data
+
+        # Update the GUI
+        self.ic.updateStatus()
+
+        # Check the information on the gui
+        self.assertEqual("10", self.ic._win.lblXsize.text().strip())
+        self.assertEqual("10", self.ic._win.lblYsize.text().strip())
+        self.assertEqual("0", self.ic._win.deadPixel.text().strip())
+        self.assertEqual("255", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0", self.ic._win.minPixel.text().strip())
+
+        # Set zoom region
+        self.ic._win.imageWidget.set_zoom_region(4, 3, 5, 8)
+
+        # Update the GUI
+        self.ic.updateStatus()
+
+        # Check the information on the gui
+        self.assertEqual("10 (4-9)", self.ic._win.lblXsize.text().strip())
+        self.assertEqual("10 (3-10)", self.ic._win.lblYsize.text().strip())
+        self.assertEqual("0 (0)", self.ic._win.deadPixel.text().strip())
+        self.assertEqual("255 (76)", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0 (23)", self.ic._win.minPixel.text().strip())
+
+        # Reset zoom
+        self.ic._win.imageWidget.reset_zoom()
+
+        # Update the GUI
+        self.ic.updateStatus()
+
+        # Check the information on the gui
+        self.assertEqual("10", self.ic._win.lblXsize.text().strip())
+        self.assertEqual("10", self.ic._win.lblYsize.text().strip())
+        self.assertEqual("0", self.ic._win.deadPixel.text().strip())
+        self.assertEqual("255", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0", self.ic._win.minPixel.text().strip())
