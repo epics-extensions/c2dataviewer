@@ -182,15 +182,29 @@ class Configure:
                     "Diff": "diff",
                     "X vs Y": "xy",
                 }, "value": "Normal"},
-                #{"name": "N Ave", "type": "int", "value": 1},
+                {"name": "FFT filter", "type": "list", "values": {
+                    "None" : "none",
+                    "Hamming" : "hamming"
+                }, "value": "None"},
+                {"name": "Exp moving avg", "type": "int", "value": 1, "limits" : (1, 1e+10)},
                 {"name": "Autoscale", "type": "bool", "value": False},
                 {"name": "Histogram", "type": "bool", "value": False},
                 {"name": "Num Bins", "type": "int", "value": 100},
                 {"name": "Refresh", "type": "float", "value": 0.1, "siPrefix": True, "suffix": "s"},
             ]}
         else:
+
+            fft_filter = section.get("FFT_FILTER", None)
+            if fft_filter is not None:
+                if fft_filter.lower().strip() in ["none", "hamming"]:
+                    fft_filter = fft_filter.lower().strip().capitalize()
+                else:
+                    # Disable filter if config not valid
+                    fft_filter = "none"
+
             try:
                 n_average = section.getint("AVERAGE", 1)
+                n_average = n_average if n_average > 0 else 1
             except ValueError:
                 n_average = 1
 
@@ -232,7 +246,11 @@ class Configure:
                     "Diff": "diff",
                     "X vs Y": "xy",
                 }, "value": "Normal"},
-                #{"name": "N Ave", "type": "int", "value": n_average},
+                {"name": "FFT filter", "type": "list", "values": {
+                    "None" : "none",
+                    "Hamming" : "hamming"
+                }, "value": fft_filter},
+                {"name": "Exp moving avg", "type": "int", "value": n_average, "limits" : (1, 1e+10)},
                 {"name": "Autoscale", "type": "bool", "value": autoscale},
                 {"name": "Histogram", "type": "bool", "value": histogram},
                 {"name": "Num Bins", "type": "int", "value": n_binning},
