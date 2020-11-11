@@ -108,7 +108,7 @@ class ScopeController:
         """
         Genenerator that can traverse through nested dictionaries and return
         key/value pairs
-        
+
         For example given {'a':{'b':1}, 'c': 2}, it would yield
         ('a.b', 1) and ('c', 2)
 
@@ -133,7 +133,7 @@ class ScopeController:
         fdr = []
         fdr_scalar = []
         pv = self.model.get('')
-        
+
         if pv is not None:
             for k, v in ScopeController.__flatten_dict(pv.getStructureDict()):
                 if type(v) == list:
@@ -276,7 +276,9 @@ class ScopeController:
                     self._win.graphicsWidget.is_freeze = data
                 elif childName == "Display.Mode":
                     self._win.graphicsWidget.set_display_mode(data)
-                elif childName == "Display.N Ave":
+                elif childName == "Display.FFT filter":
+                    self._win.graphicsWidget.set_fft_filter(data)
+                elif childName == "Display.Exp moving avg":
                     self._win.graphicsWidget.set_average(data)
                 elif childName == "Display.Autoscale":
                     self._win.graphicsWidget.do_autoscale(data)
@@ -325,7 +327,7 @@ class ScopeController:
         # stop a model first anyway to ensure it is clean
         self.model.stop()
 
-        # start a new monitor                    
+        # start a new monitor
         self.model.start(self.monitor_callback)
         try:
             self.timer.timeout.disconnect()

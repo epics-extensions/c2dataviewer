@@ -73,12 +73,19 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.bins = 100
         self.fft = False
+        self.fft_filter = None
         self.psd = False
         self.diff = False
         self.xy = False
         self.histogram = False
+        self.average = 1
 
         self.dc_offsets = None
+
+        self.__fft_vgain = {
+            'none' : 1,
+            'hamming' : 1.853,
+        }
 
         ##############################
         #
@@ -194,6 +201,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             for i in range(counts):
                 if names[i] != "None":
                     self.curve.append(self.plot.plot(pen=self.color_pattern[i]))
+                    self.curve[-1].plotdata_ave = None
         else:
             # TODO support multiple axises
             pass
@@ -306,6 +314,23 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.plot.setLogMode(x=False, y=False)
         self.plot.autoScale = True
 
+        # Mode changed, iterate over the curves and set moving average to None
+        for c in self.curve:
+            if c:
+                c.plotdata_ave = None
+
+    def set_fft_filter(self, value):
+        """
+        Set fft filter to use. Valid values are None / "none" and "hamming".
+
+        :param value: (None or string) Filter to be used on the data, before the fft.
+        :return:
+        """
+        if value is None:
+            self.fft_filter = value
+        else:
+            self.fft_filter = value.lower()
+
     def set_average(self, value):
         """
         Set average number
@@ -313,6 +338,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param value:
         :return:
         """
+        self.average = value
 
     def set_histogram(self, flag):
         """
@@ -485,6 +511,75 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.first_data:
             self.first_data = False
 
+    def calculate_ftt(self, data, sample_period, mode, filter=None):
+        """
+        Calculate fft on the input array.
+
+        :param data: (Numpy array) Data to be transformed.
+        :param sample_period: (int) Sampling period of the data.
+        :param mode: (string) This could be either "fft" or "psd".
+        :param filter: (None or string) Filter to be applied on the data before transformation.
+
+        :return: (Numpy array, Numpy array) xf and yf transformations of the data.
+        """
+        xf = yf = None
+        filter = filter or "none"
+
+        # Perform transformation for X axis
+        data_len = len(data)
+        xf = np.fft.rfftfreq(data_len, d=sample_period)
+
+        # Calculate window
+        if filter == "none":
+            pass
+        elif filter == "hamming":
+            window = np.hamming(data_len)
+            data = data * window
+        else:
+            raise ValueError(f"{str(filter)} is not valid FFT filter type.")
+
+        # Perform transformation for Y axis
+        yf_raw = np.abs(np.fft.rfft(data))
+
+        # Apply normalisation filter
+        try:
+            vertical_gain = self.__fft_vgain[filter]
+        except KeyError:
+            raise ValueError(f"{str(filter)} is not valid FFT filter type.")
+
+        if mode.lower() == "fft":
+            yf = 2. * vertical_gain * yf_raw / data_len
+            # DC bin has different scale factor
+            yf[0] = yf[0] / 2.
+        elif mode.lower() == "psd":
+            # Sample period in sec. Sample rate is 1/sample rate. Hz/bin=srage/nf
+            sample_rate = 1. / sample_period
+            yf = 2. * vertical_gain * vertical_gain * yf_raw * yf_raw / (sample_rate * sample_rate)
+            # DC bin has different scale factor
+            yf[0] = yf[0] / 4.
+        else:
+            raise ValueError(f"{str(mode)} is not valid mode for FFT.")
+
+        return xf, yf
+
+    def exponential_moving_average(self, data, data_ave):
+        """
+        Calculate exponential moving average on the data.
+
+        :param data: (ndarray) Latest array data.
+        :param data_ave: (ndarray) Data average until now.
+
+        :return: (ndarray) Exponential moving average.
+        """
+        alpha = 2. / (self.average + 1.)
+
+        if data_ave is None or len(data_ave) != len(data):
+            data_ave=np.array([1e-10] * len(data))
+
+        new_data_ave = data_ave + alpha * (data - data_ave)
+
+        return new_data_ave
+
     def draw_curve(self, count, data, index, draw_trig_mark=False):
         """
         Draw a waveform curve
@@ -512,23 +607,29 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.diff:
             d = np.diff(data)
 
+        xf = yf = None
         if self.fft or self.psd:
             if data_len == 0:
                 return
-            yf = np.fft.rfft(data)
-            xf = np.fft.rfftfreq(data_len, d=sample_period)
+            mode = "fft" if self.fft else "psd"
+            xf, yf = self.calculate_ftt(data, sample_period, mode, self.fft_filter)
 
         if self.histogram and not self.psd and not self.fft:
             self.curve[count].opts['stepMode'] = True
         else:
             self.curve[count].opts['stepMode'] = False
 
-        if self.fft:
-            self.curve[count].setData(xf, (2. / sample_period) * np.abs(yf))
-        elif self.psd:
-            df = np.diff(xf).mean()
-            psd = ((2.0 / sample_period * np.abs(yf)) ** 2) / df / 2
-            self.curve[count].setData(xf, psd)
+        # Exponential moving average
+        if self.average > 1:
+            if yf is not None:
+                yf = self.exponential_moving_average(yf, self.curve[count].plotdata_ave)
+                self.curve[count].plotdata_ave = yf
+            else:
+                data = self.exponential_moving_average(data, self.curve[count].plotdata_ave)
+                self.curve[count].plotdata_ave = data
+
+        if self.fft or self.psd:
+            self.curve[count].setData(xf, yf)
         elif self.histogram and not self.psd and not self.fft:
             d = self.filter(data)
             y, x = np.histogram(d, bins=self.bins)
@@ -618,4 +719,3 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         else:
             s = np.clip(dt * 3., 0, 1)
             self.fps = self.fps * (1 - s) + (1.0 / dt) * s
-
