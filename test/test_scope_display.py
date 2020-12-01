@@ -229,3 +229,18 @@ class TestScopeDisplay(unittest.TestCase):
                                                 2.23015219e+02, 2.28042202e+02],
                                               dtype=np.float64),
                                               decimal=3)
+
+    def test_multi_axis_plot(self):
+        """
+        Test multi axis plot.
+
+        :return:
+        """
+        signals = ["x1", "x1", "x1", "x1"]
+
+        self.pw.setup_plot(signals, single_axis=False)
+
+        self.assertIsNotNone(self.pw.plot)
+        self.assertEqual(len(signals), len(self.pw.axis))
+        self.assertEqual(len(signals), len(self.pw.views))
+        self.assertEqual(len(signals), len(self.pw.curves))

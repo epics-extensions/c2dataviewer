@@ -28,6 +28,7 @@ class ScopeController:
         self.parameters = parameters
         self.channels = kwargs.get("channels", 4)
         self.chnames = ["None"] * self.channels
+        self.single_axis = True
         self.data = None
         # refresh frequency: every 100 ms by default
         self.refresh = 100
@@ -276,12 +277,22 @@ class ScopeController:
                     self._win.graphicsWidget.is_freeze = data
                 elif childName == "Display.Mode":
                     self._win.graphicsWidget.set_display_mode(data)
+                    self._win.graphicsWidget.setup_plot(self.chnames, single_axis=self.single_axis)
+                    # Disable multiaxis for the FFT and PSD modes. As at the time of the
+                    # writing this code pyqtgraph does not support logarithmic scale in multiaxis configuration.
+                    if self._win.graphicsWidget.fft or self._win.graphicsWidget.psd:
+                        self.parameters.child("Display").child("Single axis").setReadonly()
+                    else:
+                        self.parameters.child("Display").child("Single axis").setWritable()
                 elif childName == "Display.FFT filter":
                     self._win.graphicsWidget.set_fft_filter(data)
                 elif childName == "Display.Exp moving avg":
                     self._win.graphicsWidget.set_average(data)
                 elif childName == "Display.Autoscale":
-                    self._win.graphicsWidget.do_autoscale(data)
+                    self._win.graphicsWidget.set_autoscale(data)
+                elif childName == "Display.Single axis":
+                    self.single_axis = data
+                    self._win.graphicsWidget.setup_plot(self.chnames, single_axis=self.single_axis)
                 elif childName == "Display.Histogram":
                     self._win.graphicsWidget.set_histogram(data)
                 elif childName == "Display.Num Bins":
@@ -299,8 +310,9 @@ class ScopeController:
                             self.chnames[i] = data
                         elif childName == 'Channel %s.DC offset' % (i + 1):
                             self._win.graphicsWidget.dc_offsets[i] = data
-                    if "Field" in childName:
-                        self._win.graphicsWidget.setup_plot(self.chnames, single_axis=True)
+                        elif childName == 'Channel %s.Axis location' % (i + 1):
+                            self._win.graphicsWidget.axis_locations[i] = data
+                    self._win.graphicsWidget.setup_plot(self.chnames, single_axis=self.single_axis)
 
     def set_freshrate(self, value):
         """
@@ -473,6 +485,12 @@ class ScopeController:
 
         :return:
         """
+        # Update display
+        single_axis_child = self.parameters.child("Display", "Single axis")
+        if single_axis_child.value() != self._win.graphicsWidget.single_axis:
+            single_axis_child.setValue(self._win.graphicsWidget.single_axis)
+
+        # Update statistics
         with self._win._proc.oneshot():
             cpu = self._win._proc.cpu_percent(None)
 
