@@ -63,7 +63,11 @@ class Configure:
                          "readonly": True
                      },
                      {"name": "Field", "type": "list", "values": [], "value": "None"},
-                     {"name": "DC offset", "type": "float", "value": 0.0}
+                     {"name": "DC offset", "type": "float", "value": 0.0},
+                     {"name": "Axis location", "type": "list", "values": {
+                         "Left" : "left",
+                         "Right" : "right",
+                     }, "value" : "Left"},
                  ]
                  }
             )
@@ -188,6 +192,7 @@ class Configure:
                 }, "value": "None"},
                 {"name": "Exp moving avg", "type": "int", "value": 1, "limits" : (1, 1e+10)},
                 {"name": "Autoscale", "type": "bool", "value": False},
+                {"name": "Single axis", "type": "bool", "value": True},
                 {"name": "Histogram", "type": "bool", "value": False},
                 {"name": "Num Bins", "type": "int", "value": 100},
                 {"name": "Refresh", "type": "float", "value": 0.1, "siPrefix": True, "suffix": "s"},
@@ -217,6 +222,15 @@ class Configure:
                     autoscale = False
             else:
                 autoscale = False
+
+            single_axis = section.get("SINGLE_AXIS", None)
+            if single_axis is not None:
+                if single_axis.upper().strip() in ["FALSE"]:
+                    single_axis = False
+                else:
+                    single_axis = True
+            else:
+                single_axis = True
 
             histogram = section.get("HISTOGRAM", None)
             if histogram is not None:
@@ -252,6 +266,7 @@ class Configure:
                 }, "value": fft_filter},
                 {"name": "Exp moving avg", "type": "int", "value": n_average, "limits" : (1, 1e+10)},
                 {"name": "Autoscale", "type": "bool", "value": autoscale},
+                {"name": "Single axis", "type": "bool", "value": single_axis},
                 {"name": "Histogram", "type": "bool", "value": histogram},
                 {"name": "Num Bins", "type": "int", "value": n_binning},
                 {"name": "Refresh", "type": "float", "value": refresh / 1000., "siPrefix": True, "suffix": "s"},

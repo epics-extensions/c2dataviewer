@@ -8,7 +8,7 @@ PVA object viewer utilities for image display
 
 @author: Guobao Shen <gshen@anl.gov>
 """
-
+from datetime import datetime
 import numpy as np
 import pyqtgraph
 import pyqtgraph.ptime as ptime
@@ -16,6 +16,7 @@ from pyqtgraph.Qt import QtCore
 
 
 class PlotWidget(pyqtgraph.GraphicsWindow):
+
     def __init__(self, parent=None, **kargs):
         pyqtgraph.GraphicsWindow.__init__(self, parent=parent)
         self.setParent(parent)
@@ -30,21 +31,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.first_data = True
         self.plotting_started = False
 
-        # Plotting type:
-        #   2: single axes with linear scale
-        #   3: single axes with log scale
-        #   4: multiple axes with linear scale
-        # self.plot_type = 2
-
-        # self.axes = None
-        self.curve = []
-        self.num_axes = 0
-        self.plot = self.addPlot()
-        # auto range is disabled by default
-        self.plot.disableAutoRange()
-        # trigger marker
-        self.trigMarker = self.plot.plot(pen='r')
-
         self.mutex = pyqtgraph.QtCore.QMutex()
 
         self.max_length = 256
@@ -52,6 +38,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.new_buffer = True
         self.data = {}
         self.first_run = True
+        self.new_plot = True
 
         # last id number of array received
         self.lastArrayId = None
@@ -65,7 +52,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # EPICS7 field name for Array ID
         self.current_arrayid = "None"
 
-        self.fps = None
+        self.fps = 0
         self.lastTime = ptime.time()
 
         self._max = None
@@ -80,12 +67,34 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.histogram = False
         self.average = 1
 
-        self.dc_offsets = None
-
         self.__fft_vgain = {
             'none' : 1,
             'hamming' : 1.853,
         }
+
+        self.axis = []
+        self.default_axis_location = "left"
+        self.axis_locations = {
+            0 : self.default_axis_location,
+            1 : self.default_axis_location,
+            2 : self.default_axis_location,
+            3 : self.default_axis_location,
+        }
+        self.default_dc_offset = 0
+        self.dc_offsets = {
+            0 : self.default_dc_offset,
+            1 : self.default_dc_offset,
+            2 : self.default_dc_offset,
+            3 : self.default_dc_offset,
+        }
+        self.views = []
+        self.curves = []
+
+        # Setup plot variables
+        self.single_axis = True
+        self.plot = None
+        self.setup_plot([])
+
 
         ##############################
         #
@@ -139,18 +148,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
         self.model = model
 
-    def delete_plots(self):
-        """
-        Delete all plots
-
-        :return:
-        """
-        if self.curve:
-            for nn in range(0, len(self.curve)):
-                self.plot.removeItem(self.curve[nn])
-
-        self.curve.clear()
-
     def set_arrayid(self, value):
         """
         Set current field name for array id
@@ -171,52 +168,199 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if value != self.current_xaxes:
             self.current_xaxes = value
 
-    def setup_plot(self, names, single_axis=False, is_log=False):
+    def setup_plot(self, names, single_axis=True):
         """
         Setup plotting
 
         :param names: list of EPICS7 field names
-        :param single_axis: flag to share single axis, or have a axis for each figure
-        :param is_log: flag to plot with logarithm for vertical axis
+        :param single_axis: flag to share single axis, or have a axis for each figure. FFT and PSD support only single axis
         :return:
         """
-        if is_log and not single_axis:
-            raise RuntimeError("log is not supported with multi axis")
 
-        counts = len(names)
+        # FFT and PSD support only single axis, PyQTGraph currently doesn't support log scale on the multiple axis setup
+        if not single_axis and (self.fft or self.psd):
+            single_axis = True
+            # Could Be replaced with logging if added in the future
+            print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: FFT or PSD selected in multi axis mode, which is not supported. Changed to one axis mode automatically.")
+
+        # Delete existing plots
+        self.delete_plots()
+
+        # Set new list of signals
         self.names = names
+
+        # Create plot item
+        self.plot = pyqtgraph.PlotItem()
+        self.plot.showGrid(x=True, y=True)
+        self.trigMarker = self.plot.plot(pen='r')
+        self.do_autoscale()
+        if self.fft or self.psd:
+            self.plot.setLogMode(x=True, y=True)
+
+        # Generate plot items
+        self.single_axis = single_axis
         if single_axis:
-            # all plotting share single vertical axis
-            # the plotting type is 2
-            # self.plot_type = 2
-
-            if counts > 0:
-                self.delete_plots()
-
-            # TODO support logarithm vertical axes
-            # if self.is_log:
-            #     self.views[0].setLogMode(True, True)
-            # self.axes = self.plot.getAxis('left')
-            self.plot.showGrid(x=True, y=True)
-            for i in range(counts):
-                if names[i] != "None":
-                    self.curve.append(self.plot.plot(pen=self.color_pattern[i]))
-                    self.curve[-1].plotdata_ave = None
+            self.setup_plot_single_axis(names)
         else:
-            # TODO support multiple axises
-            pass
+            self.setup_plot_multi_axis(names)
 
-    def do_autoscale(self, flag):
+        # Update plots
+        self.plot.vb.sigResized.connect(self.update_views)
+        self.update_views()
+
+        # Set for autoscale the first time
+        self.new_plot = True
+
+    def setup_plot_single_axis(self, names):
         """
+        Setup items for single Y axis plot.
 
-        :param flag:
+        :names: (list -> strings) List of channels to bi displayed. "None" should be used to ignore that channel.
+        :return: (None)
+        """
+        for i in range(len(names)):
+            if names[i] != "None":
+                curve = self.plot.plot(pen=self.color_pattern[i])
+                curve.plotdata_ave = None
+                self.curves.append(curve)
+
+        self.ci.addItem(self.plot, row=2)
+
+    def setup_plot_multi_axis(self, names):
+        """
+        Setup items for multiple Y axis plot.
+
+        :names: (list -> strings) List of channels to bi displayed. "None" should be used to ignore that channel.
+        :return: (None)
+        """
+        # We do not use default axis
+        self.plot.hideAxis('left')
+
+        # Create axis and views
+        left_axis = []
+        right_axis = []
+        for i, field_name in enumerate(names):
+            # Skip if None was selected
+            if field_name == "None":
+                continue
+            axis = pyqtgraph.AxisItem(self.axis_locations[i])
+            axis.setLabel(f"Channel {i+1} [{field_name}]", color=self.color_pattern[i])
+            if self.axis_locations[i] == "left":
+                left_axis.append(axis)
+            else:
+                right_axis.append(axis)
+            self.axis.append(axis)
+            # First view we take from plotItem
+            if len(self.axis) == 1:
+                self.views.append(self.plot.vb)
+            else:
+                self.views.append(pyqtgraph.ViewBox())
+
+        # Add axis and plot to GraphicsLayout (self.ci)
+        # Order how they are added is important, while it is also important
+        # we hold correct order (the same as in the "names" variable) in self.axis
+        # variable as other code depends on this.
+        for a in left_axis:
+            self.ci.addItem(a, row=2)
+        self.ci.addItem(self.plot, row=2)
+        for a in right_axis:
+            self.ci.addItem(a, row=2)
+
+        # Add Viewboxes to the layout
+        for vb in self.views:
+            if vb != self.plot.vb:
+                self.ci.scene().addItem(vb)
+
+        # Link axis to view boxes
+        for i, view in enumerate(self.views):
+            self.axis[i].linkToView(view)
+            if view != self.plot.vb:
+                view.setXLink(self.plot.vb)
+
+        # Make curves
+        count = 0
+        for i, field_name in enumerate(names):
+            if field_name == "None":
+                continue
+            curve = pyqtgraph.PlotCurveItem(pen=self.color_pattern[i])
+            curve.plotdata_ave = None
+            left_curve = []
+            right_curve = []
+            if self.axis_locations[i] == "left":
+                left_curve.append(curve)
+            else:
+                right_curve.append(curve)
+            self.curves.extend(left_curve)
+            self.curves.extend(right_curve)
+            self.views[count].addItem(curve)
+            count += 1
+
+    def delete_plots(self):
+        """
+        Delete all plots
+
+        :return:
+        """
+        if self.single_axis:
+            for curve in self.curves:
+                self.plot.removeItem(curve)
+        else:
+            # Delete old plots if exists
+            for i, view in enumerate(self.views):
+                view.removeItem(self.curves[i])
+
+            for a in self.axis:
+                self.ci.removeItem(a)
+
+        # Remove plotItem
+        if self.plot is not None:
+            self.ci.removeItem(self.plot)
+
+        # Remove references to all chart items
+        self.views = []
+        self.axis = []
+        self.curves = []
+
+    def update_views(self):
+        """
+        Update the view so they scale properly.
+
+        :return:
+        """
+        for view in self.views:
+            if view == self.plot.vb:
+                continue
+            view.setGeometry(self.plot.vb.sceneBoundingRect())
+
+    def set_autoscale(self, flag):
+        """
+        Enable or disable the autoscale.
+
+        :param flag: (bool) True to enable the autoscale, False otherwise.
         :return:
         """
         self.auto_scale = flag
-        if flag:
+        self.do_autoscale()
+
+
+    def do_autoscale(self, auto_scale=None):
+        """
+        Enable/disable auto range of the current plot based on the `self.auto_scale` setting.
+
+        :param auto_scale: (bool) Can used to overwrite the self.auto_scale. Keep non to use self.auto_scale.
+        :return:
+        """
+        if auto_scale is None:
+            auto_scale = self.auto_scale
+
+        if auto_scale:
             self.plot.enableAutoRange()
+            for view in self.views:
+                view.enableAutoRange()
         else:
             self.plot.disableAutoRange()
+            for view in self.views:
+                view.disableAutoRange()
 
     def wait(self):
         """
@@ -287,37 +431,31 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.psd = False
             self.diff = False
             self.xy = False
-            self.plot.setLogMode(x=False, y=False)
         elif value == 'fft':
             self.fft = True
             self.psd = False
             self.diff = False
             self.xy = False
-            self.plot.setLogMode(x=True, y=True)
         elif value == 'psd':
             self.fft = False
             self.psd = True
             self.diff = False
             self.xy = False
-            self.plot.setLogMode(x=True, y=True)
         elif value == 'diff':
             self.fft = False
             self.psd = False
             self.diff = True
             self.xy = False
-            self.plot.setLogMode(x=False, y=False)
         elif value == 'xy':
             self.fft = False
             self.psd = False
             self.diff = False
             self.xy = True
-            self.plot.setLogMode(x=False, y=False)
         self.plot.autoScale = True
 
         # Mode changed, iterate over the curves and set moving average to None
-        for c in self.curve:
-            if c:
-                c.plotdata_ave = None
+        for curve in self.curves:
+            curve.plotdata_ave = None
 
     def set_fft_filter(self, value):
         """
@@ -348,7 +486,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         self.histogram = flag
-        self.auto_scale = True
 
     def set_binning(self, value):
         """
@@ -358,7 +495,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         self.bins = value
-        self.auto_scale = True
 
     def trigger_process(self, data):
         """
@@ -584,12 +720,12 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
         Draw a waveform curve
 
-        :param count:  count of curve for plotting
+        :param index:  count of curve for plotting
         :param data:   curve data for plotting
-        :param index:  DC offset index
         :param draw_trig_mark: flag whether drawing trigger mark
         :return:
         """
+
         data_len = len(data)
         # in case on time reference in PV, we declare sample period to sec per sample.
         # 1 second per sample as initial
@@ -615,43 +751,42 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             xf, yf = self.calculate_ftt(data, sample_period, mode, self.fft_filter)
 
         if self.histogram and not self.psd and not self.fft:
-            self.curve[count].opts['stepMode'] = True
+            self.curves[count].opts['stepMode'] = True
         else:
-            self.curve[count].opts['stepMode'] = False
+            self.curves[count].opts['stepMode'] = False
 
         # Exponential moving average
         if self.average > 1:
             if yf is not None:
-                yf = self.exponential_moving_average(yf, self.curve[count].plotdata_ave)
-                self.curve[count].plotdata_ave = yf
+                yf = self.exponential_moving_average(yf, self.curves[count].plotdata_ave)
+                self.curves[count].plotdata_ave = yf
             else:
-                data = self.exponential_moving_average(data, self.curve[count].plotdata_ave)
-                self.curve[count].plotdata_ave = data
+                data = self.exponential_moving_average(data, self.curves[count].plotdata_ave)
+                self.curves[count].plotdata_ave = data
+
+        # Exponential moving average
+        if self.average > 1:
+            if yf is not None:
+                yf = self.exponential_moving_average(yf, self.curves[count].plotdata_ave)
+                self.curves[count].plotdata_ave = yf
+            else:
+                data = self.exponential_moving_average(data, self.curves[count].plotdata_ave)
+                self.curves[count].plotdata_ave = data
 
         if self.fft or self.psd:
-            self.curve[count].setData(xf, yf)
+            self.curves[count].setData(xf, yf)
         elif self.histogram and not self.psd and not self.fft:
             d = self.filter(data)
             y, x = np.histogram(d, bins=self.bins)
-            self.curve[count].setData(x, y)
+            self.curves[count].setData(x, y)
         elif time_array is None:
-            self.curve[count].setData(self.filter(data) + self.dc_offsets[index])
+            self.curves[count].setData(self.filter(data) + self.dc_offsets[index])
             self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.samples_after_trig_cnt)
         else:
             d, t = self.filter(data, time_array)
-            self.curve[count].setData(t - t[0], d + self.dc_offsets[index])
+            self.curves[count].setData(t - t[0], d + self.dc_offsets[index])
             self.__handle_trigger_marker__(draw_trig_mark, self.trigger_timestamp - time_array[0])
 
-        if self.first_run or self.new_buffer:
-            # perform auto range for the first time
-            self.plot.enableAutoRange()
-            # then disable it if auto scale is off
-            if not self.auto_scale:
-                self.plot.disableAutoRange()
-            if self.first_run:
-                self.first_run = False
-            elif self.new_buffer:
-                self.new_buffer = False
 
     def __handle_trigger_marker__(self, draw_trig_mark, marktime):
         """
@@ -701,6 +836,16 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.trigger_mode and self.is_triggered:
             self.is_triggered = False
             self.trigger_data_done = True
+
+        # Axis scaling
+        if self.first_run or self.new_buffer or self.new_plot:
+            # Perform auto range for the first time
+            self.do_autoscale(auto_scale=True)
+            self.first_run = False
+            self.new_buffer = False
+            self.new_plot = False
+        # Then set it to the correct setting
+        self.do_autoscale()
 
         self.update_fps()
         self.signal()
