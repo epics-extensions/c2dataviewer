@@ -485,6 +485,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param flag:
         :return:
         """
+        if flag != self.histogram:
+            self.new_plot = True
+
         self.histogram = flag
 
     def set_binning(self, value):
