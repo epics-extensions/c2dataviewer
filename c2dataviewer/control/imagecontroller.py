@@ -96,6 +96,7 @@ class ImageController:
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
+        self._win.freeze.stateChanged.connect(lambda: self._callback_freeze_changed())
 
         # # Limit control to avoid overflow network for best performance
         text = self._win.imageWidget._pref["DPXLimit"] or ''
@@ -219,6 +220,14 @@ class ImageController:
             self._win.imageWidget.set_framerate(self._framerates[fr])
         except NameError:
             pass
+
+    def _callback_freeze_changed(self):
+        """
+        Called when used freeze or unfreeze the image.
+
+        :return:
+        """
+        self._win.imageWidget.set_freeze(self._win.freeze.isChecked())
 
     def adjustLimits(self):
         """
