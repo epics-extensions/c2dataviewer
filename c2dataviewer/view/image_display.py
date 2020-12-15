@@ -32,6 +32,7 @@ class ImagePlotWidget(RawImageWidget):
         # self.camera_changed()
         self._agc = False
         self._lastTimestamp = None
+        self._freeze = False
 
         self.dataType = None
         self.mbReceived = 0.0
@@ -253,6 +254,20 @@ class ImagePlotWidget(RawImageWidget):
         if self.data:
             self.display(self.data, zoomUpdate=True)
 
+    def set_freeze(self, flag):
+        """
+        Freeze or unfreeze the image.
+
+        :parama flag: (bool) True to freeze the image, False otherwise.
+        :return:
+        """
+        self._freeze = flag
+        if self.datasource is not None:
+            if self._freeze:
+                self.stop()
+            else:
+                self.start()
+
     def reset_zoom(self):
         """
         This method will reset __zoomDict to the default values (no zoom).
@@ -366,10 +381,11 @@ class ImagePlotWidget(RawImageWidget):
 
         :return:
         """
-        if self.fps == -1:
-            self.datasource.start(routine=self.monitor_callback)
-        else:
-            self.timer.start(1000/self.fps)
+        if not self._freeze:
+            if self.fps == -1:
+                self.datasource.start(routine=self.monitor_callback)
+            else:
+                self.timer.start(1000/self.fps)
 
     def stop(self):
         """
