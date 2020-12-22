@@ -37,6 +37,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.data_size = 0
         self.new_buffer = True
         self.data = {}
+        self.trig_data = {}
         self.first_run = True
         self.new_plot = True
 
@@ -101,20 +102,27 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # trigger related variables
         #
         ##############################
-        # num samples to take after trigger
+        # Is trigger mode enabled
+        self.trigger_mode = False
+
+        # True if in trigger mode and trigger was received (trigger PV monitor fired).
+        self.is_triggered = False
+
+        # Counts trigger PV monitor fired callback (count monitor updates)
+        self.trigger_count = 0
+
+        # Number samples to take after trigger
         self.samples_after_trig = 0
-        # number of sample captured after trigger
+
+        # Number of samples captured after trigger
         self.samples_after_trig_cnt = 0
 
-        # self.trigger_buffer_position = 0
-        # self.samples_before_trig = 0
+        # Buffer managemet
+        self.trigger_buffer_position = 0
+        self.samples_before_trig = 0
 
-        self.trigger_mode = False
         self.trigger_data_done = True
-        # true if in trig mode and trig was received. that is the pv mon fired.
-        self.is_triggered = False
-        # counts whenever trigger pv monitor fires callback
-        self.trigger_count = 0
+
         # true of we are monitoring a channel
         self.trigger_is_monitor = False
         # true if we put in bad pv name, and try to monitor
@@ -132,13 +140,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         self.is_freeze = False
 
-        class Foo(QtCore.QObject):
+        class TriggerSignal(QtCore.QObject):
             my_signal = QtCore.pyqtSignal()
 
             def __init__(self):
                 QtCore.QObject.__init__(self)
 
-        self.plot_signal_emitter = Foo()
+        self.plot_trigger_signal_emitter = TriggerSignal()
 
     def set_model(self, model):
         """
@@ -530,43 +538,70 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # TODO handle trigger event for the case of plotting freezing,
         # need to handle multiple trigger before done with current trigger, and during plotting freezing
         #
-        if self.trigger_data_done:
-            # only accept new trigger after the current trigger done
-            if self.trigger_rec_type in ["bi", "bo"]:
-                # only trigger during jumping from 0 => 1
-                if data["value"]["index"] == 1:
-                    self.is_triggered = True
-                    self.trigger_data_done = False
-            elif self.trigger_rec_type in ["longin", "longout"]:
-                # always triggers when values changes
-                self.is_triggered = True
-                self.trigger_data_done = False
-            elif self.trigger_rec_type in ["calc"]:
-                # always triggers when values changes
-                self.is_triggered = True
-                self.trigger_data_done = False
-            elif self.trigger_rec_type in ["event"]:
-                # always triggers when values changes
-                # TODO compare the time stamp to determine the event trigger
-                self.is_triggered = True
-                self.trigger_data_done = False
-            elif self.trigger_rec_type in ["ai", "ao"]:
-                # always triggers when values changes
-                if data["value"] >= self.trigger_level:
-                    self.is_triggered = True
-                    self.trigger_data_done = False
-                else:
-                    self.is_triggered = False
 
-            self.trigger_count = self.trigger_count + 1
+        # Count triggers and ignore first one which is initial connection callback and not actual value change.
+        self.trigger_count += 1
+        if self.trigger_count <= 1:
+            return
+
+        # Ignore trigger if we are not ploting
+        if not self.plotting_started:
+            return
+
+        #  We trigger again only if the last trigger was fully processed
+        if not self.trigger_data_done:
+            return
+
+        # Process callback
+        if self.trigger_rec_type in ["bi", "bo"]:
+            # only trigger during jumping from 0 => 1
+            if data["value"]["index"] == 1:
+                self.is_triggered = True
+                self.trigger_data_done = False
+        elif self.trigger_rec_type in ["longin", "longout"]:
+            # always triggers when values changes
+            self.is_triggered = True
+            self.trigger_data_done = False
+        elif self.trigger_rec_type in ["calc"]:
+            # always triggers when values changes
+            self.is_triggered = True
+            self.trigger_data_done = False
+        elif self.trigger_rec_type in ["event"]:
+            # always triggers when values changes
+            # TODO compare the time stamp to determine the event trigger
+            self.is_triggered = True
+            self.trigger_data_done = False
+        elif self.trigger_rec_type in ["ai", "ao"]:
+            # always triggers when values changes
+            if data["value"] >= self.trigger_level:
+                self.is_triggered = True
+                self.trigger_data_done = False
+            else:
+                self.is_triggered = False
+
+        # TODO: also, if hold off ignore, then during a hold off time, we ignore triggers for example for 1 second.
+
+        if self.is_triggered:
+            self.samples_after_trig_cnt = 0
             ts = data['timeStamp']
-            # because the callback happens on connection, we set flag on 2nd callback, when monitor fires for real.
-            # also, we only call this stuff if is_triggered is False
-            # so we don't trigger again before we process the last trigger.
-            # also, if hold off ignore, then during a hold off time, we ignore triggers for example for 1 second.
-            if self.trigger_count > 0 and self.is_triggered:
-                self.samples_after_trig_cnt = 0
-                self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+            self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+
+    def __is_trigger_in_array(self, time_array):
+        """
+        Calculate if the trigger timestap is in the timestamp array.
+
+        :param time_array: (numpy array) Time (SORTED!!!) array to be checked.
+        :return: (Tuple -> (bool, integer)) True or False if timestamp is in the array.
+                                            If True, second element hold index of the element, otherwise is None.
+        """
+
+        idx = np.searchsorted(time_array, self.trigger_timestamp)
+
+        if idx <= 0 or idx >= time_array.size-1:
+            return (False, None)
+        else:
+            return (True, idx)
+
 
     def data_process(self, data_generator):
         """
@@ -575,78 +610,118 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param data_generator: generator that yields pvaccess data from the wire as key/value pairs
         :return:
         """
+        # Increment array count
+        self.arraysReceived += 1
+
+        # Check if scope is frozen
+        if self.is_freeze:
+            return
+
         self.wait()
         new_size = self.data_size
+        vector_len = 0
 
-        # assume a triggers done then set false when we gather data.
+        # Assume a triggers done then set false when we gather data.
         # all_triggers_done = True
-        # we step through all the signals we get from the v4 pv. we keep a count of them
-        # start at -1 so we inc to 0 at beginning of loop
+
+        # We step through all the signals we get from the v4 pv. We keep a count of them
+        # start at -1 so we increment to 0 at beginning of loop.
         signal_count = -1
-        # the first np array is the one we detrmine trigger position in the data. so as we step all data vectors
-        # with k, the 1st vector we mark as "vector_data_count"
+
+        # The first np array is the one we determine trigger position in the data. So as we step all data vectors
+        # with k, the 1st vector we mark as "vector_data_count".
         vector_data_count = -1
 
-        if not self.is_freeze:
-            for k, v in data_generator():
-                if k == self.current_arrayid:
-                    if self.lastArrayId is not None:
-                        if v - self.lastArrayId > 1:
-                            self.lostArrays += 1
-                    self.lastArrayId = v
-                    if self.data_size == 0:
-                        new_size += 4
-                if type(v) is list:
-                    v = np.array(v)
-                # when program is here, the v4 field is either a np array, or some sort of scalar.
-                # if not an array then we have a scalar, so store the scalar into the local copy of data,
+
+        for k, v in data_generator():
+
+            # TODO: what is this logic doing?
+            if k == self.current_arrayid:
+                if self.lastArrayId is not None:
+                    if v - self.lastArrayId > 1:
+                        self.lostArrays += 1
+                self.lastArrayId = v
+                if self.data_size == 0:
+                    new_size += 4
+
+            # If pvaccess modules was build without numpy, normal Python list is returned. Make conversion here.
+            if type(v) is list:
+                v = np.array(v)
+
+            # When program is here, the v4 field is either a np array, or some sort of scalar.
+            if type(v) != np.ndarray:
+                # If not an array then we have a scalar, so store the scalar into the local copy of data,
                 # and do NOT add to a long stored buffer
-                if type(v) != np.ndarray:
-                    self.data[k] = v
+                self.data[k] = v
+
+            else:
+                # At this point in program we found an nd array that may or may not have data. nd array is
+                # not an EPICS7 NDArray, but a numpy ndarray.
+                # If no data in a pv field, we just skip this whole loop iteration.
+                if len(v) == 0:
+                    continue
+
+                # If we get here, then we found an epics array in the EPICS7 pv that has data.
+                # Count array type signals that have data, so triggering works.
+                signal_count += 1
+
+                # The 1st time we get here, we actually found k pointing to a data vector,
+                # so mark the index of the signal
+                if vector_data_count == -1:
+                    vector_data_count = signal_count
+
+                # Number of elements in vector
+                vector_len = len(v)
+
+                # Here we store the data to class variables for later ploting. How much data we must store depends on the
+                # mode we are in.
+                if self.trigger_mode:
+                    # In trigger mode the minimum we must save is the whole last array (+ part of the old ones if max_length > vector_len)
+                    # We must store all the arrayes as the "Time" field determinate how much data do we really need, and the "Time" field can arrive last.
+                    required_data = 2 * (vector_len if vector_len > self.max_length else self.max_length)
+                    self.data[k] = np.append(self.data.get(k, []), v)[-required_data:]
                 else:
-                    # at this point in program we found an nd array that may or may not have data. nd array is
-                    # not an EPICS7 NDArray, but a numpy ndarray.
-                    # if no data in aa pv field, we just skip this whole loop iteration.
-                    if len(v) == 0:
-                        continue
-
-                    # if we get here, then we found an epics array in the EPICS7 pv that has data.
-                    # count array type signals that have data, so triggering works.
-                    signal_count += 1
-                    # the 1st time we get here, we actually found k pointing to a data vector,
-                    # so mark the index of the signal
-                    if vector_data_count == -1:
-                        vector_data_count = signal_count
-
-                    vector_len = len(v)
-
+                    # We are in free running mode. Only last max_length of the data can be stored.
                     self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-                    if self.size == 0:
-                        if self.data[k][0].dtype == 'float32':
-                            new_size += 4 * len(data[k])
-                        elif self.data[k][0].dtype == 'float64':
-                            new_size += 8 * len(data[k])
-                        elif self.data[k][0].dtype == 'int16':
-                            new_size += 2 * len(data[k])
-                        elif self.data[k][0].dtype == 'int32':
-                            new_size += 4 * len(data[k])
 
-            # if we got a vector of data, then we deal with triggering.
-            if vector_data_count != -1 and self.trigger_mode:
-                # it means trigger type is either single shot, or run/stop
-                if self.is_triggered:
-                    self.samples_after_trig_cnt = self.samples_after_trig_cnt + vector_len
-                    if self.samples_after_trig_cnt >= self.samples_after_trig:
-                        self.plot_signal_emitter.my_signal.emit()
-            # else:
-            #     # trigger type is "", which means not in trigger mode
-            #     self.plot_signal_emitter.my_signal.emit()
+                # TODO: This is not used anywhere. What should be used for?
+                if self.size == 0:
+                    if self.data[k][0].dtype == 'float32':
+                        new_size += 4 * len(self.data[k])
+                    elif self.data[k][0].dtype == 'float64':
+                        new_size += 8 * len(self.data[k])
+                    elif self.data[k][0].dtype == 'int16':
+                        new_size += 2 * len(self.data[k])
+                    elif self.data[k][0].dtype == 'int32':
+                        new_size += 4 * len(self.data[k])
+
+        # Trigger mode is enabled, trigger triggered and we received vector data, execute trigger procedure.
+        if (self.trigger_mode
+            and self.is_triggered
+            and vector_data_count != -1):
+
+            # Check if we have trigger timestamp in buffer
+            in_array, idx = self.__is_trigger_in_array(self.data['Time'])
+            if in_array:
+                self.samples_after_trig_cnt = self.data['Time'].size - idx
+
+                # Check if we have the requested number of samples, to trigger the plotting
+                if self.samples_after_trig_cnt >= self.samples_after_trig:
+                    for k, v in self.data.items():
+                        if type(v) != np.ndarray:
+                            continue
+                        # `idx` holds the index in the stored waveforms where the trigger happened.
+                        # Goal is to get the slice of the waveform so the sample when the trigger happened is in the middle.
+                        # samples_after_trig determinate how much samples do we want to show after the trigger (idx + samples_after_trig),
+                        # while max_length holds a maximum number of samples to show, for this reason we need `(self.max_length-self.samples_after_trig`
+                        # samples before trigger/idx.
+                        self.trig_data[k] = v[idx-(self.max_length-self.samples_after_trig) : idx+self.samples_after_trig]
+                    self.plot_trigger_signal_emitter.my_signal.emit()
 
         self.signal()
         if self.data_size == 0:
             self.data_size = new_size
 
-        self.arraysReceived += 1
         if self.first_data:
             self.first_data = False
 
@@ -776,34 +851,59 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 data = self.exponential_moving_average(data, self.curves[count].plotdata_ave)
                 self.curves[count].plotdata_ave = data
 
+        # Draw curve for the fft or psd mode
         if self.fft or self.psd:
             self.curves[count].setData(xf, yf)
+
+        # Calculate histogram bins and draw the curve
         elif self.histogram and not self.psd and not self.fft:
             d = self.filter(data)
             y, x = np.histogram(d, bins=self.bins)
             self.curves[count].setData(x, y)
+
+        # Draw waveform where X axis are indexes of data array which is drawn on Y axis
         elif time_array is None:
-            self.curves[count].setData(self.filter(data) + self.dc_offsets[index])
-            self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.samples_after_trig_cnt)
+            data_to_plot = self.filter(data) + self.dc_offsets[index]
+            self.curves[count].setData(data_to_plot)
+            self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.samples_after_trig, [data_to_plot.min(), data_to_plot.max()])
+
+        # Draw time_array on the X axis and data on Y
         else:
             d, t = self.filter(data, time_array)
-            self.curves[count].setData(t - t[0], d + self.dc_offsets[index])
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger_timestamp - time_array[0])
+            data_to_plot = d + self.dc_offsets[index]
+            self.curves[count].setData(t - t[0], data_to_plot)
+            self.__handle_trigger_marker__(draw_trig_mark, self.trigger_timestamp - time_array[0], [data_to_plot.min(), data_to_plot.max()])
 
 
-    def __handle_trigger_marker__(self, draw_trig_mark, marktime):
+    def __handle_trigger_marker__(self, draw_trig_mark, marktime, mark_size=None):
         """
+        Draw vertical line trigger mark at the specified marktime.
 
-        :param draw_trig_mark:
-        :param marktime:
+        :param draw_trig_mark: (bool) Flag if trigger line should be drawn.
+        :param marktime: (int) Sample number at which the trigger mark happened.
+        :param mark_size: (Array [int, int]) Y range for the trigger mark.
         :return:
         """
         if self.trigger_mode and self.is_triggered:
             if draw_trig_mark:
                 # Add trigger marker on plotting
-                # TODO fix potential risk that Y axes range increasing cause by trigger marker
+                vr = self.plot.viewRange()[1]
+                if vr[0] == 0 and vr[1] == 1:
+                    min_value = max_value = None
+                    if self.single_axis:
+                        for field, value in self.trig_data.items():
+                            if field in self.names:
+                                a_min = np.amin(value).item()
+                                a_max = np.amax(value).item()
+                                min_value = a_min if min_value is None else min(min_value, a_min)
+                                max_value = a_max if max_value is None else max(max_value, a_max)
+                        mark_size = [min_value, max_value]
+                    else:
+                        mark_size = mark_size
+                else:
+                     mark_size = vr
                 self.trigMarker.setData(np.array([marktime, marktime]),
-                                        np.array(self.plot.viewRange()[1]) * 0.75)
+                                        np.array(mark_size))
         else:
             self.trigMarker.clear()
 
@@ -818,14 +918,23 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             # self.signal()
             return
 
+        # Do not update the drawing if image is frozen
+        if self.is_freeze:
+            return
+
+        # Take ownership the self.data variable which holds all the waveforms
         self.wait()
 
+        # Iterate over the names (channels) selected on the GUI and draw a line for each
         count = 0
         draw_trig_mark = True
         for idx, name in enumerate(self.names):
             if name != "None":
                 try:
-                    data = self.data[name]
+                    if self.trigger_mode:
+                        data = self.trig_data[name]
+                    else:
+                        data = self.data[name]
                     if data is None:
                         continue
                     self.draw_curve(count, data, idx, draw_trig_mark)
@@ -836,6 +945,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     # data is not ready yet
                     pass
 
+        # Trigger curves were drawn - Freeze the scope
         if self.trigger_mode and self.is_triggered:
             self.is_triggered = False
             self.trigger_data_done = True
@@ -851,6 +961,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.do_autoscale()
 
         self.update_fps()
+
+        # Release the ownership on the self.data
         self.signal()
 
     def update_fps(self):

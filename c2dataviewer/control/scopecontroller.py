@@ -34,7 +34,6 @@ class ScopeController:
         self.refresh = 100
 
         self.plotting_started = False
-        # self.freeze = False
 
         self.timer = pyqtgraph.QtCore.QTimer()
         self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
@@ -95,13 +94,13 @@ class ScopeController:
                 else:
                     # PV name only, use default Channel Access protocol
                     trt = self.model.update_trigger(self.default_trigger)
-                self.parameters.child("Acquisition").child('TriggerMode').setWritable()
+                self.parameters.child("Acquisition").child('Trigger Mode').setWritable()
                 self._win.graphicsWidget.trigger_rec_type = trt
                 self.__trigger_level_rw__(trt)
             except Exception as e:
                 self._win.graphicsWidget.trigger_rec_type = None
-                self.parameters.child("Acquisition").child('TrigPV').setValue("")
-                self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+                self.parameters.child("Acquisition").child('Trigger PV').setValue("")
+                self.parameters.child("Acquisition").child('Trigger Mode').setReadonly()
                 self.default_trigger = None
                 raise e
 
@@ -182,20 +181,21 @@ class ScopeController:
 
     def __trigger_level_rw__(self, trt):
         """
-        Set trigger level parameter readable/writable according trigger record type
+        Set trigger level parameter readable/writable according trigger record type.
 
         Making trigger level writable is not supported in pyqtgraph 0.10. See
         https://github.com/pyqtgraph/pyqtgraph/issues/263
+        This was fixed with 0.11, but we had other issues with the new version. See
+        https://git.aps.anl.gov/C2/conda/data-viewer/-/merge_requests/30#note_4799
 
-        Address this again once it is fixed in a newer release of pyqtgraph
-
-        :param trt:
+        :param trt: (string) Record type as string (e.g. ai, bi, calc, ...).
         :return:
         """
+        pass
         # if trt in ["ai", "ao"]:
-        #     self.parameters.child("Acquisition").child('TriggerLevel').setWritable()
+        #     self.parameters.child("Acquisition").child('Trigger Threshold').setWritable()
         # else:
-        #     self.parameters.child("Acquisition").child('TriggerLevel').setReadonly()
+        #     self.parameters.child("Acquisition").child('Trigger Threshold').setReadonly()
 
     def parameter_change(self, params, changes):
         """
@@ -219,7 +219,7 @@ class ScopeController:
                         self.update_fdr()
                     else:
                         self.update_fdr(empty=True)
-                elif childName == "Acquisition.TrigPV":
+                elif childName == "Acquisition.Trigger PV":
                     if data is None:
                         return
                     if self._win.graphicsWidget.plotting_started:
@@ -236,18 +236,19 @@ class ScopeController:
                             else:
                                 # PV name only, use default Channel Access protocol
                                 trt = self.model.update_trigger(data)
-                            self.parameters.child("Acquisition").child('TriggerMode').setWritable()
+                            self.parameters.child("Acquisition").child('Trigger Mode').setWritable()
                             self._win.graphicsWidget.trigger_rec_type = trt
                             self.__trigger_level_rw__(trt)
 
                             # restart trigger if trigger is enabled
                             if self._win.graphicsWidget.trigger_mode:
+                                self.stop_trigger_mode()
                                 self.start_trigger_mode()
                         except RuntimeError as e:
                             self._win.graphicsWidget.trigger_rec_type = None
                             self._warning.warningTextBrowse.setText(repr(e))
                             self._warning.show()
-                            self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+                            self.parameters.child("Acquisition").child('Trigger Mode').setReadonly()
                             self.stop_trigger_mode()
                             # TODO clear trigger PV text field
                         except Exception as e:
@@ -256,9 +257,9 @@ class ScopeController:
                             self._warning.show()
                             self.stop_trigger_mode()
                             # TODO clear trigger PV text field
-                elif childName == "Acquisition.TriggerMode":
+                elif childName == "Acquisition.Trigger Mode":
                     self.set_trigger_mode(data)
-                elif childName == "Acquisition.TriggerLevel":
+                elif childName == "Acquisition.Trigger Threshold":
                     self._win.graphicsWidget.trigger_level = data
                 elif childName == "Acquisition.PostTrigger":
                     self.set_post_tigger(data)
@@ -347,19 +348,22 @@ class ScopeController:
         except Exception:
             pass
 
-        if self._win.graphicsWidget.plot_signal_emitter is not None:
+        # Disable trigger signal
+        if self._win.graphicsWidget.plot_trigger_signal_emitter is not None:
             try:
-                self._win.graphicsWidget.plot_signal_emitter.my_signal.disconnect()
+                self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.disconnect()
             except Exception:
                 pass
 
+        # Setup free run plotting
         if not self._win.graphicsWidget.trigger_mode:
             self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
             self.timer.start(self.refresh)
-        elif self._win.graphicsWidget.plot_signal_emitter is not None:
-            self._win.graphicsWidget.plot_signal_emitter.my_signal.connect(self._win.graphicsWidget.update_drawing)
-        else:
-            raise RuntimeError("Unknown mode: neither in trigger mode, nor free run.")
+
+        # Setup trigger plotting
+        if self._win.graphicsWidget.trigger_mode and self._win.graphicsWidget.plot_trigger_signal_emitter is not None:
+            self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.connect(self._win.graphicsWidget.update_drawing)
+
 
     def stop_plotting(self):
         """
@@ -370,9 +374,9 @@ class ScopeController:
         self.timer.stop()
 
         # Stop signal emitter for trigger mode
-        if self._win.graphicsWidget.plot_signal_emitter is not None:
+        if self._win.graphicsWidget.plot_trigger_signal_emitter is not None:
             try:
-                self._win.graphicsWidget.plot_signal_emitter.my_signal.disconnect()
+                self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.disconnect()
             except Exception:
                 pass
         # Stop data source
@@ -418,7 +422,7 @@ class ScopeController:
             else:
                 self.stop_trigger_mode()
         else:
-            self.parameters.child("Acquisition").child('TriggerMode').setReadonly()
+            self.parameters.child("Acquisition").child('Trigger Mode').setReadonly()
 
         if self._win.graphicsWidget.plotting_started:
             self.start_plotting()
@@ -517,7 +521,7 @@ class ScopeController:
                 stat_str = "Not Trig Mode,Not Monitoring"
                 self._win.graphicsWidget.monitoring_trigger = False
                 if self._win.graphicsWidget.monitoring_trigger:
-                    stat_str = "Not Trig Mode, Monitoring TrigPV"
+                    stat_str = "Not Trig Mode, Monitoring Trigger PV"
                     if self._win.graphicsWidget.trigger_mode:
                         stat_str = "Waiting for Trigger, Collecting"
                         if self._win.graphicsWidget.is_triggered:
