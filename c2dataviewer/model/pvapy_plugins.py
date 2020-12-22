@@ -61,7 +61,7 @@ class DataSource:
         """
         if self.channel is None:
             return None
-        
+
         if field is None:
             data = self.channel.get('field()')
         else:
@@ -201,7 +201,7 @@ class DataSource:
                 self.trigger_chan.subscribe('triggerMonitorCallback', self.trigger_monitor_callback)
             else:
                 self.trigger_chan.subscribe('triggerMonitorCallback', routine)
-            self.trigger_chan.startMonitor('field()')
+            self.trigger_chan.startMonitor('field(timeStamp,value)')
         except PvaException:
             raise RuntimeError("Cannot connect to PV {}".format(self.trigger))
 

@@ -89,9 +89,9 @@ class Configure:
                 # EPICS7 PV name, which assumes pvAccess protocol
                 # Alias name to be supported later
                 {"name": "PV", "type": "str", "value": pv},
-                {"name": "TrigPV", "type": "str", "value": self.default_trigger},
-                {"name": "TriggerMode", "type": "bool", "value": False, "readonly": True},
-                {"name": "TriggerLevel", "type": "float", "value": 0.0},
+                {"name": "Trigger PV", "type": "str", "value": self.default_trigger},
+                {"name": "Trigger Mode", "type": "bool", "value": False, "readonly": True},
+                {"name": "Trigger Threshold", "type": "float", "value": 0.0},
                 # {"name": "PostTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
                 # {"name": "HoldTrigger", "type": "float", "value": 0.0, "siPrefix": True, "suffix": "Second"},
                 {"name": "Freeze", "type": "bool", "value": False},
@@ -154,11 +154,11 @@ class Configure:
                 # EPICS7 PV name, which assumes pvAccess protocol
                 # Alias name to be supported later
                 {"name": "PV", "type": "str", "value": pv},
-                {"name": "TrigPV", "type": "str", "value": trigger_pv},
-                {"name": "TriggerMode", "type": "bool", "value": trigger_mode, "readonly": trigger_mode_disabled},
+                {"name": "Trigger PV", "type": "str", "value": trigger_pv},
+                {"name": "Trigger Mode", "type": "bool", "value": trigger_mode, "readonly": trigger_mode_disabled},
                 # Due to issue: https://github.com/pyqtgraph/pyqtgraph/issues/263
                 # always make the trigger level writable instead of disabling writing
-                {"name": "TriggerLevel", "type": "float", "value": 0.0},
+                {"name": "Trigger Threshold", "type": "float", "value": 0.0},
                 # {"name": "PostTrigger", "type": "float", "value": post_trigger_pause, "siPrefix": True,
                 #  "suffix": "Second"},
                 # {"name": "HoldTrigger", "type": "float", "value": trigger_holdoff, "siPrefix": True,

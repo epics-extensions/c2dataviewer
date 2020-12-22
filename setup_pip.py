@@ -52,7 +52,7 @@ setup (
     'numpy',
     'psutil',
     'pvapy',
-    'pyqtgraph',
+    'pyqtgraph==0.10.0',
     'PyQt5',
     ],
     entry_points = {'console_scripts': ['c2dv=c2dataviewer.c2dv:main']},
