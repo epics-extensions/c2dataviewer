@@ -11,11 +11,8 @@ Unit tests for Imagev
 import os
 import sys
 import unittest
-from pvaccess import PvObject
-from pvaccess import NtNdArray
-from pvaccess import PvDimension
-from pvaccess import BYTE, UBYTE, SHORT, USHORT, INT, UINT, LONG, ULONG, FLOAT, DOUBLE
 import numpy as np
+import pvaccess as pva
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import QtCore, QtTest
 
@@ -23,6 +20,9 @@ from c2dataviewer.imagev import ImageWindow
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
+############################################
+# Test
+############################################
 class TestImageDisplay(unittest.TestCase):
 
     def setUp(self):
@@ -35,12 +35,12 @@ class TestImageDisplay(unittest.TestCase):
         # Create Qt application
         self.app = QtWidgets.QApplication(sys.argv)
 
-        # Create ImageWindow and het the imageWidget instance
+        # Create ImageWindow and get the imageWidget instance
         self.window = ImageWindow()
         self.imageWidget = self.window.imageWidget
 
         # GUI styles
-        self._inputTypeDefaultStyle = self.window.lblValidInput.styleSheet()
+        self._inputTypeDefaultStyle = self.window.tbValidInput.styleSheet()
 
     def tearDown(self):
         """
@@ -62,25 +62,25 @@ class TestImageDisplay(unittest.TestCase):
         """
 
         types = {
-            BYTE : {'string' : 'byteValue', 'min': np.iinfo(np.int8).min, 'max' : np.iinfo(np.int8).max},
-            UBYTE : {'string' : 'ubyteValue', 'min': np.iinfo(np.uint8).min, 'max' : np.iinfo(np.uint8).max},
+            pva.BYTE : {'string' : 'byteValue', 'min': np.iinfo(np.int8).min, 'max' : np.iinfo(np.int8).max},
+            pva.UBYTE : {'string' : 'ubyteValue', 'min': np.iinfo(np.uint8).min, 'max' : np.iinfo(np.uint8).max},
 
-            SHORT : {'string' : 'shortValue', 'min': np.iinfo(np.int16).min, 'max' : np.iinfo(np.int16).max},
-            USHORT : {'string' : 'ushortValue', 'min': np.iinfo(np.uint16).min, 'max' : np.iinfo(np.uint16).max},
+            pva.SHORT : {'string' : 'shortValue', 'min': np.iinfo(np.int16).min, 'max' : np.iinfo(np.int16).max},
+            pva.USHORT : {'string' : 'ushortValue', 'min': np.iinfo(np.uint16).min, 'max' : np.iinfo(np.uint16).max},
 
-            INT : {'string' : 'intValue', 'min': np.iinfo(np.int32).min, 'max' : np.iinfo(np.int32).max},
-            UINT : {'string' : 'uintValue', 'min': np.iinfo(np.uint32).min, 'max' : np.iinfo(np.uint32).max},
+            pva.INT : {'string' : 'intValue', 'min': np.iinfo(np.int32).min, 'max' : np.iinfo(np.int32).max},
+            pva.UINT : {'string' : 'uintValue', 'min': np.iinfo(np.uint32).min, 'max' : np.iinfo(np.uint32).max},
 
-            LONG : {'string' : 'longValue', 'min': np.iinfo(np.int64).min, 'max' : np.iinfo(np.int64).max},
-            ULONG : {'string' : 'ulongValue', 'min': np.iinfo(np.uint32).min, 'max' : np.iinfo(np.uint32).max},
+            pva.LONG : {'string' : 'longValue', 'min': np.iinfo(np.int64).min, 'max' : np.iinfo(np.int64).max},
+            pva.ULONG : {'string' : 'ulongValue', 'min': np.iinfo(np.uint32).min, 'max' : np.iinfo(np.uint32).max},
 
-            FLOAT : {'string' : 'floatValue', 'min': np.finfo(np.float32).min, 'max' : np.finfo(np.float32).max},
-            DOUBLE : {'string' : 'doubleValue', 'min': np.finfo(np.float64).min, 'max' : np.finfo(np.float64).max},
+            pva.FLOAT : {'string' : 'floatValue', 'min': np.finfo(np.float32).min, 'max' : np.finfo(np.float32).max},
+            pva.DOUBLE : {'string' : 'doubleValue', 'min': np.finfo(np.float64).min, 'max' : np.finfo(np.float64).max},
         }
 
-        data = NtNdArray()
-        data.setValue(PvObject({types[dataType]['string'] : [dataType]},
-                               {types[dataType]['string'] : arrayValue},
+        data = pva.NtNdArray()
+        data.setValue(pva.PvObject({types[dataType]['string'] : [dataType]},
+                                   {types[dataType]['string'] : arrayValue},
                      ))
 
         self.imageWidget.x = xDim
@@ -146,7 +146,7 @@ class TestImageDisplay(unittest.TestCase):
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             ]
 
-        self.runDatatypeSupportTest(UBYTE, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.UBYTE, x, y, arrayValue)
 
 
     def test_Int16DataTypeSupport(self):
@@ -170,7 +170,7 @@ class TestImageDisplay(unittest.TestCase):
             32767, -32768, 25123, -7415, 745, 7412, 6524, -29147, 4523, 65,
             ]
 
-        self.runDatatypeSupportTest(SHORT, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.SHORT, x, y, arrayValue)
 
 
     def test_UInt16DataTypeSupport(self):
@@ -194,7 +194,7 @@ class TestImageDisplay(unittest.TestCase):
             65535, 0, 54123, 7415, 745, 7412, 6524, 52147, 4523, 65,
             ]
 
-        self.runDatatypeSupportTest(USHORT, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.USHORT, x, y, arrayValue)
 
 
     def test_Int32DataTypeSupport(self):
@@ -218,7 +218,7 @@ class TestImageDisplay(unittest.TestCase):
             2147483647, -2147483648, 214743647, -247483648, 9467295, -4295, 84967295, -10000, 5236222, 65,
             ]
 
-        self.runDatatypeSupportTest(INT, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.INT, x, y, arrayValue)
 
 
     def test_UInt32DataTypeSupport(self):
@@ -242,7 +242,7 @@ class TestImageDisplay(unittest.TestCase):
             4294967295, 0, 429497295, 429492395, 94967295, 4295, 84967295, 10000, 5236222, 65,
             ]
 
-        self.runDatatypeSupportTest(UINT, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.UINT, x, y, arrayValue)
 
 
     def test_Float32DataTypeSupport(self):
@@ -266,7 +266,7 @@ class TestImageDisplay(unittest.TestCase):
             125411.1245, 0, 12455214, 5454545, 12547896.14587, 74569698, 785.25114456, 142144444, 7575775, 7575.111111,
             ]
 
-        self.runDatatypeSupportTest(FLOAT, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.FLOAT, x, y, arrayValue)
 
 
     def test_Float64DataTypeSupport(self):
@@ -290,7 +290,7 @@ class TestImageDisplay(unittest.TestCase):
             32125411.1245, -32125411.1245, 12455214, 5454545, -12547896.14587, 74569698, -785.25114456, 142144444, -7575775, 7575.111111,
             ]
 
-        self.runDatatypeSupportTest(DOUBLE, x, y, arrayValue)
+        self.runDatatypeSupportTest(pva.DOUBLE, x, y, arrayValue)
 
 
 ############################################
@@ -314,9 +314,9 @@ class TestImageDisplay(unittest.TestCase):
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             ]
-        data = NtNdArray()
-        data.setValue(PvObject({"ubyteValue" : [UBYTE]},
-                               {"ubyteValue" : arrayValue},
+        data = pva.NtNdArray()
+        data.setValue(pva.PvObject({"ubyteValue" : [pva.UBYTE]},
+                                   {"ubyteValue" : arrayValue},
                      ))
 
 
@@ -342,10 +342,10 @@ class TestImageDisplay(unittest.TestCase):
         # Test zoom dist values
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(1, xOffset)
+        self.assertEqual(0, xOffset)
         self.assertEqual(0, yOffset)
-        self.assertEqual(6, width)
-        self.assertEqual(7, height)
+        self.assertEqual(4, width)
+        self.assertEqual(4, height)
 
         # Call reset zoom programmatically as we do not have the button available here
         self.imageWidget.reset_zoom()
@@ -365,10 +365,10 @@ class TestImageDisplay(unittest.TestCase):
         # Test if roi was zoomed
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(1, xOffset)
+        self.assertEqual(0, xOffset)
         self.assertEqual(0, yOffset)
-        self.assertEqual(6, width)
-        self.assertEqual(7, height)
+        self.assertEqual(4, width)
+        self.assertEqual(4, height)
 
         # Try to select again
         QtTest.QTest.mousePress(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
@@ -379,10 +379,10 @@ class TestImageDisplay(unittest.TestCase):
         # Test if roi was zoomed again
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(1, xOffset)
-        self.assertEqual(1, yOffset)
-        self.assertEqual(5, width)
-        self.assertEqual(7, height)
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(4, width)
+        self.assertEqual(4, height)
 
         # Call reset zoom programmatically as we do not have the button available here
         self.imageWidget.reset_zoom()

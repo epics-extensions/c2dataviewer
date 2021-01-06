@@ -42,14 +42,8 @@ class ImageController:
         self._blackWhiteDlg = kargs.get("BLACKWHITELIMIT", None)
         self._warning = kargs.get("WARNING", None)
 
-        self._lastFrames = 0
-        self._lastTime = None
-        self._fps = 0.0
-        self._net = 0.0
-        self._lastMbReceived = 0
-
         # GUI styles
-        self._inputTypeDefaultStyle = self._win.lblValidInput.styleSheet()
+        self._inputTypeDefaultStyle = self._win.tbValidInput.styleSheet()
 
         # Image and zoom
         self._win.lblXsize.setToolTip("Number of pixels image has in X direction. \nIf ROI is selected, numbers in parentheses \nshow the range of displayed pixels.")
@@ -109,27 +103,43 @@ class ImageController:
         self._dlg.netLimit.setText(str(text))
 
         # Add tooltips for statistics
+        self._win.tbValidInput.setToolTip("Image data type.")
+        self._win.runtime.setToolTip("Total time data viewer has been running.")
         self._win.maxPixel.setToolTip("Maximum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.minPixel.setToolTip("Minimum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.frameRateCurrAvg.setToolTip("Current / average Frames Per Second.")
+        self._win.nFrames.setToolTip("Total number of frames displayed.")
+        self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
+        self._win.nMissedFrames.setToolTip("Total number of missed frames.")
         self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.cpuUsage.setToolTip("CPU usage of the data viewer.")
+        self._win.netLoad.setToolTip("Network usage of data viewer.")
+        self._win.netReceived.setToolTip("Total number of mega bytes received")
+
 
         # Adjust limits panel
         self._win.adjustLimits.clicked.connect(lambda: self.adjustLimits())
-
         self._dlg.okButton.clicked.connect(lambda: self.acceptNewLimits())
         self._dlg.cancelButton.clicked.connect(lambda: self.cancelNewLimits())
 
+        # Reset statistics
+        self._win.resetStatistics.clicked.connect(lambda: self.reset_statistics())
+
         self._warning.warningConfirmButton.clicked.connect(lambda: self.acceptWarning())
 
-        self._lastTime = ptime.time()
-        self._timer = kargs.get("timer", None)
-        if self._timer is None:
+
+        # Statistics variables
+        self.reset_statistics()
+
+        # Statistics update timer. Statistics should be updated once per second.
+        self.statistics_timer = kargs.get("timer", None)
+        if self.statistics_timer is None:
             raise RuntimeError("No valid timer")
-        self._timer.timeout.connect(self.updateStatus)
-        self._timer.start(1000)
+        self.statistics_timer.timeout.connect(self.calculate_statistics)
+        self.statistics_timer.start(1000)
 
         self.frameRateChanged()
-        self._startTime = ptime.time()
+
 
     def _callback_black_changed_slider(self):
         """
@@ -214,7 +224,6 @@ class ImageController:
         :return:
         """
         n = self._win.iocRate.currentIndex()
-        self.resetStatus()
         fr = list(self._framerates.keys())[n]
         try:
             self._win.imageWidget.set_framerate(self._framerates[fr])
@@ -322,7 +331,7 @@ class ImageController:
         """
 
         n = self._win.pvPrefix.currentIndex()
-        self.resetStatus()
+        self.reset_statistics()
         try:
             self._win.imageWidget.camera_changed(self._cameras[n])
         except (ValueError, RuntimeError):
@@ -332,23 +341,12 @@ class ImageController:
                                                         format(self._cameras[n]))
                 self._warning.show()
 
-    def resetStatus(self):
-        """
-
-        :return:
-        """
-        self._win.imageWidget._df = [0]
-        self._win.imageWidget._db = [0]
-        self._win.imageWidget._dt = [1]
-        self._fps = 0
-        self._net = 0
-
     def statistics_update(self, valuefield, value, **kargs):
         """
         Update widget with a new value on the GUI. If limits are specified and value is outside them, text on the widget
         will become red.
 
-        :param valuefield: (QWidget) Widget where status should be writen. It must support "setText" and  "setStyleSheet" methods.
+        :param valuefield: (QWidget) Widget where status should be written. It must support "setText" and  "setStyleSheet" methods.
         :param value: (Object or Tuple/List of objects) Value which should be written to the widget. Multiple values can be passed as
                         tuple or array. If this is the case, **kargs must contain a formatting string that supports supplied number of values.
         :param kargs: (dict) Following keyword parameters are supported:
@@ -389,17 +387,183 @@ class ImageController:
             self.frameRateChanged()
             # self._win.setStatus('Requested frame rate reduced -- %s limit exceeded.' % sender.name)
 
-    def updateStatus(self):
+
+    def calculate_statistics(self):
         """
+        Calculate statistics.
 
         :return:
         """
-        now = ptime.time()
-        runtime = now-self._startTime
 
+        # Get current time
+        now = ptime.time()
+
+        # Set required variabels on first call
+        if self._last_time_stat_calculated is None:
+            self._last_time_stat_calculated = now
+            return
+
+        # Calculate runtime
+        self.runtime = now - self._start_time
+
+        # Calculate time difference betwean calls
+        delta_time = now - self._last_time_stat_calculated
+        self._delta_time.append(delta_time)
+        self._delta_time = self._delta_time[-3:]
+
+        # Calculate number of frames displayed betwean calls
+        delta_frames = self._win.imageWidget.frames_displayed - self._last_frames
+        self._last_frames = self._win.imageWidget.frames_displayed
+        self._delta_frames.append(delta_frames)
+        self._delta_frames = self._delta_frames[-3:]
+        try:
+            self.fps_current = sum(self._delta_frames) / sum(self._delta_time)
+        except:
+            self.fps_current = 0
+        self.fps_current = self.fps_current if self.fps_current >=0 else 0
+        self.fps_average = self._win.imageWidget.frames_displayed / self.runtime
+
+        # Calculate number of missed frames betwean calls
+        delta_missed_frames = self._win.imageWidget.frames_missed - self._last_missed_frames
+        self._last_missed_frames = self._win.imageWidget.frames_missed
+        self._delta_missed_frames.append(delta_missed_frames)
+        self._delta_missed_frames = self._delta_missed_frames[-3:]
+        try:
+            self.frames_missed_current = sum(self._delta_missed_frames) / sum(self._delta_time)
+        except:
+            self.frames_missed_current = 0
+        self.frames_missed_current = self.frames_missed_current if self.frames_missed_current >=0 else 0
+        self.frames_missed_average = self._win.imageWidget.frames_missed / self.runtime
+
+        # Calculate number of bytes received betwean calls
+        delta_bytes = self._win.imageWidget.MB_received - self._last_MB_received
+        self._last_MB_received = self._win.imageWidget.MB_received
+        self._delta_bytes.append(delta_bytes)
+        self._delta_bytes = self._delta_bytes[-3:]
+
+        # Calculate machine resources usage
+        with self._win._proc.oneshot():
+            self.cpu_usage = self._win._proc.cpu_percent(None)
+        try:
+            self.network_usage = sum(self._delta_bytes) / sum(self._delta_time)
+        except:
+            self.network_usage = 0
+        if self.network_usage < 0:
+            self.network_usage = 0
+
+        # Update time when statistics were updated
+        self._last_time_stat_calculated = now
+
+        # Update the GUI
+        self.updateStatus()
+
+    def reset_statistics(self):
+        """
+        Reset all the statistics.
+
+        :return:
+        """
+        self._last_time_stat_calculated = None
+        self._win.imageWidget.__last_array_id = None
+        self._start_time = ptime.time()
+        self.runtime = 0
+        self._win.imageWidget.MB_received = 0.0
+        self._win.imageWidget.frames_displayed = 0
+        self._last_frames = 0
+        self.fps_current = 0
+        self.fps_average = 0
+        self._win.imageWidget.frames_missed = 0
+        self._last_missed_frames = 0
+        self.frames_missed_current = 0
+        self.frames_missed_average = 0
+        self._last_MB_received = 0
+        self.cpu_usage = 0
+        self.network_usage = 0
+        self._delta_frames = [0]
+        self._delta_missed_frames = [0]
+        self._delta_bytes = [0]
+        self._delta_time = [1]
+
+
+    def updateStatus(self):
+        """
+        Update all the statistics values on the GUI.
+
+        :return:
+        """
+        # Update input type
+        self._win.tbValidInput.setText(self._win.imageWidget._inputType + " "  + ("" if self._win.imageWidget._isInputValid else "(Invalid)"))
+        if self._win.imageWidget._isInputValid:
+            self._win.tbValidInput.setStyleSheet(self._inputTypeDefaultStyle)
+        else:
+            self._win.tbValidInput.setStyleSheet('background-color : red;')
+
+        # Update runtime
+        self._win.runtime.setText(str(datetime.timedelta(seconds=round(self.runtime))))
+
+        # Max / min pixels
         isZoomedImage = self._win.imageWidget.is_zoomed()
         xOffset, yOffset, width, height = self._win.imageWidget.get_zoom_region()
+        if isZoomedImage:
+            values = (self._win.imageWidget._max[-1], self._win.imageWidget._maxRoi[-1])
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (self._win.imageWidget._max[-1])
+            fmt = '%.0f'
+        self.statistics_update(self._win.maxPixel, values, fmt=fmt)
+        if isZoomedImage:
+            values = (self._win.imageWidget._min[-1], self._win.imageWidget._minRoi[-1])
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (self._win.imageWidget._min[-1])
+            fmt = '%.0f'
+        self.statistics_update(self._win.minPixel, values, fmt=fmt)
 
+        # Update frames information
+        self.statistics_update(self._win.frameRateCurrAvg,
+                        (self.fps_current, self.fps_average),
+                        fmt='%.0f / %.2f',
+                        lolimit=self._win.imageWidget._pref['FPSLimit'])
+        self.statistics_update(self._win.nFrames, self._win.imageWidget.frames_displayed, fmt='%d')
+        self.statistics_update(self._win.nMissedFramesCurrAvg,
+                            (self.frames_missed_current, self.frames_missed_average),
+                            fmt = '%.0f / %.2f')
+        self.statistics_update(self._win.nMissedFrames, self._win.imageWidget.frames_missed, fmt='%d')
+
+        # No. of dead pixels
+        if isZoomedImage:
+            values = (max(self._win.imageWidget._dpx), max(self._win.imageWidget._dpxRoi))
+            fmt = '%.0f (%.0f)'
+        else:
+            values = (max(self._win.imageWidget._dpx))
+            fmt = '%.0f'
+        self.statistics_update(self._win.deadPixel,
+                                values,
+                                fmt=fmt,
+                                hilimit=self._win.imageWidget._pref["DPXLimit"])
+
+        # Machine resources
+        self.statistics_update(self._win.cpuUsage,
+                                self.cpu_usage,
+                                hilimit=self._win.imageWidget._pref['CPULimit'],
+                                callback=True)
+        self.statistics_update(self._win.netLoad,
+                                self.network_usage,
+                                fmt='%.2f',
+                                hilimit=self._win.imageWidget._pref['NetLimit'],
+                                callback=True)
+        self.statistics_update(self._win.netReceived,
+                                self._win.imageWidget.MB_received,
+                                fmt='%.2f')
+
+
+        # Update image and zoom section
+        self._win.lblXsize.setText(' '.join([str(self._win.imageWidget.x),
+                '' if not isZoomedImage else f"({xOffset}-{xOffset+width})"
+                                            ]))
+        self._win.lblYsize.setText(' '.join([str(self._win.imageWidget.y),
+                '' if not isZoomedImage else f"({yOffset}-{yOffset+height})"
+                                            ]))
         zoomMsg = ""
         zoomMsgStyle = "color: black"
         if (isZoomedImage and width == self._win.imageWidget.ZOOM_LENGTH_MIN
@@ -415,86 +579,9 @@ class ImageController:
         self._win.zoomStatusLabel.setText(zoomMsg)
         self._win.zoomStatusLabel.setStyleSheet(zoomMsgStyle)
 
-        df = self._win.imageWidget.framesDisplayed - self._lastFrames
-        db = self._win.imageWidget.mbReceived - self._lastMbReceived
-        self._lastFrames = self._win.imageWidget.framesDisplayed
-        self._lastMbReceived = self._win.imageWidget.mbReceived
-        averageFrameRate = self._win.imageWidget.framesDisplayed/runtime
-
-        dt = now - self._lastTime
-        self._lastTime = now
-
-        self._win.imageWidget._df.append(df)
-        self._win.imageWidget._df = self._win.imageWidget._df[-3:]
-        self._win.imageWidget._db.append(db)
-        self._win.imageWidget._db = self._win.imageWidget._db[-3:]
-        self._win.imageWidget._dt.append(dt)
-        self._win.imageWidget._dt = self._win.imageWidget._dt[-3:]
-
-        try:
-            self._fps = sum(self._win.imageWidget._df) / sum(self._win.imageWidget._dt)
-        except:
-            self._fps = 0
-        try:
-            self._net = sum(self._win.imageWidget._db) / sum(self._win.imageWidget._dt)
-        except:
-            self._net = 0
-
-        with self._win._proc.oneshot():
-            cpu = self._win._proc.cpu_percent(None)
-
-        self._win.lblValidInput.setText(self._win.imageWidget._inputType + " "  + ("" if self._win.imageWidget._isInputValid else "(Invalid)"))
-        if self._win.imageWidget._isInputValid:
-            self._win.lblValidInput.setStyleSheet(self._inputTypeDefaultStyle)
-        else:
-            self._win.lblValidInput.setStyleSheet('background-color : red;')
-
-        self._win.runtime.setText(str(datetime.timedelta(seconds=round(runtime))))
+        # General update TODO: why is this required?
         self._win.setStyleSheet('color: black; font-weight: normal')
-        self.statistics_update(self._win.nFrames, self._win.imageWidget.framesDisplayed, fmt='%d')
-        self.statistics_update(self._win.averageFrameRate, averageFrameRate, fmt='%.1f')
-        self.statistics_update(self._win.frameRate, self._fps,
-                               lolimit=self._win.imageWidget._pref['FPSLimit'])
 
-        if isZoomedImage:
-            values = (self._win.imageWidget._max[-1], self._win.imageWidget._maxRoi[-1])
-            fmt = '%.0f (%.0f)'
-        else:
-            values = (self._win.imageWidget._max[-1])
-            fmt = '%.0f'
-        self.statistics_update(self._win.maxPixel, values, fmt=fmt)
-
-        if isZoomedImage:
-            values = (self._win.imageWidget._min[-1], self._win.imageWidget._minRoi[-1])
-            fmt = '%.0f (%.0f)'
-        else:
-            values = (self._win.imageWidget._min[-1])
-            fmt = '%.0f'
-        self.statistics_update(self._win.minPixel, values, fmt=fmt)
-
-        if isZoomedImage:
-            values = (max(self._win.imageWidget._dpx), max(self._win.imageWidget._dpxRoi))
-            fmt = '%.0f (%.0f)'
-        else:
-            values = (max(self._win.imageWidget._dpx))
-            fmt = '%.0f'
-        self.statistics_update(self._win.deadPixel, values, fmt=fmt,
-                                hilimit=self._win.imageWidget._pref["DPXLimit"])
-
-        self.statistics_update(self._win.cpuUsage, cpu,
-                               hilimit=self._win.imageWidget._pref['CPULimit'],
-                               callback=True)
-        self.statistics_update(self._win.netLoad, self._net, fmt='%.0f',
-                               hilimit=self._win.imageWidget._pref['NetLimit'],
-                               callback=True)
-
-        # Update image and zoom section
-        self._win.lblXsize.setText(' '.join([str(self._win.imageWidget.x),
-                '' if not isZoomedImage else f"({xOffset}-{xOffset+width})"
-                                            ]))
-        self._win.lblYsize.setText(' '.join([str(self._win.imageWidget.y),
-                '' if not isZoomedImage else f"({yOffset}-{yOffset+height})"
-                                            ]))
 
     def changeimageBlackLimits(self, minVal, maxVal):
         """

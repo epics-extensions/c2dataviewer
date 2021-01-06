@@ -13,12 +13,11 @@ import sys
 import unittest
 from pvaccess import PvObject
 from pvaccess import NtNdArray
-from pvaccess import PvDimension
-from pvaccess import BYTE, UBYTE, SHORT, USHORT, INT, UINT, LONG, ULONG, FLOAT, DOUBLE
+import pvaccess as pva
 import numpy as np
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph import QtCore
-# from pyqtgraph.Qt import QTest
+from .helper import create_image
 
 from c2dataviewer.imagev import LimitDialog, BlackWhiteLimitDialog, WarningDialog
 from c2dataviewer.imagev import ImageController
@@ -172,7 +171,7 @@ class TestImageDisplay(unittest.TestCase):
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             ]
         data = NtNdArray()
-        data.setValue(PvObject({"ubyteValue" : [UBYTE]},
+        data.setValue(PvObject({"ubyteValue" : [pva.UBYTE]},
                                {"ubyteValue" : arrayValue},
                      ))
 
@@ -221,3 +220,104 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual("0", self.ic._win.deadPixel.text().strip())
         self.assertEqual("255", self.ic._win.maxPixel.text().strip())
         self.assertEqual("0", self.ic._win.minPixel.text().strip())
+
+
+
+############################################
+# Test statistics
+############################################
+
+    def test_statistics(self):
+        """
+        Test statistics calculations.
+
+        :return:
+        """
+        # Constants
+        NX = 10
+        NY = 10
+        COLOR_MODE = 0
+        N_IMAGES = 20 # For each rate
+
+        # Build image
+        self.imageWidget.x = NX
+        self.imageWidget.y = NY
+
+        # Generate images
+        array_value = [
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            ]
+        np_value = np.array(array_value, dtype=np.uint8)
+        image_counter = 0
+
+        # Calculate init statistics
+        self.ic.calculate_statistics()
+        self.assertAlmostEqual(0.0, self.ic._win.imageWidget.MB_received, delta=0.0001)
+        self.assertEqual(0, self.ic._win.imageWidget.frames_displayed)
+        self.assertAlmostEqual(0, self.ic.fps_current, delta=0.1)
+        self.assertAlmostEqual(0, self.ic.fps_average, delta=0.1)
+        self.assertEqual(0, self.ic.frames_missed_current)
+        self.assertAlmostEqual(0.0, self.ic.frames_missed_average, delta=0.5)
+        self.assertEqual(0, self.ic._win.imageWidget.frames_missed)
+        self.assertEqual(0, self.ic._win.imageWidget.minVal)
+        self.assertEqual(0, self.ic._win.imageWidget.maxVal)
+
+        # Generate images
+        for i in range(N_IMAGES):
+            image_counter += 1
+            if i % 3 == 0:
+                continue
+            image = create_image(image_counter, np_value, nx=NX, ny=NY, color_mode=COLOR_MODE,  time_stamp=image_counter)
+            self.ic._win.imageWidget._ImagePlotWidget__update_dimension(image)
+            self.ic._win.imageWidget.display(image)
+
+        # Calculate statistics
+        self.ic.calculate_statistics()
+        self.assertAlmostEqual(0.0012, self.ic._win.imageWidget.MB_received, delta=0.0001)
+        self.assertEqual(12, self.ic._win.imageWidget.frames_displayed)
+        self.assertEqual(7, self.ic._win.imageWidget.frames_missed)
+        self.assertEqual(min(array_value), self.ic._win.imageWidget.minVal)
+        self.assertEqual(max(array_value), self.ic._win.imageWidget.maxVal)
+
+        # Generate images
+        for i in range(N_IMAGES):
+            image_counter += 1
+            if i % 3 == 0:
+                continue
+            image = create_image(image_counter, np_value, nx=10, ny=10, color_mode=0,  time_stamp=image_counter)
+            self.ic._win.imageWidget._ImagePlotWidget__update_dimension(image)
+            self.ic._win.imageWidget.display(image)
+
+        # Calculate statistics
+        self.ic.calculate_statistics()
+        self.assertAlmostEqual(0.0025, self.ic._win.imageWidget.MB_received, delta=0.0001)
+        self.assertEqual(25, self.ic._win.imageWidget.frames_displayed)
+        self.assertEqual(14, self.ic._win.imageWidget.frames_missed)
+        self.assertEqual(min(array_value), self.ic._win.imageWidget.minVal)
+        self.assertEqual(max(array_value), self.ic._win.imageWidget.maxVal)
+
+        # Generate images
+        for i in range(N_IMAGES):
+            image_counter += 1
+            if i % 3 == 0:
+                continue
+            image = create_image(image_counter, np_value, nx=10, ny=10, color_mode=0,  time_stamp=image_counter)
+            self.ic._win.imageWidget._ImagePlotWidget__update_dimension(image)
+            self.ic._win.imageWidget.display(image)
+
+        # Calculate statistics
+        self.ic.calculate_statistics()
+        self.assertAlmostEqual(0.0038, self.ic._win.imageWidget.MB_received, delta=0.0001)
+        self.assertEqual(38, self.ic._win.imageWidget.frames_displayed)
+        self.assertEqual(21, self.ic._win.imageWidget.frames_missed)
+        self.assertEqual(min(array_value), self.ic._win.imageWidget.minVal)
+        self.assertEqual(max(array_value), self.ic._win.imageWidget.maxVal)
