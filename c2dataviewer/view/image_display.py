@@ -15,7 +15,6 @@ from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from pvaccess import PvaException
 from PyQt5.QtCore import pyqtSignal
 
-
 class ImagePlotWidget(RawImageWidget):
 
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
@@ -34,13 +33,15 @@ class ImagePlotWidget(RawImageWidget):
         self._lastTimestamp = None
         self._freeze = False
 
+        self.__last_array_id = None
         self.dataType = None
-        self.mbReceived = 0.0
-        self.framesDisplayed = 0
+        self.MB_received = 0.0
+        self.frames_displayed = 0
+        self.frames_missed = 0
 
         # image dimension
-        self.x = None
-        self.y = None
+        self.x = 0
+        self.y = 0
         self.fps = -1
 
         # max value of image pixel
@@ -78,9 +79,6 @@ class ImagePlotWidget(RawImageWidget):
 
         self._isInputValid = False
         self._inputType = ""
-        self._df = [0]
-        self._db = [0]
-        self._dt = [1]
         self._dpx = [0]
         self._max = [0]
         self._min = [0]
@@ -116,7 +114,8 @@ class ImagePlotWidget(RawImageWidget):
             'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",'embeddedDataLen' : 0},
         }
 
-        self.timer = kargs.get("timer", QtCore.QTimer())
+        # Acquisition timer used to get specific request frame rate
+        self.acquisition_timer = QtCore.QTimer()
 
     def mousePressEvent(self, event):
         """
@@ -328,7 +327,7 @@ class ImagePlotWidget(RawImageWidget):
         if source is not None:
             self.datasource = source
             self.__update_dimension(self.datasource.get())
-            self.timer.timeout.connect(self.get)
+            self.acquisition_timer.timeout.connect(self.get)
 
     def __update_dimension(self, data):
         """
@@ -385,14 +384,14 @@ class ImagePlotWidget(RawImageWidget):
             if self.fps == -1:
                 self.datasource.start(routine=self.monitor_callback)
             else:
-                self.timer.start(1000/self.fps)
+                self.acquisition_timer.start(1000/self.fps)
 
     def stop(self):
         """
 
         :return:
         """
-        self.timer.stop()
+        self.acquisition_timer.stop()
         try:
             if self.datasource is not None:
                 self.datasource.stop()
@@ -432,7 +431,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         try:
             self.data = self.datasource.get('field()')
-        except PvaException as e:
+        except PvaException:
             self.stop()
             # raise e
 
@@ -583,7 +582,7 @@ class ImagePlotWidget(RawImageWidget):
 
         # Update numbers of MBytes received (bytes => kBytes => MBytes conversion)
         if not zoomUpdate:
-            self.mbReceived += sz/1024.0/1024.0
+            self.MB_received += sz/1000.0/1000.0
 
         # Get image statistics
         if maxVal != self.maxVal:
@@ -656,8 +655,15 @@ class ImagePlotWidget(RawImageWidget):
 
         self._set_image_on_main_thread(img)
 
+        # Frames displayed
         if not zoomUpdate:
-            self.framesDisplayed += 1
+            self.frames_displayed += 1
+
+        # Missed frames
+        current_array_id = data['uniqueId']
+        if self.__last_array_id is not None and zoomUpdate == False:
+            self.frames_missed += current_array_id - self.__last_array_id - 1
+        self.__last_array_id = current_array_id
 
     def configureGuiLimits(self, dataType):
         """
