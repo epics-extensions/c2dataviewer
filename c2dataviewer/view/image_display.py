@@ -19,6 +19,20 @@ class ImagePlotWidget(RawImageWidget):
 
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
+    # Area detector color modes values. Source: https://github.com/areaDetector/ADCore/blob/master/ADApp/ADSrc/NDArray.h#L29
+    # Currently only four are supported.
+    COLOR_MODE_MONO = 0 # [NX, NY]
+    COLOR_MODE_RGB1 = 2 # [3, NX, NY]
+    COLOR_MODE_RGB2 = 3 # [NX, 3, NY]
+    COLOR_MODE_RGB3 = 4 # [NX, NY, 3]
+
+    COLOR_MODES = {
+        COLOR_MODE_MONO : "MONO",
+        COLOR_MODE_RGB1 : "RGB1",
+        COLOR_MODE_RGB2 : "RGB2",
+        COLOR_MODE_RGB3 : "RGB3",
+    }
+
     _set_image_signal = pyqtSignal()
 
     def __init__(self, parent=None, **kargs):
@@ -39,9 +53,12 @@ class ImagePlotWidget(RawImageWidget):
         self.frames_displayed = 0
         self.frames_missed = 0
 
-        # image dimension
-        self.x = 0
-        self.y = 0
+        # Image properties
+        self.dimensions = None
+        self.color_mode = None
+        self.x = None
+        self.y = None
+        self.z = None
         self.fps = -1
 
         # max value of image pixel
@@ -326,7 +343,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         if source is not None:
             self.datasource = source
-            self.__update_dimension(self.datasource.get())
+            # self.__update_dimension(self.datasource.get())
             self.acquisition_timer.timeout.connect(self.get)
 
     def __update_dimension(self, data):
@@ -335,12 +352,43 @@ class ImagePlotWidget(RawImageWidget):
         :param data:
         :return:
         """
+
+        # Get color mode
+        attributes = data['attribute']
+        if any(('name' in attr and attr['name'] == "ColorMode") for attr in attributes ):
+            for attribute in attributes:
+                if attribute['name'] == "ColorMode":
+                    self.color_mode = attribute['value'][0]['value']
+        else:
+            raise RuntimeError(f"NDArray does not contain ColorMode Attribute.")
+
+        # Get dimensions
         dims = data['dimension']
-        x = dims[0]
-        y = dims[1]
-        if (x != self.x) or (y != self.y):
+        self.dimensions = len(dims)
+
+        if self.dimensions == 2 and self.color_mode == self.COLOR_MODE_MONO:
+            x = dims[0]
+            y = dims[1]
+            z = None
+        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB1:
+            x = dims[1]
+            y = dims[2]
+            z = dims[0]
+        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB2:
+            x = dims[0]
+            y = dims[2]
+            z = dims[1]
+        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB3:
+            x = dims[0]
+            y = dims[1]
+            z = dims[2]
+        else:
+            raise RuntimeError(f"Invalid data/color mode data.")
+
+        if (x['size'] != self.x) or (y['size'] != self.y) or (z is not None and z['size'] != self.z):
             self.x = x['size']
             self.y = y['size']
+            self.z = z['size'] if z is not None else None
             self.reset_zoom()
 
     def set_black(self, value):
@@ -463,7 +511,8 @@ class ImagePlotWidget(RawImageWidget):
             # Raise runtime exception
             raise RuntimeError(str(e))
         try:
-            self.__update_dimension(self.datasource.get())
+            # self.__update_dimension(self.datasource.get())
+            pass
         except ValueError as e:
             self.stop()
             self.signal()
@@ -536,6 +585,37 @@ class ImagePlotWidget(RawImageWidget):
         else:
             self._scaling = scale
 
+    def _transcode_image(self, image):
+        """
+        Transcode the numpy array to the correct shape.
+        For MONO images this is [NX, NY] and for the RGB [NX, NY, 3] as documented:
+        https://github.com/pyqtgraph/pyqtgraph/blob/ea08dda62dade523f2193ec353b9bacac6d8d35d/pyqtgraph/widgets/RawImageWidget.py#L41
+
+        :param image: (numpy array) Flat image to be trancoded.
+        :return: (numpy array) Transcoded np.array in either [NX, NY] or [NX, NY, 3] shapes.
+        """
+
+        if self.color_mode == self.COLOR_MODE_MONO:
+            return np.reshape(image, (self.y, self.x))
+
+        elif self.color_mode == self.COLOR_MODE_RGB1:
+            image = np.reshape(image, (self.y, self.x, self.z))
+            return image
+
+        elif self.color_mode == self.COLOR_MODE_RGB2:
+            image = np.reshape(image, (self.y, self.z, self.x))
+            image = np.swapaxes(image, 2, 1)
+            return image
+
+        elif self.color_mode == self.COLOR_MODE_RGB3:
+            image = np.reshape(image, (self.z, self.y, self.x))
+            image = np.swapaxes(image, 0, 2)
+            image = np.swapaxes(image, 0, 1)
+            return image
+
+        else:
+            raise RuntimeError("Unsupported color mode.")
+
     def display(self, data, zoomUpdate = False):
         """
         Display and update image using passed data.
@@ -546,13 +626,17 @@ class ImagePlotWidget(RawImageWidget):
                             zoom.
         :return:
         """
+        # Update dimensions
+        if not zoomUpdate:
+            self.__update_dimension(data)
+
         # Determinate input data type
         data_types = data['value'][0].keys()
         assert len(list(data_types)) == 1
         inputType = list(data_types)[0]
 
         # Check if the input is valid
-        if not inputType in self.dataTypesDict:
+        if not inputType in self.dataTypesDict or not self.color_mode in self.COLOR_MODES:
             self._isInputValid = False
             raise RuntimeError('No recognized image data received.')
         else:
@@ -591,10 +675,10 @@ class ImagePlotWidget(RawImageWidget):
             self.minVal = minVal
 
         # Resize to get a 2D array from 1D data structure
-        if self.x == 0 or self.y == 0:
+        if self.x == 0 or self.y == 0 or self.color_mode is None:
             # return
             raise RuntimeError("Image dimension not initialized")
-        img = np.resize(imgArray, (self.y, self.x))
+        img = self._transcode_image(imgArray)
         self.originalImage = img
 
         # Count dead pixels
@@ -607,18 +691,33 @@ class ImagePlotWidget(RawImageWidget):
         self._dpx = self._dpx[-3:]
 
         # Record max/min pixel values on ROI
-        self._max.append(imgArray[embeddedDataLen:].max())
-        self._max = self._max[-3:]
-        self._min.append(imgArray[embeddedDataLen:].min())
-        self._min = self._min[-3:]
+        if img.ndim == 2:
+            self._max = imgArray[embeddedDataLen:].max()
+            self._min = imgArray[embeddedDataLen:].min()
+        elif img.ndim == 3:
+            self._max = (
+                img[:,:,0].flatten()[embeddedDataLen:].max(),
+                img[:,:,1].flatten()[embeddedDataLen:].max(),
+                img[:,:,2].flatten()[embeddedDataLen:].max(),
+            )
+            self._min = (
+                img[:,:,0].flatten()[embeddedDataLen:].min(),
+                img[:,:,1].flatten()[embeddedDataLen:].min(),
+                img[:,:,2].flatten()[embeddedDataLen:].min(),
+            )
+        else:
+            raise RuntimeError("Invalid number of dimensions image")
+
 
         # Handle image transformation
         if self.is_zoomed():
             xoffset, yoffset, width, height = self.get_zoom_region()
             endx = xoffset + width
             endy = yoffset + height
-            img = img[yoffset:endy, xoffset:endx]
-            imgArray = img.flatten()
+            if self.color_mode == self.COLOR_MODE_MONO:
+                img = img[yoffset:endy, xoffset:endx]
+            else:
+                img = img[yoffset:endy, xoffset:endx, :]
 
         # Count dead pixels on ROI
         dpx = (imgArray > self._pref["DPXLimit"]).sum()
@@ -626,10 +725,22 @@ class ImagePlotWidget(RawImageWidget):
         self._dpxRoi = self._dpxRoi[-3:]
 
         # Record max/min pixel values on ROI
-        self._maxRoi.append(imgArray.max())
-        self._maxRoi = self._maxRoi[-3:]
-        self._minRoi.append(imgArray.min())
-        self._minRoi = self._minRoi[-3:]
+        if img.ndim == 2:
+            self._maxRoi = img.flatten().max()
+            self._minRoi = img.flatten().min()
+        elif img.ndim == 3:
+            self._maxRoi = (
+                img[:,:,0].flatten().max(),
+                img[:,:,1].flatten().max(),
+                img[:,:,2].flatten().max(),
+            )
+            self._minRoi = (
+                img[:,:,0].flatten().min(),
+                img[:,:,1].flatten().min(),
+                img[:,:,2].flatten().min(),
+            )
+        else:
+            raise RuntimeError("Invalid number of dimensions image")
 
         # Auto calculate black/white levels
         if self._agc:

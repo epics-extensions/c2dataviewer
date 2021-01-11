@@ -8,6 +8,7 @@ PVA object viewer utilities
 
 @author: Guobao Shen <gshen@anl.gov>
 """
+from c2dataviewer.view.image_display import ImagePlotWidget
 import datetime
 import pyqtgraph.ptime as ptime
 
@@ -102,11 +103,24 @@ class ImageController:
         text = self._win.imageWidget._pref["NetLimit"] or ''
         self._dlg.netLimit.setText(str(text))
 
+        # Min/max channel select
+        self.colorChannels = {
+            0 : "Red",
+            1 : "Green",
+            2 : "Blue",
+        }
+        self.maxChannel = self.colorChannels[0]
+        self.minChannel = self.colorChannels[0]
+        self._win.maxPixelChannel.addItems(list(self.colorChannels.values()))
+        self._win.minPixelChannel.addItems(list(self.colorChannels.values()))
+        self._win.maxPixelChannel.setToolTip("Selection for which color channel the value is displayed.")
+        self._win.minPixelChannel.setToolTip("Selection for which color channel the value is displayed.")
+
         # Add tooltips for statistics
         self._win.tbValidInput.setToolTip("Image data type.")
         self._win.runtime.setToolTip("Total time data viewer has been running.")
-        self._win.maxPixel.setToolTip("Maximum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
-        self._win.minPixel.setToolTip("Minimum value in the image. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.maxPixel.setToolTip("Maximum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.minPixel.setToolTip("Minimum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.frameRateCurrAvg.setToolTip("Current / average Frames Per Second.")
         self._win.nFrames.setToolTip("Total number of frames displayed.")
         self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
@@ -341,7 +355,7 @@ class ImageController:
                                                         format(self._cameras[n]))
                 self._warning.show()
 
-    def statistics_update(self, valuefield, value, **kargs):
+    def statistics_update(self, valuefield, value, roi_value=None, **kargs):
         """
         Update widget with a new value on the GUI. If limits are specified and value is outside them, text on the widget
         will become red.
@@ -360,6 +374,13 @@ class ImageController:
         hilimit = kargs.get('hilimit', None)
         lolimit = kargs.get('lowlimit', None)
         callback = kargs.get('callback', False)
+
+        if roi_value is not None:
+            fmt = f"{fmt} ({fmt})"
+            if type(value) is tuple:
+                value = value + roi_value
+            else:
+                value = (value, roi_value)
 
         valuefield.setText(str(fmt) % value)
         maxValue = max(value) if isinstance(value, (list, tuple)) else value
@@ -492,7 +513,9 @@ class ImageController:
         :return:
         """
         # Update input type
-        self._win.tbValidInput.setText(self._win.imageWidget._inputType + " "  + ("" if self._win.imageWidget._isInputValid else "(Invalid)"))
+        self._win.tbValidInput.setText(self._win.imageWidget._inputType + " / "
+                                      + self._win.imageWidget.COLOR_MODES.get(self._win.imageWidget.color_mode, "Unknown")
+                                      + ("" if self._win.imageWidget._isInputValid else " (Invalid)"))
         if self._win.imageWidget._isInputValid:
             self._win.tbValidInput.setStyleSheet(self._inputTypeDefaultStyle)
         else:
@@ -504,20 +527,23 @@ class ImageController:
         # Max / min pixels
         isZoomedImage = self._win.imageWidget.is_zoomed()
         xOffset, yOffset, width, height = self._win.imageWidget.get_zoom_region()
-        if isZoomedImage:
-            values = (self._win.imageWidget._max[-1], self._win.imageWidget._maxRoi[-1])
-            fmt = '%.0f (%.0f)'
+        if self._win.imageWidget.color_mode == ImagePlotWidget.COLOR_MODE_MONO:
+            self._win.maxPixelChannel.hide()
+            self._win.minPixelChannel.hide()
+            max_val = self._win.imageWidget._max
+            min_val = self._win.imageWidget._min
+            max_val_roi = self._win.imageWidget._maxRoi if isZoomedImage else None
+            min_val_roi = self._win.imageWidget._minRoi if isZoomedImage else None
         else:
-            values = (self._win.imageWidget._max[-1])
-            fmt = '%.0f'
-        self.statistics_update(self._win.maxPixel, values, fmt=fmt)
-        if isZoomedImage:
-            values = (self._win.imageWidget._min[-1], self._win.imageWidget._minRoi[-1])
-            fmt = '%.0f (%.0f)'
-        else:
-            values = (self._win.imageWidget._min[-1])
-            fmt = '%.0f'
-        self.statistics_update(self._win.minPixel, values, fmt=fmt)
+            self._win.maxPixelChannel.show()
+            self._win.minPixelChannel.show()
+            max_val = self._win.imageWidget._max[self._win.maxPixelChannel.currentIndex()]
+            min_val = self._win.imageWidget._min[self._win.minPixelChannel.currentIndex()]
+            max_val_roi = self._win.imageWidget._maxRoi[self._win.maxPixelChannel.currentIndex()] if isZoomedImage else None
+            min_val_roi = self._win.imageWidget._minRoi[self._win.minPixelChannel.currentIndex()] if isZoomedImage else None
+
+        self.statistics_update(self._win.maxPixel, max_val, max_val_roi)
+        self.statistics_update(self._win.minPixel, min_val, min_val_roi)
 
         # Update frames information
         self.statistics_update(self._win.frameRateCurrAvg,

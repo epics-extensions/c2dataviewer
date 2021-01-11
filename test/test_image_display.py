@@ -15,6 +15,7 @@ import numpy as np
 import pvaccess as pva
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import QtCore, QtTest
+from .helper import create_image
 
 from c2dataviewer.imagev import ImageWindow
 
@@ -78,10 +79,7 @@ class TestImageDisplay(unittest.TestCase):
             pva.DOUBLE : {'string' : 'doubleValue', 'min': np.finfo(np.float64).min, 'max' : np.finfo(np.float64).max},
         }
 
-        data = pva.NtNdArray()
-        data.setValue(pva.PvObject({types[dataType]['string'] : [dataType]},
-                                   {types[dataType]['string'] : arrayValue},
-                     ))
+        data = create_image(1, arrayValue, types[dataType]['string'], xDim, yDim, 2, 0, extra_fields_PV_object={types[dataType]['string'] : [dataType]})
 
         self.imageWidget.x = xDim
         self.imageWidget.y = yDim
@@ -294,6 +292,123 @@ class TestImageDisplay(unittest.TestCase):
 
 
 ############################################
+# Test color modes (_transcode_image)
+############################################
+    """
+    Check if color modes and dimensions are properly parsed and raw data
+    properly transcoded to image.
+
+    :return:
+    """
+
+    def test_transcode_image(self):
+
+        x = 10
+        y = 10
+
+        arrayValue = [
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
+            ]
+
+
+        # Mono image
+        data = create_image(1, arrayValue, data_type='ubyteValue', nx=x, ny=y, nz=2, color_mode=self.imageWidget.COLOR_MODE_MONO)
+        self.imageWidget.display(data)
+        self.assertEqual(2, self.imageWidget.dimensions)
+        self.assertEqual(x, self.imageWidget.x)
+        self.assertEqual(y, self.imageWidget.y)
+        self.assertEqual(None, self.imageWidget.z)
+        self.assertEqual(self.imageWidget.COLOR_MODE_MONO, self.imageWidget.color_mode)
+        np.testing.assert_equal(np.array([[255, 255, 255, 255, 255, 255, 255, 255, 255, 255,],
+                                        [    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,],
+                                        [   77,  77,  77,  77,  77,  77,  77,  77,  77,  77,],
+                                        [   54,  54,  54,  54,  54,  54,  54,  54,  54,  54,],
+                                        [   23,  23,  23,  23,  23,  23,  23,  23,  23,  23,],
+                                        [   76,  76,  76,  76,  76,  76,  76,  76,  76,  76,],
+                                        [   34,  34,  34,  34,  34,  34,  34,  34,  34,  34,],
+                                        [   65,  65,  65,  65,  65,  65,  65,  65,  65,  65,],
+                                        [   34,  34,  34,  34,  34,  34,  34,  34,  34,  34,],
+                                        [   65,  65,  65,  65,  65,  65,  65,  65,  65,  65,],], dtype=np.uint8),
+                                self.imageWidget._image
+                                )
+
+        # RGB1 image
+        data = create_image(2, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB1)
+        self.imageWidget.display(data)
+        self.assertEqual(3, self.imageWidget.dimensions)
+        self.assertEqual(x, self.imageWidget.x)
+        self.assertEqual(y, self.imageWidget.y)
+        self.assertEqual(3, self.imageWidget.z)
+        self.assertEqual(self.imageWidget.COLOR_MODE_RGB1, self.imageWidget.color_mode)
+        np.testing.assert_equal( np.array([[[255,   0,  77,] for i in range(x)],
+                                           [[ 54,  23,  76,] for i in range(x)],
+                                           [[ 34,  65,  34,] for i in range(x)],
+                                           [[ 65, 255,   0,] for i in range(x)],
+                                           [[ 77,  54,  23,] for i in range(x)],
+                                           [[ 76,  34,  65,] for i in range(x)],
+                                           [[ 34,  65, 255,] for i in range(x)],
+                                           [[  0,  77,  54,] for i in range(x)],
+                                           [[ 23,  76,  34,] for i in range(x)],
+                                           [[ 65,  34,  65,] for i in range(x)],
+                                            ], dtype=np.uint8),
+                                self.imageWidget._image
+                                )
+
+        # RGB2 image
+        data = create_image(3, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB2)
+        self.imageWidget.display(data)
+        self.assertEqual(3, self.imageWidget.dimensions)
+        self.assertEqual(x, self.imageWidget.x)
+        self.assertEqual(y, self.imageWidget.y)
+        self.assertEqual(3, self.imageWidget.z)
+        self.assertEqual(self.imageWidget.COLOR_MODE_RGB2, self.imageWidget.color_mode)
+        np.testing.assert_equal( np.array([[[255, 255, 255,] for i in range(x)],
+                                           [[  0,   0,   0,] for i in range(x)],
+                                           [[ 77,  77,  77,] for i in range(x)],
+                                           [[ 54,  54,  54,] for i in range(x)],
+                                           [[ 23,  23,  23,] for i in range(x)],
+                                           [[ 76,  76,  76,] for i in range(x)],
+                                           [[ 34,  34,  34,] for i in range(x)],
+                                           [[ 65,  65,  65,] for i in range(x)],
+                                           [[ 34,  34,  34,] for i in range(x)],
+                                           [[ 65,  65,  65,] for i in range(x)],
+                                            ], dtype=np.uint8),
+                                self.imageWidget._image
+                                )
+
+        # RGB2 image
+        data = create_image(4, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB3)
+        self.imageWidget.display(data)
+        self.assertEqual(3, self.imageWidget.dimensions)
+        self.assertEqual(x, self.imageWidget.x)
+        self.assertEqual(y, self.imageWidget.y)
+        self.assertEqual(3, self.imageWidget.z)
+        self.assertEqual(self.imageWidget.COLOR_MODE_RGB3, self.imageWidget.color_mode)
+        np.testing.assert_equal( np.array([[[255, 255, 255,] for i in range(x)],
+                                           [[  0,   0,   0,] for i in range(x)],
+                                           [[ 77,  77,  77,] for i in range(x)],
+                                           [[ 54,  54,  54,] for i in range(x)],
+                                           [[ 23,  23,  23,] for i in range(x)],
+                                           [[ 76,  76,  76,] for i in range(x)],
+                                           [[ 34,  34,  34,] for i in range(x)],
+                                           [[ 65,  65,  65,] for i in range(x)],
+                                           [[ 34,  34,  34,] for i in range(x)],
+                                           [[ 65,  65,  65,] for i in range(x)],
+                                            ], dtype=np.uint8),
+                                self.imageWidget._image
+                                )
+
+
+############################################
 # Test zoom capability
 ############################################
 
@@ -314,18 +429,10 @@ class TestImageDisplay(unittest.TestCase):
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             ]
-        data = pva.NtNdArray()
-        data.setValue(pva.PvObject({"ubyteValue" : [pva.UBYTE]},
-                                   {"ubyteValue" : arrayValue},
-                     ))
 
+        data = create_image(1, arrayValue, nx=10, ny=10, color_mode=0)
 
         # Display original image
-        # Call __update_dimension directly, as we do not have a datasource we could set here
-        # by calling set_datasource, which then updates the dimensions
-        dimsData = {}
-        dimsData['dimension'] = ({'size' : 10}, {'size' : 10})
-        self.imageWidget._ImagePlotWidget__update_dimension(dimsData)
         self.imageWidget.display(data)
 
         # Test zoom parameters
