@@ -23,6 +23,7 @@ from c2dataviewer.imagev import LimitDialog, BlackWhiteLimitDialog, WarningDialo
 from c2dataviewer.imagev import ImageController
 from c2dataviewer.imagev import ImageWindow
 
+from .test_image_display import create_image, get_time_stamp
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -170,18 +171,12 @@ class TestImageDisplay(unittest.TestCase):
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
             ]
-        data = NtNdArray()
-        data.setValue(PvObject({"ubyteValue" : [pva.UBYTE]},
-                               {"ubyteValue" : arrayValue},
-                     ))
+
+        data = create_image(1, arrayValue, nx=10, ny=10, color_mode=0)
 
 
         # Display original image
-        # Call __update_dimension directly, as we do not have a datasource we could set here
-        # by calling set_datasource, which then updates the dimensions
-        dimsData = {}
-        dimsData['dimension'] = ({'size' : 10}, {'size' : 10})
-        self.ic._win.imageWidget._ImagePlotWidget__update_dimension(dimsData)
+        self.ic._win.imageWidget._ImagePlotWidget__update_dimension(data)
         self.ic._win.imageWidget.display(data)
         self.ic._win.imageWidget.data = data
 
