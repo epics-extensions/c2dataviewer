@@ -130,6 +130,7 @@ class ImagePlotWidget(RawImageWidget):
             'floatValue' :  {'minVal' : int(-2**24),      'maxVal' : int(2**24),         'npdt' : "float32",'embeddedDataLen' : 0},
             'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",'embeddedDataLen' : 0},
         }
+        self.use_embeddedDataLen = True
 
         # Acquisition timer used to get specific request frame rate
         self.acquisition_timer = QtCore.QTimer()
@@ -649,7 +650,10 @@ class ImagePlotWidget(RawImageWidget):
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']
-        embeddedDataLen = self.dataTypesDict[inputType]['embeddedDataLen']
+        if self.use_embeddedDataLen:
+            embeddedDataLen = self.dataTypesDict[inputType]['embeddedDataLen']
+        else:
+            embeddedDataLen = 0
 
         # Configure GUI for the correct type
         if inputType != self._inputType:

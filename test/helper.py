@@ -8,9 +8,11 @@ Helper functions for c2d unit tests.
 
 @author: Matic Pogacnik <mpogacnik@anl.gov>
 """
+from datetime import datetime as dt
 import numpy as np
 import pvaccess as pva
 
+from c2dataviewer.view.image_display import ImagePlotWidget
 
 ############################################
 # ND Image
@@ -32,12 +34,19 @@ def get_time_stamp(time_stamp=None):
     ns = int((t - s)*NANOSECONDS_IN_SECOND)
     return pva.PvTimeStamp(s,ns,0)
 
-def create_image(id, image=None, nx=None, ny=None, color_mode=None, time_stamp=None, extra_fields_PV_object=None):
+def create_image(id, image=None, data_type='ubyteValue', nx=None, ny=None, nz=None, color_mode=None, time_stamp=None, extra_fields_PV_object=None):
     """
     Generate image as NtNdArray.
 
     :param id: (int) Array index.
-    :param nx: (int) Image
+    :param index: (np.array) Image.
+    :param data_type: (string) Datatype of the image. Default value is 'ubyteValue'.
+    :param nx: (int) Dimension of the image in X direction.
+    :param ny: (int) Dimension of the image in Y direction.
+    :param ny: (int) Dimension of the image in Z direction. Should be None (default) or 3.
+    :param color_mode: (int) Color mode the image. Possible values are 0, 2, 3, 4.
+    :param time_stamp: (int) EPICS timestamp in seconds. Can be None in which case the current time is used.
+    :param extra_fields_PV_object: (dict) Extra fields which will be added to the NtNdArray. Keys must strings.
     """
     # Generate timestamp and the image
     time_stamp = get_time_stamp(time_stamp)
@@ -46,20 +55,27 @@ def create_image(id, image=None, nx=None, ny=None, color_mode=None, time_stamp=N
 
     # Build the NtNdArray
     if extra_fields_PV_object:
-        nda = pva.NtNdArray(extra_fields_PV_object.getStructureDict())
+        nda = pva.NtNdArray(extra_fields_PV_object)
     else:
         nda = pva.NtNdArray()
     nda['uniqueId'] = id
     dims = [pva.PvDimension(nx, 0, nx, 1, False), pva.PvDimension(ny, 0, ny, 1, False)]
+    if nz is not None:
+        if color_mode == ImagePlotWidget.COLOR_MODE_RGB1:
+            dims.insert(0, pva.PvDimension(nz, 0, nz, 1, False))
+        elif color_mode == ImagePlotWidget.COLOR_MODE_RGB2:
+            dims.insert(1, pva.PvDimension(nz, 0, nz, 1, False))
+        elif color_mode == ImagePlotWidget.COLOR_MODE_RGB3:
+            dims.append(pva.PvDimension(nz, 0, nz, 1, False))
     nda['codec'] = pva.PvCodec('pvapyc', pva.PvInt(14))
     nda['dimension'] = dims
     nda['descriptor'] = 'PvaPy Simulated Image'
-    nda['compressedSize'] = nx*ny
-    nda['uncompressedSize'] = nx*ny
+    nda['compressedSize'] = nx*ny*(nz if nz is not None else 1)
+    nda['uncompressedSize'] = nx*ny*(nz if nz is not None else 1)
     nda['timeStamp'] = time_stamp
     nda['dataTimeStamp'] = time_stamp
     attrs = [pva.NtAttribute('ColorMode', pva.PvInt(color_mode))]
     nda['attribute'] = attrs
-    nda['value'] = {'ubyteValue' : image}
-    # nda.set(extra_fields_PV_object)
+    nda['value'] = {data_type : image}
+
     return nda
