@@ -11,11 +11,11 @@ Unit tests for Imagev
 import os
 import sys
 import unittest
-from PyQt5.QtWidgets import QWidget
-
+from pyqtgraph.Qt import QtCore
 from pyqtgraph.Qt import QtWidgets
+
 from c2dataviewer.imagev import ImageWindow
-from PyQt5.QtCore import QPoint
+
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -34,6 +34,8 @@ class TestImagev(unittest.TestCase):
 
         # Build image window
         self.window = ImageWindow()
+        self.window.resize(1000, 1000)
+        QtWidgets.QApplication.instance().processEvents()
 
     def tearDown(self):
         """
@@ -58,15 +60,15 @@ class TestImagev(unittest.TestCase):
         mainWindow = self.window
 
         # Get all child widgets
-        widgets = mainWindow.findChildren(QWidget)
+        widgets = mainWindow.findChildren(QtWidgets.QWidget)
 
         def pointOnMainWindow(point):
 
             # Get main window global coordinates
             mainWindowGeometry = mainWindow.geometry()
-            mainWindowTopLeft = mainWindow.mapToGlobal(QPoint(0, 0))
-            mainWindowTopRight = mainWindow.mapToGlobal(QPoint(mainWindowGeometry.width(), 0))
-            mainWindowBottomLeft = mainWindow.mapToGlobal(QPoint(0, mainWindowGeometry.height()))
+            mainWindowTopLeft = mainWindow.mapToGlobal(QtCore.QPoint(0, 0))
+            mainWindowTopRight = mainWindow.mapToGlobal(QtCore.QPoint(mainWindowGeometry.width(), 0))
+            mainWindowBottomLeft = mainWindow.mapToGlobal(QtCore.QPoint(0, mainWindowGeometry.height()))
             #mainWindowBottomRight = mainWindow.mapToGlobal(QPoint(mainWindowGeometry.width(), mainWindowGeometry.height()))
 
             if (point.x() >= mainWindowTopLeft.x() and
@@ -87,25 +89,16 @@ class TestImagev(unittest.TestCase):
                 if isinstance(w, QtWidgets.QSizeGrip):
                     continue
 
-                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QPoint(0, 0))),
+                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QtCore.QPoint(0, 0))),
                         f"Testing top-left corner of {w.__class__.__name__} widget.")
-                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QPoint(w.width(),0))),
+                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QtCore.QPoint(w.width(),0))),
                         f"Testing top-right corner of {w.__class__.__name__} widget.")
-                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QPoint(0, w.height()))),
+                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QtCore.QPoint(0, w.height()))),
                         f"Testing bottom-left corner of {w.__class__.__name__} widget.")
-                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QPoint(w.width(), w.height()))),
+                self.assertTrue(pointOnMainWindow(w.mapToGlobal(QtCore.QPoint(w.width(), w.height()))),
                         f"Testing bottom-right corner of {w.__class__.__name__} widget.")
 
         print(f"Testing widget visibility on default window size:")
-        print(f"Window width: {mainWindow.geometry().width()}")
-        print(f"Window height: {mainWindow.geometry().height()}")
-        testWidgetsIfOnMainScreen()
-
-        # Resize window to minium size
-        mainWindow.resize(0, 0) # This makes smallest possible size (respecting design constrains)
-        QtWidgets.QApplication.instance().processEvents()
-
-        print(f"Testing widget visibility on smallest possible size allowed by design:")
         print(f"Window width: {mainWindow.geometry().width()}")
         print(f"Window height: {mainWindow.geometry().height()}")
         testWidgetsIfOnMainScreen()

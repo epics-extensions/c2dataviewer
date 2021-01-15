@@ -17,13 +17,12 @@ import pvaccess as pva
 import numpy as np
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph import QtCore
-from .helper import create_image
 
 from c2dataviewer.imagev import LimitDialog, BlackWhiteLimitDialog, WarningDialog
 from c2dataviewer.imagev import ImageController
 from c2dataviewer.imagev import ImageWindow
 
-from .test_image_display import create_image, get_time_stamp
+from .helper import create_image
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -187,8 +186,8 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual("10", self.ic._win.lblXsize.text().strip())
         self.assertEqual("10", self.ic._win.lblYsize.text().strip())
         self.assertEqual("0", self.ic._win.deadPixel.text().strip())
-        self.assertEqual("255", self.ic._win.maxPixel.text().strip())
-        self.assertEqual("0", self.ic._win.minPixel.text().strip())
+        self.assertEqual("255.0", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0.0", self.ic._win.minPixel.text().strip())
 
         # Set zoom region
         self.ic._win.imageWidget.set_zoom_region(4, 3, 5, 8)
@@ -200,8 +199,8 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual("10 (4-9)", self.ic._win.lblXsize.text().strip())
         self.assertEqual("10 (3-10)", self.ic._win.lblYsize.text().strip())
         self.assertEqual("0 (0)", self.ic._win.deadPixel.text().strip())
-        self.assertEqual("255 (76)", self.ic._win.maxPixel.text().strip())
-        self.assertEqual("0 (23)", self.ic._win.minPixel.text().strip())
+        self.assertEqual("255.0 (76.0)", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0.0 (23.0)", self.ic._win.minPixel.text().strip())
 
         # Reset zoom
         self.ic._win.imageWidget.reset_zoom()
@@ -213,8 +212,8 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual("10", self.ic._win.lblXsize.text().strip())
         self.assertEqual("10", self.ic._win.lblYsize.text().strip())
         self.assertEqual("0", self.ic._win.deadPixel.text().strip())
-        self.assertEqual("255", self.ic._win.maxPixel.text().strip())
-        self.assertEqual("0", self.ic._win.minPixel.text().strip())
+        self.assertEqual("255.0", self.ic._win.maxPixel.text().strip())
+        self.assertEqual("0.0", self.ic._win.minPixel.text().strip())
 
 
 

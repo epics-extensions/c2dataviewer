@@ -39,6 +39,8 @@ class TestImageDisplay(unittest.TestCase):
         # Create ImageWindow and get the imageWidget instance
         self.window = ImageWindow()
         self.imageWidget = self.window.imageWidget
+        self.imageWidget.resize(1000,1000)
+        self.imageWidget.use_embeddedDataLen = False
 
         # GUI styles
         self._inputTypeDefaultStyle = self.window.tbValidInput.styleSheet()
@@ -79,7 +81,7 @@ class TestImageDisplay(unittest.TestCase):
             pva.DOUBLE : {'string' : 'doubleValue', 'min': np.finfo(np.float64).min, 'max' : np.finfo(np.float64).max},
         }
 
-        data = create_image(1, arrayValue, types[dataType]['string'], xDim, yDim, 2, 0, extra_fields_PV_object={types[dataType]['string'] : [dataType]})
+        data = create_image(1, arrayValue, types[dataType]['string'], nx=xDim, ny=yDim, color_mode=0, extra_fields_PV_object={types[dataType]['string'] : [dataType]})
 
         self.imageWidget.x = xDim
         self.imageWidget.y = yDim
@@ -321,7 +323,7 @@ class TestImageDisplay(unittest.TestCase):
 
 
         # Mono image
-        data = create_image(1, arrayValue, data_type='ubyteValue', nx=x, ny=y, nz=2, color_mode=self.imageWidget.COLOR_MODE_MONO)
+        data = create_image(1, arrayValue, data_type='ubyteValue', nx=x, ny=y, color_mode=self.imageWidget.COLOR_MODE_MONO)
         self.imageWidget.display(data)
         self.assertEqual(2, self.imageWidget.dimensions)
         self.assertEqual(x, self.imageWidget.x)
@@ -449,7 +451,7 @@ class TestImageDisplay(unittest.TestCase):
         # Test zoom dist values
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(0, xOffset)
+        self.assertEqual(1, xOffset)
         self.assertEqual(0, yOffset)
         self.assertEqual(4, width)
         self.assertEqual(4, height)
@@ -472,7 +474,7 @@ class TestImageDisplay(unittest.TestCase):
         # Test if roi was zoomed
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(0, xOffset)
+        self.assertEqual(1, xOffset)
         self.assertEqual(0, yOffset)
         self.assertEqual(4, width)
         self.assertEqual(4, height)
@@ -486,7 +488,7 @@ class TestImageDisplay(unittest.TestCase):
         # Test if roi was zoomed again
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
-        self.assertEqual(0, xOffset)
+        self.assertEqual(1, xOffset)
         self.assertEqual(0, yOffset)
         self.assertEqual(4, width)
         self.assertEqual(4, height)
