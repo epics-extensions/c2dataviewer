@@ -6,56 +6,74 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1079</width>
-    <height>985</height>
+    <width>1119</width>
+    <height>850</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>C2DataViewer - AD Image</string>
   </property>
   <widget class="QWidget" name="centralwidget">
-   <layout class="QHBoxLayout" name="horizontalLayout">
-    <item>
-     <widget class="QFrame" name="frame">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+   <layout class="QGridLayout" name="gridLayout_3">
+    <property name="sizeConstraint">
+     <enum>QLayout::SetMinimumSize</enum>
+    </property>
+    <item row="0" column="0">
+     <layout class="QGridLayout" name="canvasGrid">
+      <property name="sizeConstraint">
+       <enum>QLayout::SetMaximumSize</enum>
       </property>
-      <property name="minimumSize">
-       <size>
-        <width>600</width>
-        <height>600</height>
-       </size>
-      </property>
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <layout class="QVBoxLayout" name="verticalLayout_12">
-       <item>
-        <widget class="ImagePlotWidget" name="imageWidget" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="MinimumExpanding" vsizetype="MinimumExpanding">
-           <horstretch>3</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="minimumSize">
-          <size>
-           <width>500</width>
-           <height>500</height>
-          </size>
-         </property>
-        </widget>
-       </item>
-      </layout>
-     </widget>
+      <item row="1" column="1">
+       <widget class="ImagePlotWidget" name="imageWidget" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <horstretch>100</horstretch>
+          <verstretch>100</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>500</width>
+          <height>500</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="PlotWidget" name="yProfilePlot" native="true">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>60</width>
+          <height>0</height>
+         </size>
+        </property>
+        <property name="acceptDrops">
+         <bool>false</bool>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">border-color: rgb(252, 233, 79);</string>
+        </property>
+       </widget>
+      </item>
+      <item row="0" column="1">
+       <widget class="PlotWidget" name="xProfilePlot" native="true">
+        <property name="minimumSize">
+         <size>
+          <width>0</width>
+          <height>50</height>
+         </size>
+        </property>
+       </widget>
+      </item>
+     </layout>
     </item>
-    <item>
+    <item row="0" column="1" rowspan="2">
      <widget class="QWidget" name="widget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -98,8 +116,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>368</width>
-            <height>921</height>
+            <width>354</width>
+            <height>872</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -186,14 +204,17 @@
               <string>Image and zoom:</string>
              </property>
              <layout class="QFormLayout" name="formLayout_5">
-              <item row="0" column="0">
+              <property name="formAlignment">
+               <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+              </property>
+              <item row="1" column="0">
                <widget class="QLabel" name="label_2">
                 <property name="text">
                  <string>Size X [px]:</string>
                 </property>
                </widget>
               </item>
-              <item row="0" column="1">
+              <item row="1" column="1">
                <widget class="QLabel" name="lblXsize">
                 <property name="enabled">
                  <bool>false</bool>
@@ -218,14 +239,14 @@
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
+              <item row="2" column="0">
                <widget class="QLabel" name="label_5">
                 <property name="text">
                  <string>Size Y [px]:</string>
                 </property>
                </widget>
               </item>
-              <item row="1" column="1">
+              <item row="2" column="1">
                <widget class="QLabel" name="lblYsize">
                 <property name="enabled">
                  <bool>false</bool>
@@ -250,7 +271,7 @@
                 </property>
                </widget>
               </item>
-              <item row="2" column="1">
+              <item row="3" column="1">
                <widget class="QPushButton" name="resetZoomButton">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -263,7 +284,7 @@
                 </property>
                </widget>
               </item>
-              <item row="3" column="0" colspan="2">
+              <item row="4" column="0" colspan="2">
                <widget class="QLabel" name="zoomStatusLabel">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -276,90 +297,71 @@
                 </property>
                </widget>
               </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="groupBox_6">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="title">
-              <string>Image Levels Adjustment:</string>
-             </property>
-             <layout class="QVBoxLayout" name="verticalLayout_2">
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <item row="5" column="0">
+               <widget class="QLabel" name="label_6">
+                <property name="text">
+                 <string>Black: </string>
+                </property>
+               </widget>
+              </item>
+              <item row="5" column="1">
+               <layout class="QVBoxLayout" name="verticalLayout_6">
                 <item>
-                 <widget class="QLabel" name="label_6">
-                  <property name="text">
-                   <string>Black: </string>
+                 <widget class="QSlider" name="imageBlackSlider">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_6">
-                  <item>
-                   <widget class="QSlider" name="imageBlackSlider">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QDoubleSpinBox" name="imageBlackSpinBox"/>
-                  </item>
-                 </layout>
+                 <widget class="QDoubleSpinBox" name="imageBlackSpinBox"/>
                 </item>
                </layout>
               </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_13">
+              <item row="6" column="0">
+               <widget class="QLabel" name="label_19">
+                <property name="text">
+                 <string>White:</string>
+                </property>
+               </widget>
+              </item>
+              <item row="6" column="1">
+               <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
-                 <widget class="QLabel" name="label_19">
-                  <property name="text">
-                   <string>White:</string>
+                 <widget class="QSlider" name="imageWhiteSlider">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
                   </property>
                  </widget>
                 </item>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_7">
-                  <item>
-                   <widget class="QSlider" name="imageWhiteSlider">
-                    <property name="orientation">
-                     <enum>Qt::Horizontal</enum>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QDoubleSpinBox" name="imageWhiteSpinBox"/>
-                  </item>
-                 </layout>
+                 <widget class="QDoubleSpinBox" name="imageWhiteSpinBox"/>
                 </item>
                </layout>
               </item>
-              <item>
-               <layout class="QHBoxLayout" name="horizontalLayout_12">
-                <item>
-                 <widget class="QPushButton" name="imageAutoAdjust">
-                  <property name="text">
-                   <string>Auto</string>
-                  </property>
-                 </widget>
-                </item>
+              <item row="8" column="0" colspan="2">
+               <widget class="QCheckBox" name="cbShowProfiles">
+                <property name="enabled">
+                 <bool>true</bool>
+                </property>
+                <property name="text">
+                 <string>Show image profiles (average calculation)</string>
+                </property>
+               </widget>
+              </item>
+              <item row="7" column="0" colspan="2">
+               <layout class="QHBoxLayout" name="horizontalLayout">
                 <item>
                  <widget class="QPushButton" name="imageLimitsAdjust">
                   <property name="text">
                    <string>Adjust limits</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="imageAutoAdjust">
+                  <property name="text">
+                   <string>Auto</string>
                   </property>
                  </widget>
                 </item>
@@ -798,7 +800,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1079</width>
+     <width>1119</width>
      <height>22</height>
     </rect>
    </property>
@@ -809,7 +811,13 @@
   <customwidget>
    <class>ImagePlotWidget</class>
    <extends>QWidget</extends>
-   <header>c2dataviewer.view.image_display</header>
+   <header>c2dataviewer/view/image_display.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>PlotWidget</class>
+   <extends>QWidget</extends>
+   <header>pyqtgraph</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -17,7 +17,9 @@ from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.Qt import QtCore, QtTest
 from .helper import create_image
 
+from c2dataviewer.view.image_definitions import *
 from c2dataviewer.imagev import ImageWindow
+from c2dataviewer.view.image_display import ImagePlotWidget
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -292,124 +294,6 @@ class TestImageDisplay(unittest.TestCase):
 
         self.runDatatypeSupportTest(pva.DOUBLE, x, y, arrayValue)
 
-
-############################################
-# Test color modes (_transcode_image)
-############################################
-    """
-    Check if color modes and dimensions are properly parsed and raw data
-    properly transcoded to image.
-
-    :return:
-    """
-
-    def test_transcode_image(self):
-
-        x = 10
-        y = 10
-
-        arrayValue = [
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            255, 0, 77, 54, 23, 76, 34, 65, 34, 65,
-            ]
-
-
-        # Mono image
-        data = create_image(1, arrayValue, data_type='ubyteValue', nx=x, ny=y, color_mode=self.imageWidget.COLOR_MODE_MONO)
-        self.imageWidget.display(data)
-        self.assertEqual(2, self.imageWidget.dimensions)
-        self.assertEqual(x, self.imageWidget.x)
-        self.assertEqual(y, self.imageWidget.y)
-        self.assertEqual(None, self.imageWidget.z)
-        self.assertEqual(self.imageWidget.COLOR_MODE_MONO, self.imageWidget.color_mode)
-        np.testing.assert_equal(np.array([[255, 255, 255, 255, 255, 255, 255, 255, 255, 255,],
-                                        [    0,   0,   0,   0,   0,   0,   0,   0,   0,   0,],
-                                        [   77,  77,  77,  77,  77,  77,  77,  77,  77,  77,],
-                                        [   54,  54,  54,  54,  54,  54,  54,  54,  54,  54,],
-                                        [   23,  23,  23,  23,  23,  23,  23,  23,  23,  23,],
-                                        [   76,  76,  76,  76,  76,  76,  76,  76,  76,  76,],
-                                        [   34,  34,  34,  34,  34,  34,  34,  34,  34,  34,],
-                                        [   65,  65,  65,  65,  65,  65,  65,  65,  65,  65,],
-                                        [   34,  34,  34,  34,  34,  34,  34,  34,  34,  34,],
-                                        [   65,  65,  65,  65,  65,  65,  65,  65,  65,  65,],], dtype=np.uint8),
-                                self.imageWidget._image
-                                )
-
-        # RGB1 image
-        data = create_image(2, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB1)
-        self.imageWidget.display(data)
-        self.assertEqual(3, self.imageWidget.dimensions)
-        self.assertEqual(x, self.imageWidget.x)
-        self.assertEqual(y, self.imageWidget.y)
-        self.assertEqual(3, self.imageWidget.z)
-        self.assertEqual(self.imageWidget.COLOR_MODE_RGB1, self.imageWidget.color_mode)
-        np.testing.assert_equal( np.array([[[255,   0,  77,] for i in range(x)],
-                                           [[ 54,  23,  76,] for i in range(x)],
-                                           [[ 34,  65,  34,] for i in range(x)],
-                                           [[ 65, 255,   0,] for i in range(x)],
-                                           [[ 77,  54,  23,] for i in range(x)],
-                                           [[ 76,  34,  65,] for i in range(x)],
-                                           [[ 34,  65, 255,] for i in range(x)],
-                                           [[  0,  77,  54,] for i in range(x)],
-                                           [[ 23,  76,  34,] for i in range(x)],
-                                           [[ 65,  34,  65,] for i in range(x)],
-                                            ], dtype=np.uint8),
-                                self.imageWidget._image
-                                )
-
-        # RGB2 image
-        data = create_image(3, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB2)
-        self.imageWidget.display(data)
-        self.assertEqual(3, self.imageWidget.dimensions)
-        self.assertEqual(x, self.imageWidget.x)
-        self.assertEqual(y, self.imageWidget.y)
-        self.assertEqual(3, self.imageWidget.z)
-        self.assertEqual(self.imageWidget.COLOR_MODE_RGB2, self.imageWidget.color_mode)
-        np.testing.assert_equal( np.array([[[255, 255, 255,] for i in range(x)],
-                                           [[  0,   0,   0,] for i in range(x)],
-                                           [[ 77,  77,  77,] for i in range(x)],
-                                           [[ 54,  54,  54,] for i in range(x)],
-                                           [[ 23,  23,  23,] for i in range(x)],
-                                           [[ 76,  76,  76,] for i in range(x)],
-                                           [[ 34,  34,  34,] for i in range(x)],
-                                           [[ 65,  65,  65,] for i in range(x)],
-                                           [[ 34,  34,  34,] for i in range(x)],
-                                           [[ 65,  65,  65,] for i in range(x)],
-                                            ], dtype=np.uint8),
-                                self.imageWidget._image
-                                )
-
-        # RGB2 image
-        data = create_image(4, arrayValue*3, data_type='ubyteValue', nx=x, ny=y, nz=3, color_mode=self.imageWidget.COLOR_MODE_RGB3)
-        self.imageWidget.display(data)
-        self.assertEqual(3, self.imageWidget.dimensions)
-        self.assertEqual(x, self.imageWidget.x)
-        self.assertEqual(y, self.imageWidget.y)
-        self.assertEqual(3, self.imageWidget.z)
-        self.assertEqual(self.imageWidget.COLOR_MODE_RGB3, self.imageWidget.color_mode)
-        np.testing.assert_equal( np.array([[[255, 255, 255,] for i in range(x)],
-                                           [[  0,   0,   0,] for i in range(x)],
-                                           [[ 77,  77,  77,] for i in range(x)],
-                                           [[ 54,  54,  54,] for i in range(x)],
-                                           [[ 23,  23,  23,] for i in range(x)],
-                                           [[ 76,  76,  76,] for i in range(x)],
-                                           [[ 34,  34,  34,] for i in range(x)],
-                                           [[ 65,  65,  65,] for i in range(x)],
-                                           [[ 34,  34,  34,] for i in range(x)],
-                                           [[ 65,  65,  65,] for i in range(x)],
-                                            ], dtype=np.uint8),
-                                self.imageWidget._image
-                                )
-
-
 ############################################
 # Test zoom capability
 ############################################
@@ -476,8 +360,8 @@ class TestImageDisplay(unittest.TestCase):
         self.assertTrue(self.imageWidget.is_zoomed())
         self.assertEqual(1, xOffset)
         self.assertEqual(0, yOffset)
-        self.assertEqual(4, width)
-        self.assertEqual(4, height)
+        self.assertEqual(7, width)
+        self.assertEqual(7, height)
 
         # Try to select again
         QtTest.QTest.mousePress(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
@@ -489,9 +373,9 @@ class TestImageDisplay(unittest.TestCase):
         xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
         self.assertTrue(self.imageWidget.is_zoomed())
         self.assertEqual(1, xOffset)
-        self.assertEqual(0, yOffset)
-        self.assertEqual(4, width)
-        self.assertEqual(4, height)
+        self.assertEqual(1, yOffset)
+        self.assertEqual(6, width)
+        self.assertEqual(7, height)
 
         # Call reset zoom programmatically as we do not have the button available here
         self.imageWidget.reset_zoom()

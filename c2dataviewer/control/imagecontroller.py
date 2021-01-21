@@ -8,11 +8,13 @@ PVA object viewer utilities
 
 @author: Guobao Shen <gshen@anl.gov>
 """
-from c2dataviewer.view.image_display import ImagePlotWidget
 import datetime
+from pyqtgraph import Qt
 import pyqtgraph.ptime as ptime
+from pyqtgraph.functions import mkPen
+from pyqtgraph import PlotWidget
 
-
+from ..view.image_definitions import COLOR_MODE_MONO, COLOR_MODES
 class ImageController:
 
     SLIDER_MAX_VAL = 1_000_000_000
@@ -152,8 +154,12 @@ class ImageController:
         self.statistics_timer.timeout.connect(self.calculate_statistics)
         self.statistics_timer.start(1000)
 
-        self.frameRateChanged()
+        # Setup profiles
+        self._win.imageWidget.setup_profiles(self._win.canvasGrid)
+        self._win.cbShowProfiles.stateChanged.connect(
+            lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
 
+        self.frameRateChanged()
 
     def _callback_black_changed_slider(self):
         """
@@ -224,6 +230,19 @@ class ImageController:
         :return:
         """
         self._win.imageWidget.reset_zoom()
+
+    def _callback_profiles_show_changed(self, cb):
+        """
+        Callback used when the user on the GUI tick or un-tick the "Show the image profiles."
+
+        :param cb: (QCheckBox) Checkbox object reference.
+        :return:
+        """
+        self._win.imageWidget.image_profile_widget.show(cb.isChecked())
+
+        if self._win.freeze.isChecked() and cb.isChecked():
+            self._win.imageWidget.calculate_profiles(self._win.imageWidget.last_displayed_image)
+            self._win.imageWidget._set_image_signal.emit()
 
     def auto_levels_cal(self):
         """
@@ -514,7 +533,7 @@ class ImageController:
         """
         # Update input type
         self._win.tbValidInput.setText(self._win.imageWidget._inputType + " / "
-                                      + self._win.imageWidget.COLOR_MODES.get(self._win.imageWidget.color_mode, "Unknown")
+                                      + COLOR_MODES.get(self._win.imageWidget.color_mode, "Unknown")
                                       + ("" if self._win.imageWidget._isInputValid else " (Invalid)"))
         if self._win.imageWidget._isInputValid:
             self._win.tbValidInput.setStyleSheet(self._inputTypeDefaultStyle)
@@ -527,7 +546,7 @@ class ImageController:
         # Max / min pixels
         isZoomedImage = self._win.imageWidget.is_zoomed()
         xOffset, yOffset, width, height = self._win.imageWidget.get_zoom_region()
-        if self._win.imageWidget.color_mode == ImagePlotWidget.COLOR_MODE_MONO:
+        if self._win.imageWidget.color_mode == COLOR_MODE_MONO:
             self._win.maxPixelChannel.hide()
             self._win.minPixelChannel.hide()
             max_val = self._win.imageWidget._max
@@ -607,7 +626,6 @@ class ImageController:
 
         # General update TODO: why is this required?
         self._win.setStyleSheet('color: black; font-weight: normal')
-
 
     def changeimageBlackLimits(self, minVal, maxVal):
         """
