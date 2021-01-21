@@ -12,6 +12,7 @@ from datetime import datetime as dt
 import numpy as np
 import pvaccess as pva
 
+from c2dataviewer.view.image_definitions import *
 from c2dataviewer.view.image_display import ImagePlotWidget
 
 ############################################
@@ -61,11 +62,11 @@ def create_image(id, image=None, data_type='ubyteValue', nx=None, ny=None, nz=No
     nda['uniqueId'] = id
     dims = [pva.PvDimension(nx, 0, nx, 1, False), pva.PvDimension(ny, 0, ny, 1, False)]
     if nz is not None:
-        if color_mode == ImagePlotWidget.COLOR_MODE_RGB1:
+        if color_mode == COLOR_MODE_RGB1:
             dims.insert(0, pva.PvDimension(nz, 0, nz, 1, False))
-        elif color_mode == ImagePlotWidget.COLOR_MODE_RGB2:
+        elif color_mode == COLOR_MODE_RGB2:
             dims.insert(1, pva.PvDimension(nz, 0, nz, 1, False))
-        elif color_mode == ImagePlotWidget.COLOR_MODE_RGB3:
+        elif color_mode == COLOR_MODE_RGB3:
             dims.append(pva.PvDimension(nz, 0, nz, 1, False))
     nda['codec'] = pva.PvCodec('pvapyc', pva.PvInt(14))
     nda['dimension'] = dims

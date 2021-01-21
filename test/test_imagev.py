@@ -34,7 +34,7 @@ class TestImagev(unittest.TestCase):
 
         # Build image window
         self.window = ImageWindow()
-        self.window.resize(1000, 1000)
+        self.window.resize(1200, 1200)
         QtWidgets.QApplication.instance().processEvents()
 
     def tearDown(self):

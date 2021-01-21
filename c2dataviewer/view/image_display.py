@@ -13,27 +13,15 @@ from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtGui
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 from pvaccess import PvaException
-from PyQt5.QtCore import pyqtSignal
+
+from .image_definitions import *
+from .image_profile_display import ImageProfileWidget
 
 class ImagePlotWidget(RawImageWidget):
 
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
-    # Area detector color modes values. Source: https://github.com/areaDetector/ADCore/blob/master/ADApp/ADSrc/NDArray.h#L29
-    # Currently only four are supported.
-    COLOR_MODE_MONO = 0 # [NX, NY]
-    COLOR_MODE_RGB1 = 2 # [3, NX, NY]
-    COLOR_MODE_RGB2 = 3 # [NX, 3, NY]
-    COLOR_MODE_RGB3 = 4 # [NX, NY, 3]
-
-    COLOR_MODES = {
-        COLOR_MODE_MONO : "MONO",
-        COLOR_MODE_RGB1 : "RGB1",
-        COLOR_MODE_RGB2 : "RGB2",
-        COLOR_MODE_RGB3 : "RGB3",
-    }
-
-    _set_image_signal = pyqtSignal()
+    _set_image_signal = QtCore.pyqtSignal()
 
     def __init__(self, parent=None, **kargs):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
@@ -69,8 +57,15 @@ class ImagePlotWidget(RawImageWidget):
         self._white = 255.0
         self._black = 0.0
 
-        # Last images original and zoomed/modified to display
-        self.originalImage = None
+        # Image profiles
+        self.image_profile_widget = None
+
+        # Last displayed image
+        self.last_displayed_image = None
+
+        # Widget properties
+        self.image_width_pixels = 0
+        self.image_height_pixels = 0
 
         # Zoom parameters
         self.__zoomSelectionIndicator = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
@@ -134,6 +129,16 @@ class ImagePlotWidget(RawImageWidget):
 
         # Acquisition timer used to get specific request frame rate
         self.acquisition_timer = QtCore.QTimer()
+
+    def resizeEvent(self, event):
+        """
+        This method is called by the Qt when the widget change size. We use this to recalculate the
+        size of the image od the display.
+
+        :param event: (QResizeEvent) Object holding information about the event.
+        :return:
+        """
+        self.calc_img_size_on_screen()
 
     def mousePressEvent(self, event):
         """
@@ -232,6 +237,16 @@ class ImagePlotWidget(RawImageWidget):
         # Write to dict
         self.set_zoom_region(xOffset, yOffset, width, height)
 
+    def setup_profiles(self, grid_layout):
+        """
+        Build image_profile_widget with the specified grid layout.
+
+        :param grid_layout: (QGridLayout) Reference to the grid layout where image
+                                            widget is and the profiles should be added.
+        :return: None
+        """
+        self.image_profile_widget = ImageProfileWidget(grid_layout)
+
     def set_zoom_region(self, xOffset, yOffset, width, height):
         """
         Set zoom region. If values are out of range, values will be clipped.
@@ -321,6 +336,33 @@ class ImagePlotWidget(RawImageWidget):
                 self.__zoomDict['height'],
                 )
 
+    def calc_img_size_on_screen(self):
+        """
+        Calculate how big is the image on the display in pixels.
+
+        :return: (int, int) Image width and height in pixels.
+        """
+        # Widget sizes
+        window_width = self.width()
+        window_height = self.height()
+
+        # Current zoom parameters
+        _, _, width, height = self.get_zoom_region()
+
+        if width == 0 or height == 0:
+            return
+
+        # Get pixel size
+        pixel_size = min (
+            window_width / width,
+            window_height / height
+        )
+
+        image_width = pixel_size * width
+        image_height = pixel_size * height
+
+        return image_width, image_height
+
     def wait(self):
         """
 
@@ -367,19 +409,19 @@ class ImagePlotWidget(RawImageWidget):
         dims = data['dimension']
         self.dimensions = len(dims)
 
-        if self.dimensions == 2 and self.color_mode == self.COLOR_MODE_MONO:
+        if self.dimensions == 2 and self.color_mode == COLOR_MODE_MONO:
             x = dims[0]
             y = dims[1]
             z = None
-        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB1:
+        elif self.dimensions == 3 and self.color_mode == COLOR_MODE_RGB1:
             x = dims[1]
             y = dims[2]
             z = dims[0]
-        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB2:
+        elif self.dimensions == 3 and self.color_mode == COLOR_MODE_RGB2:
             x = dims[0]
             y = dims[2]
             z = dims[1]
-        elif self.dimensions == 3 and self.color_mode == self.COLOR_MODE_RGB3:
+        elif self.dimensions == 3 and self.color_mode == COLOR_MODE_RGB3:
             x = dims[0]
             y = dims[1]
             z = dims[2]
@@ -586,37 +628,6 @@ class ImagePlotWidget(RawImageWidget):
         else:
             self._scaling = scale
 
-    def _transcode_image(self, image):
-        """
-        Transcode the numpy array to the correct shape.
-        For MONO images this is [NX, NY] and for the RGB [NX, NY, 3] as documented:
-        https://github.com/pyqtgraph/pyqtgraph/blob/ea08dda62dade523f2193ec353b9bacac6d8d35d/pyqtgraph/widgets/RawImageWidget.py#L41
-
-        :param image: (numpy array) Flat image to be trancoded.
-        :return: (numpy array) Transcoded np.array in either [NX, NY] or [NX, NY, 3] shapes.
-        """
-
-        if self.color_mode == self.COLOR_MODE_MONO:
-            return np.reshape(image, (self.y, self.x))
-
-        elif self.color_mode == self.COLOR_MODE_RGB1:
-            image = np.reshape(image, (self.y, self.x, self.z))
-            return image
-
-        elif self.color_mode == self.COLOR_MODE_RGB2:
-            image = np.reshape(image, (self.y, self.z, self.x))
-            image = np.swapaxes(image, 2, 1)
-            return image
-
-        elif self.color_mode == self.COLOR_MODE_RGB3:
-            image = np.reshape(image, (self.z, self.y, self.x))
-            image = np.swapaxes(image, 0, 2)
-            image = np.swapaxes(image, 0, 1)
-            return image
-
-        else:
-            raise RuntimeError("Unsupported color mode.")
-
     def display(self, data, zoomUpdate = False):
         """
         Display and update image using passed data.
@@ -637,12 +648,11 @@ class ImagePlotWidget(RawImageWidget):
         inputType = list(data_types)[0]
 
         # Check if the input is valid
-        if not inputType in self.dataTypesDict or not self.color_mode in self.COLOR_MODES:
+        if not inputType in self.dataTypesDict or not self.color_mode in COLOR_MODES:
             self._isInputValid = False
             raise RuntimeError('No recognized image data received.')
         else:
             self._isInputValid = True
-
 
         # Lookup required infomartion for the current input type
         imgArray = data['value'][0][inputType]
@@ -682,8 +692,7 @@ class ImagePlotWidget(RawImageWidget):
         if self.x == 0 or self.y == 0 or self.color_mode is None:
             # return
             raise RuntimeError("Image dimension not initialized")
-        img = self._transcode_image(imgArray)
-        self.originalImage = img
+        img = transcode_image(imgArray, self.color_mode, self.x, self.y, self.z)
 
         # Count dead pixels
         # TODO: Dead pixel count was requested for the specific type of the camera,
@@ -718,7 +727,7 @@ class ImagePlotWidget(RawImageWidget):
             xoffset, yoffset, width, height = self.get_zoom_region()
             endx = xoffset + width
             endy = yoffset + height
-            if self.color_mode == self.COLOR_MODE_MONO:
+            if self.color_mode == COLOR_MODE_MONO:
                 img = img[yoffset:endy, xoffset:endx]
             else:
                 img = img[yoffset:endy, xoffset:endx, :]
@@ -768,6 +777,9 @@ class ImagePlotWidget(RawImageWidget):
         # Flip and rotate the image for 90 degrees (TODO: add description why)
         img = np.rot90(np.fliplr(img)).astype(npdt)
 
+        self.calculate_profiles(img)
+
+        self.last_displayed_image = img
         self._set_image_on_main_thread(img)
 
         # Frames displayed
@@ -796,6 +808,15 @@ class ImagePlotWidget(RawImageWidget):
         if self.updateGuiWhiteLimits is not None:
             self.updateGuiWhiteLimits(whiteMin, whiteMax)
 
+    def calculate_profiles(self, image):
+        """
+        Handle profile calculation.
+
+        :param image: (nparray) Image as numpy array.
+        """
+        if self.image_profile_widget is not None:
+            self.image_profile_widget.set_image_data(image, self.color_mode)
+
     def _set_image_on_main_thread(self, image):
         """Calls setImage on the same thread that Qt paintEvent is
         called on.
@@ -816,4 +837,6 @@ class ImagePlotWidget(RawImageWidget):
         self._image_mutex.lock()
         levels = [self.get_black(), self.get_white()]
         self.setImage(self._image, levels = levels)
+        if self.image_profile_widget is not None:
+            self.image_profile_widget.plot(*self.calc_img_size_on_screen())
         self._image_mutex.unlock()
