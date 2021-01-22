@@ -14,7 +14,7 @@ import unittest
 import numpy as np
 import pyqtgraph as pg
 
-from c2dataviewer.imagev import ImageWindow, LimitDialog, BlackWhiteLimitDialog, WarningDialog
+from c2dataviewer.imagev import ImageWindow, ImageSettingsDialog, WarningDialog
 from c2dataviewer.control.imagecontroller import ImageController
 from c2dataviewer.view.image_definitions import COLOR_MODE_MONO, COLOR_MODE_RGB2, transcode_image
 from c2dataviewer.view.image_profile_display import ImageProfileWidget
@@ -41,11 +41,10 @@ class TestImageProfileWidget(unittest.TestCase):
 
         # Build GUI elements
         w = ImageWindow(None)
-        dlg = LimitDialog(None)
-        blackWhiteDlg = BlackWhiteLimitDialog(None)
+        image_settings_dialog = ImageSettingsDialog(None)
         warning = WarningDialog(None)
 
-        self.ic = ImageController(w, LIMIT=dlg, BLACKWHITELIMIT = blackWhiteDlg, WARNING=warning,
+        self.ic = ImageController(w, IMAGE_SETTINGS_DIALOG=image_settings_dialog, WARNING=warning,
                 PV={'test', 'test'}, timer=pg.Qt.QtCore.QTimer(), data=None)
 
         # Get ImageProfileWidget

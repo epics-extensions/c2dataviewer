@@ -81,20 +81,24 @@ class ImagePlotWidget(RawImageWidget):
         self._pref = {"Max": 0,
                       "Min": 0,
                       "DPX": 0,
-                      "DPXLimit": 0xfff0,
+                      "DPXEnabled": False,
+                      "DPXLimit": 0x00,
+                      "EmbeddedDataLen" : 0,
                       "CPU": 0,
-                      "CPULimit": None,
+                      "EnableCPULimit": False,
+                      "CPULimit": 50,
                       "Net": 0,
-                      "NetLimit": None,
+                      "EnableNetLimit": False,
+                      "NetLimit": 100,
                       "FPS": 0,
                       "FPSLimit": None}
 
         self._isInputValid = False
         self._inputType = ""
-        self._dpx = [0]
+        self.dead_pixels = [0]
         self._max = [0]
         self._min = [0]
-        self._dpxRoi = [0]
+        self.dead_pixels_roi = [0]
         self._maxRoi = [0]
         self._minRoi = [0]
 
@@ -114,18 +118,17 @@ class ImagePlotWidget(RawImageWidget):
         self.data = None
 
         self.dataTypesDict = {
-            'byteValue' :   {'minVal' : int(-2**8 / 2),   'maxVal' : int(2**8 / 2 - 1),  'npdt' : "int8",   'embeddedDataLen' : 40},
-            'ubyteValue' :  {'minVal' : 0           ,     'maxVal' : int(2**8 - 1),      'npdt' : "uint8",  'embeddedDataLen' : 40},
-            'shortValue' :  {'minVal' : int(-2**16 / 2),  'maxVal' : int(2**16 / 2 - 1), 'npdt' : "int16",  'embeddedDataLen' : 20},
-            'ushortValue' : {'minVal' : 0               , 'maxVal' : int(2**16 - 1),     'npdt' : "uint16", 'embeddedDataLen' : 20},
-            'intValue' :    {'minVal' : int(-2**32 / 2),  'maxVal' : int(2**32 / 2 - 1), 'npdt' : "int32",  'embeddedDataLen' : 0},
-            'uintValue' :   {'minVal' : 0               , 'maxVal' : int(2**32 - 1),     'npdt' : "uint32", 'embeddedDataLen' : 0},
-            'longValue' :   {'minVal' : int(-2**64 / 2),  'maxVal' : int(2**64 / 2 - 1), 'npdt' : "int64",  'embeddedDataLen' : 0},
-            'ulongValue' :  {'minVal' : 0               , 'maxVal' : int(2**64 - 1),     'npdt' : "uint64", 'embeddedDataLen' : 0},
-            'floatValue' :  {'minVal' : int(-2**24),      'maxVal' : int(2**24),         'npdt' : "float32",'embeddedDataLen' : 0},
-            'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",'embeddedDataLen' : 0},
+            'byteValue' :   {'minVal' : int(-2**8 / 2),   'maxVal' : int(2**8 / 2 - 1),  'npdt' : "int8",   },
+            'ubyteValue' :  {'minVal' : 0           ,     'maxVal' : int(2**8 - 1),      'npdt' : "uint8",  },
+            'shortValue' :  {'minVal' : int(-2**16 / 2),  'maxVal' : int(2**16 / 2 - 1), 'npdt' : "int16",  },
+            'ushortValue' : {'minVal' : 0               , 'maxVal' : int(2**16 - 1),     'npdt' : "uint16", },
+            'intValue' :    {'minVal' : int(-2**32 / 2),  'maxVal' : int(2**32 / 2 - 1), 'npdt' : "int32",  },
+            'uintValue' :   {'minVal' : 0               , 'maxVal' : int(2**32 - 1),     'npdt' : "uint32", },
+            'longValue' :   {'minVal' : int(-2**64 / 2),  'maxVal' : int(2**64 / 2 - 1), 'npdt' : "int64",  },
+            'ulongValue' :  {'minVal' : 0               , 'maxVal' : int(2**64 - 1),     'npdt' : "uint64", },
+            'floatValue' :  {'minVal' : int(-2**24),      'maxVal' : int(2**24),         'npdt' : "float32",},
+            'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",},
         }
-        self.use_embeddedDataLen = True
 
         # Acquisition timer used to get specific request frame rate
         self.acquisition_timer = QtCore.QTimer()
@@ -570,6 +573,20 @@ class ImagePlotWidget(RawImageWidget):
             self.signal()
             raise e
 
+    def get_preferences(self):
+        """
+        :return: (dict) Preferences dictionary.
+        """
+        return self._pref
+
+    def set_preferences(self, preferences):
+        """
+        Set preferences.
+
+        :param preferences: (dist) Preference dict.
+        """
+        self._pref.update(preferences)
+
     def enable_auto_white(self):
         """
         Enable auto white calibration for image
@@ -660,10 +677,7 @@ class ImagePlotWidget(RawImageWidget):
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']
-        if self.use_embeddedDataLen:
-            embeddedDataLen = self.dataTypesDict[inputType]['embeddedDataLen']
-        else:
-            embeddedDataLen = 0
+        embeddedDataLen = self._pref['EmbeddedDataLen']
 
         # Configure GUI for the correct type
         if inputType != self._inputType:
@@ -695,13 +709,12 @@ class ImagePlotWidget(RawImageWidget):
         img = transcode_image(imgArray, self.color_mode, self.x, self.y, self.z)
 
         # Count dead pixels
-        # TODO: Dead pixel count was requested for the specific type of the camera,
-        # as the DPXLimit is hardcoded value to 0xfff0. Consequently all all pixels
-        # on the cameras with image depth higher than UInt16 can be counted as dead.
-        # Discussion about this is on the Gitlab: https://git.aps.anl.gov/C2/conda/data-viewer/-/merge_requests/17
-        dpx = (imgArray[embeddedDataLen:] > self._pref["DPXLimit"]).sum()
-        self._dpx.append(dpx)
-        self._dpx = self._dpx[-3:]
+        if self._pref['DPXEnabled']:
+            current_img_dead_pixels = (imgArray[embeddedDataLen:] > self._pref["DPXLimit"]).sum()
+        else:
+            current_img_dead_pixels = 0
+        self.dead_pixels.append(current_img_dead_pixels)
+        self.dead_pixels = self.dead_pixels[-3:]
 
         # Record max/min pixel values on ROI
         if img.ndim == 2:
@@ -733,9 +746,12 @@ class ImagePlotWidget(RawImageWidget):
                 img = img[yoffset:endy, xoffset:endx, :]
 
         # Count dead pixels on ROI
-        dpx = (imgArray > self._pref["DPXLimit"]).sum()
-        self._dpxRoi.append(dpx)
-        self._dpxRoi = self._dpxRoi[-3:]
+        if self._pref['DPXEnabled']:
+            current_img_dead_pixels = (imgArray > self._pref["DPXLimit"]).sum()
+        else:
+            current_img_dead_pixels = 0
+        self.dead_pixels_roi.append(current_img_dead_pixels)
+        self.dead_pixels_roi = self.dead_pixels_roi[-3:]
 
         # Record max/min pixel values on ROI
         if img.ndim == 2:
