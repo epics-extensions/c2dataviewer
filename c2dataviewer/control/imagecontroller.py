@@ -41,8 +41,8 @@ class ImageController:
         self._win.pvPrefix.addItems(self._cameras)
         self._win.pvPrefix.currentIndexChanged.connect(lambda: self.camera_changed())
 
-        self._dlg = kargs.get("LIMIT", None)
-        self._blackWhiteDlg = kargs.get("BLACKWHITELIMIT", None)
+
+        self._image_settings_dialog  = kargs.get("IMAGE_SETTINGS_DIALOG", None)
         self._warning = kargs.get("WARNING", None)
 
         # GUI styles
@@ -74,19 +74,29 @@ class ImageController:
         self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
 
         # Set limits on the dialog widgets
-        self._blackWhiteDlg.blackMin.setMinimum(self.SPINNER_MIN_VAL)
-        self._blackWhiteDlg.blackMin.setMaximum(self.SPINNER_MAX_VAL)
-        self._blackWhiteDlg.blackMax.setMinimum(self.SPINNER_MIN_VAL)
-        self._blackWhiteDlg.blackMax.setMaximum(self.SPINNER_MAX_VAL)
-        self._blackWhiteDlg.whiteMin.setMinimum(self.SPINNER_MIN_VAL)
-        self._blackWhiteDlg.whiteMin.setMaximum(self.SPINNER_MAX_VAL)
-        self._blackWhiteDlg.whiteMax.setMinimum(self.SPINNER_MIN_VAL)
-        self._blackWhiteDlg.whiteMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.blackMin.setMinimum(self.SPINNER_MIN_VAL)
+        self._image_settings_dialog.blackMin.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.blackMax.setMinimum(self.SPINNER_MIN_VAL)
+        self._image_settings_dialog.blackMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.whiteMin.setMinimum(self.SPINNER_MIN_VAL)
+        self._image_settings_dialog.whiteMin.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.whiteMax.setMinimum(self.SPINNER_MIN_VAL)
+        self._image_settings_dialog.whiteMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.sbCpuLimit.setMinimum(10)
+        self._image_settings_dialog.sbCpuLimit.setMaximum(400)
+        self._image_settings_dialog.sbNetworkLimit.setMinimum(10)
+        self._image_settings_dialog.sbNetworkLimit.setMaximum(1250) # 1250 megabyte = 10 gigabit
 
-        # Adjust limits for black and white
-        self._win.imageLimitsAdjust.clicked.connect(lambda: self._callback_adjustBlackWhiteLimits())
-        self._blackWhiteDlg.okButton.clicked.connect(lambda: self._callback_acceptNewBlackWhiteLimits())
-        self._blackWhiteDlg.cancelButton.clicked.connect(lambda: self._callback_cancelNewBlackWhiteLimits())
+        # Concfigure settings window tooltips
+        self._image_settings_dialog.sbDeadPixelThreshold.setToolTip("Dead pixel threshold. \nPixel values above this setting are counted as 'dead'.")
+        self._image_settings_dialog.sbEmbeddedDataLength.setToolTip("Number of pixels at the beggining of the image that hold the embedded data. \nThese pixels are not included in the statistics calculations.")
+        self._image_settings_dialog.sbCpuLimit.setToolTip("Maximum allowed usage of the CPU. \n100% = 1 full CPU core.")
+        self._image_settings_dialog.sbNetworkLimit.setToolTip("Maximum allowed usage of the network in MB/s.")
+
+        # Settings dialog callbacks
+        self._win.btnSettings.clicked.connect(lambda: self._callback_adjust_image_settings())
+        self._image_settings_dialog.okButton.clicked.connect(lambda: self._callback_accept_new_image_settings())
+        self._image_settings_dialog.cancelButton.clicked.connect(lambda: self._callback_cancel_new_image_settings())
 
         # Frame DAQ control
         self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1}
@@ -95,15 +105,6 @@ class ImageController:
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
         self._win.freeze.stateChanged.connect(lambda: self._callback_freeze_changed())
 
-        # # Limit control to avoid overflow network for best performance
-        text = self._win.imageWidget._pref["DPXLimit"] or ''
-        self._dlg.deadPxLimit.setText(str(text))
-
-        text = self._win.imageWidget._pref["CPULimit"] or ''
-        self._dlg.cpuLimit.setText(str(text))
-
-        text = self._win.imageWidget._pref["NetLimit"] or ''
-        self._dlg.netLimit.setText(str(text))
 
         # Min/max channel select
         self.colorChannels = {
@@ -127,16 +128,10 @@ class ImageController:
         self._win.nFrames.setToolTip("Total number of frames displayed.")
         self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
         self._win.nMissedFrames.setToolTip("Total number of missed frames.")
-        self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
+        self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area. \nThis can be configured under 'Settings'.")
         self._win.cpuUsage.setToolTip("CPU usage of the data viewer.")
         self._win.netLoad.setToolTip("Network usage of data viewer.")
         self._win.netReceived.setToolTip("Total number of mega bytes received")
-
-
-        # Adjust limits panel
-        self._win.adjustLimits.clicked.connect(lambda: self.adjustLimits())
-        self._dlg.okButton.clicked.connect(lambda: self.acceptNewLimits())
-        self._dlg.cancelButton.clicked.connect(lambda: self.cancelNewLimits())
 
         # Reset statistics
         self._win.resetStatistics.clicked.connect(lambda: self.reset_statistics())
@@ -278,76 +273,64 @@ class ImageController:
         """
         self._dlg.exec_()
 
-    def _callback_adjustBlackWhiteLimits(self):
+    def _callback_adjust_image_settings(self):
         """
-        This callback is called when user press the "Adjust limits" in the Image Adjustment section.
-        It will open the pop screen which allow to change the min and the max values for the
-        black and white slider/spinner box.
+        This callback is called when user press the "Settings" button.
+        It will open the pop screen which allow to change different types of settings.
 
         :return:
         """
         # Set current values
-        self._blackWhiteDlg.blackMin.setValue(self._win.imageBlackSpinBox.minimum())
-        self._blackWhiteDlg.blackMax.setValue(self._win.imageBlackSpinBox.maximum())
-        self._blackWhiteDlg.whiteMin.setValue(self._win.imageWhiteSpinBox.minimum())
-        self._blackWhiteDlg.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
+        self._image_settings_dialog.blackMin.setValue(self._win.imageBlackSpinBox.minimum())
+        self._image_settings_dialog.blackMax.setValue(self._win.imageBlackSpinBox.maximum())
+        self._image_settings_dialog.whiteMin.setValue(self._win.imageWhiteSpinBox.minimum())
+        self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
+        self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
+
+        self._image_settings_dialog.cbEnableDeadPixels.setChecked(self._win.imageWidget.get_preferences()['DPXEnabled'])
+        self._image_settings_dialog.sbDeadPixelThreshold.setValue(self._win.imageWidget.get_preferences()['DPXLimit'])
+        self._image_settings_dialog.sbEmbeddedDataLength.setValue(self._win.imageWidget.get_preferences()['EmbeddedDataLen'])
+
+        self._image_settings_dialog.cbEnableCpuLimit.setChecked(self._win.imageWidget.get_preferences()['EnableCPULimit'])
+        self._image_settings_dialog.sbCpuLimit.setValue(self._win.imageWidget.get_preferences()['CPULimit'])
+        self._image_settings_dialog.cbEnableNetworkLimit.setChecked(self._win.imageWidget.get_preferences()['EnableNetLimit'])
+        self._image_settings_dialog.sbNetworkLimit.setValue(self._win.imageWidget.get_preferences()['NetLimit'])
 
         # Launch the dialog
-        self._blackWhiteDlg.exec_()
+        self._image_settings_dialog.exec_()
 
 
-    def _callback_acceptNewBlackWhiteLimits(self):
+    def _callback_accept_new_image_settings(self):
         """
-        This callback is called when the user confirms the new limits for the black and the white limits.
+        This callback is called when the user confirms the new settings.
 
         :return:
         """
-        self.changeimageBlackLimits(self._blackWhiteDlg.blackMin.value(),
-                                    self._blackWhiteDlg.blackMax.value())
-        self.changeimageWhiteLimits(self._blackWhiteDlg.whiteMin.value(),
-                                   self._blackWhiteDlg.whiteMax.value())
-        self._blackWhiteDlg.close()
+        self.changeimageBlackLimits(self._image_settings_dialog.blackMin.value(),
+                                    self._image_settings_dialog.blackMax.value())
+        self.changeimageWhiteLimits(self._image_settings_dialog.whiteMin.value(),
+                                   self._image_settings_dialog.whiteMax.value())
 
-    def _callback_cancelNewBlackWhiteLimits(self):
+        preferences = {
+            'DPXEnabled' : self._image_settings_dialog.cbEnableDeadPixels.isChecked(),
+            'DPXLimit' : self._image_settings_dialog.sbDeadPixelThreshold.value(),
+            'EmbeddedDataLen' : self._image_settings_dialog.sbEmbeddedDataLength.value(),
+            'EnableCPULimit' : self._image_settings_dialog.cbEnableCpuLimit.isChecked(),
+            'CPULimit' : self._image_settings_dialog.sbCpuLimit.value(),
+            'EnableNetLimit' : self._image_settings_dialog.cbEnableNetworkLimit.isChecked(),
+            'NetLimit' : self._image_settings_dialog.sbNetworkLimit.value(),
+        }
+        self._win.imageWidget.set_preferences(preferences)
+
+        self._image_settings_dialog.close()
+
+    def _callback_cancel_new_image_settings(self):
         """
-        This callback is called when user cancels the new limits for the black and the white limits.
+        This callback is called when user cancels the new settings.
 
         :return:
         """
-        self._blackWhiteDlg.reject()
-
-    def __update_limits(self, key, value):
-        """
-
-        :param field:
-        :param value:
-        :return:
-        """
-        try:
-            if value.text():
-                self._win.imageWidget._pref[key] = float(value.text())
-            else:
-                self._win.imageWidget._pref[key] = None
-        except ValueError:
-            value.setText(str(self._win.imageWidget._pref[key]))
-
-    def acceptNewLimits(self):
-        """
-
-        :return:
-        """
-        self.__update_limits("DPXLimit", self._dlg.deadPxLimit)
-        self.__update_limits("CPULimit", self._dlg.cpuLimit)
-        self.__update_limits("NetLimit", self._dlg.netLimit)
-
-        self._dlg.close()
-
-    def cancelNewLimits(self):
-        """
-
-        :return:
-        """
-        self._dlg.reject()
+        self._image_settings_dialog.reject()
 
     def acceptWarning(self):
         """
@@ -577,10 +560,10 @@ class ImageController:
 
         # No. of dead pixels
         if isZoomedImage:
-            values = (max(self._win.imageWidget._dpx), max(self._win.imageWidget._dpxRoi))
+            values = (max(self._win.imageWidget.dead_pixels), max(self._win.imageWidget.dead_pixels_roi))
             fmt = '%.0f (%.0f)'
         else:
-            values = (max(self._win.imageWidget._dpx))
+            values = (max(self._win.imageWidget.dead_pixels))
             fmt = '%.0f'
         self.statistics_update(self._win.deadPixel,
                                 values,
@@ -590,13 +573,13 @@ class ImageController:
         # Machine resources
         self.statistics_update(self._win.cpuUsage,
                                 self.cpu_usage,
-                                hilimit=self._win.imageWidget._pref['CPULimit'],
-                                callback=True)
+                                hilimit=self._win.imageWidget._pref['CPULimit'] if self._win.imageWidget._pref['EnableCPULimit'] else None,
+                                callback=self._win.imageWidget._pref['EnableCPULimit'])
         self.statistics_update(self._win.netLoad,
                                 self.network_usage,
                                 fmt='%.2f',
-                                hilimit=self._win.imageWidget._pref['NetLimit'],
-                                callback=True)
+                                hilimit=self._win.imageWidget._pref['NetLimit'] if self._win.imageWidget._pref['EnableNetLimit'] else None,
+                                callback=self._win.imageWidget._pref['EnableNetLimit'])
         self.statistics_update(self._win.netReceived,
                                 self._win.imageWidget.MB_received,
                                 fmt='%.2f')

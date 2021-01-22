@@ -18,7 +18,7 @@ import numpy as np
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph import QtCore
 
-from c2dataviewer.imagev import LimitDialog, BlackWhiteLimitDialog, WarningDialog
+from c2dataviewer.imagev import ImageSettingsDialog, WarningDialog
 from c2dataviewer.imagev import ImageController
 from c2dataviewer.imagev import ImageWindow
 
@@ -45,11 +45,10 @@ class TestImageDisplay(unittest.TestCase):
 
         # Build GUI elements
         w = ImageWindow(None)
-        dlg = LimitDialog(None)
-        blackWhiteDlg = BlackWhiteLimitDialog(None)
+        image_settings_dialog = ImageSettingsDialog(None)
         warning = WarningDialog(None)
 
-        self.ic = ImageController(w, LIMIT=dlg, BLACKWHITELIMIT = blackWhiteDlg, WARNING=warning,
+        self.ic = ImageController(w, IMAGE_SETTINGS_DIALOG=image_settings_dialog, WARNING=warning,
                 PV={'test', 'test'}, timer=QtCore.QTimer(), data=None)
 
     def tearDown(self):

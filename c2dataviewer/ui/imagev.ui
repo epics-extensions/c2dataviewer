@@ -115,9 +115,9 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>0</y>
+            <y>-84</y>
             <width>354</width>
-            <height>872</height>
+            <height>870</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -349,23 +349,12 @@
                 </property>
                </widget>
               </item>
-              <item row="7" column="0" colspan="2">
-               <layout class="QHBoxLayout" name="horizontalLayout">
-                <item>
-                 <widget class="QPushButton" name="imageLimitsAdjust">
-                  <property name="text">
-                   <string>Adjust limits</string>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QPushButton" name="imageAutoAdjust">
-                  <property name="text">
-                   <string>Auto</string>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
+              <item row="7" column="1">
+               <widget class="QPushButton" name="imageAutoAdjust">
+                <property name="text">
+                 <string>Auto</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </widget>
@@ -755,9 +744,9 @@
               <item row="12" column="0" colspan="4">
                <layout class="QHBoxLayout" name="horizontalLayout_21">
                 <item>
-                 <widget class="QPushButton" name="adjustLimits">
+                 <widget class="QPushButton" name="btnSettings">
                   <property name="text">
-                   <string>Adjust Limits</string>
+                   <string>Settings</string>
                   </property>
                  </widget>
                 </item>
