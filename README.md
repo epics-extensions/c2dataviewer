@@ -81,7 +81,13 @@ make pip-dependencies
 
 To build a pip package:
 ```bash
+# must checkout a particular tag
+git checkout 1.5.0
 make pip-build
+```
+To run the unit tests run:
+```bash
+make pip-test
 ```
 
 To upload the package on PyPI:
@@ -89,7 +95,4 @@ To upload the package on PyPI:
 make pip-upload
 ```
 
-To run the unit tests run:
-```bash
-make pip-test
-```
+
