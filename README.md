@@ -76,7 +76,7 @@ c2dv --app scope
 
 To install pip dependencies:
 ```bash
-make pip-dependecies
+make pip-dependencies
 ```
 
 To build a pip package:
