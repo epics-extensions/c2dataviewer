@@ -11,8 +11,7 @@ PVA object viewer utilities
 
 import numpy as np
 import pyqtgraph
-from pvaccess import ScalarType
-
+import pvaccess as pva
 
 class ScopeController:
 
@@ -141,7 +140,7 @@ class ScopeController:
                     v = np.array(v)
                     # Make type comparison compatible with PY2 & PY3
                     fdr.append(k)
-                elif type(v) == ScalarType:
+                elif type(v) == pva.ScalarType:
                     fdr_scalar.append(k)
                 if type(v) != np.ndarray:
                     continue
@@ -214,11 +213,16 @@ class ScopeController:
 
                 if childName == "Acquisition.PV":
                     # stop DAQ and update pv info
-                    self.model.update_device(data, restart=False)
-                    if data != "":
-                        self.update_fdr()
-                    else:
-                        self.update_fdr(empty=True)
+                    try :
+                        self.model.update_device(data, restart=False)
+                        if data != "":
+                            self.update_fdr()
+                        else:
+                            self.update_fdr(empty=True)
+                    except pva.PvaException as e:
+                        self._warning.warningTextBrowse.setText('Failed to update PV: ' + (str(e)))
+                        self._warning.show()
+
                 elif childName == "Acquisition.Trigger PV":
                     if data is None:
                         return
