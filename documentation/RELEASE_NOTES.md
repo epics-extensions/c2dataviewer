@@ -1,3 +1,6 @@
+# RELEASE 1.5.1
+- Bug fixes
+
 # RELEASE 1.5.0
 ## Image App
 New Features
