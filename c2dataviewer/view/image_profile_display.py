@@ -33,6 +33,10 @@ class ImageProfileWidget(object):
         self._data = None
         self._data_color_mode = None
 
+        # Profiles of the data
+        self._x_profile = None
+        self._y_profile = None
+
         # Mutex to protect the data variable as set_image_data and plot are
         # called from the different threads
         self._data_mutex = pg.Qt.QtCore.QMutex()
@@ -98,6 +102,7 @@ class ImageProfileWidget(object):
         self._data = np.copy(data)
         self._data_color_mode = color_mode
         self._data_mutex.unlock()
+        self._x_profile, self._y_profile = self._calculate_profiles()
 
 
     def plot(self, display_width, display_height):
@@ -113,7 +118,7 @@ class ImageProfileWidget(object):
             return
 
         # Calculate profiles
-        x_profile, y_profile =  self._calculate_profiles()
+        x_profile, y_profile =  self._x_profile, self._y_profile
 
         # Setup correct dimensions for the plots
         self._plot_x_profile.widget().setMinimumWidth(display_width)
@@ -125,6 +130,7 @@ class ImageProfileWidget(object):
         self._grid.update()
 
         # Draw X profile curves
+        self._data_mutex.lock()
         if type(x_profile) is list:
             for mode, curve in self._profile_x_curves.items():
                 if mode == 'red':
@@ -167,6 +173,7 @@ class ImageProfileWidget(object):
                     curve.show()
                 else:
                     curve.hide()
+        self._data_mutex.unlock()
 
     def show(self, flag):
         """
