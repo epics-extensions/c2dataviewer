@@ -133,22 +133,26 @@ class ScopeController:
         fdr_scalar = []
         pv = self.model.get('')
 
-        if pv is not None:
-            for k, v in ScopeController.__flatten_dict(pv.getStructureDict()):
-                if type(v) == list:
-                    # should epics v4 lib not have np, we "fix" it by converting list to np
-                    v = np.array(v)
-                    # Make type comparison compatible with PY2 & PY3
-                    fdr.append(k)
-                elif type(v) == pva.ScalarType:
-                    fdr_scalar.append(k)
-                if type(v) != np.ndarray:
-                    continue
-                if len(v) == 0:
-                    continue
-            fdr.sort()
-            fdr_scalar.sort()
+        if pv is None:
+            return fdr, fdr_scalar
 
+        pv_structure = pv.getStructureDict()
+        pv_dictionary = {k:v for k,v in ScopeController.__flatten_dict(pv_structure)}
+        for k, v in pv_dictionary.items():
+            if type(v) == list and all(type(e) == pva.ScalarType for e in v):
+                # should epics v4 lib not have np, we "fix" it by converting list to np
+                v = np.array(v)
+                # Make type comparison compatible with PY2 & PY3
+                fdr.append(k)
+            elif type(v) == pva.ScalarType:
+                fdr_scalar.append(k)
+            if type(v) != np.ndarray:
+                continue
+            if len(v) == 0:
+                continue
+
+        fdr.sort()
+        fdr_scalar.sort()
         return fdr, fdr_scalar
 
     def update_fdr(self, empty=False):
