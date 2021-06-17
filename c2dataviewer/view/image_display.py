@@ -20,7 +20,7 @@ from pvaccess import PvaException
 from .image_definitions import *
 from .image_profile_display import ImageProfileWidget
 
-Image = namedtuple("Image", ['id', 'image', 'black', 'white'])
+Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
 
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
@@ -41,6 +41,7 @@ class ImagePlotWidget(RawImageWidget):
         self.__last_array_id = None
         self.dataType = None
         self.MB_received = 0.0
+        self.frames_processed = 0
         self.frames_displayed = 0
         self.frames_missed = 0
 
@@ -829,11 +830,11 @@ class ImagePlotWidget(RawImageWidget):
             self.frames_missed += current_array_id - self.__last_array_id - 1
         self.__last_array_id = current_array_id
 
-        image = Image(current_array_id, img, self.get_black(), self.get_white())
+        image = Image(current_array_id, not zoomUpdate, img, self.get_black(), self.get_white())
 
-        # Frames displayed
+        # Frames processed
         if not zoomUpdate:
-            self.frames_displayed += 1
+            self.frames_processed += 1
 
         if not self.draw_queue.full():
             self.draw_queue.put(image)
@@ -875,4 +876,6 @@ class ImagePlotWidget(RawImageWidget):
         self.setImage(image.image, levels = levels)
         if self.image_profile_widget is not None:
             self.image_profile_widget.plot(*self.calc_img_size_on_screen())
+        if image.new:
+            self.frames_displayed += 1
         self.last_displayed_image = image

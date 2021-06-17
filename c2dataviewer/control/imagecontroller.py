@@ -125,7 +125,7 @@ class ImageController:
         self._win.maxPixel.setToolTip("Maximum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.minPixel.setToolTip("Minimum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.frameRateCurrAvg.setToolTip("Current / average Frames Per Second.")
-        self._win.nFrames.setToolTip("Total number of frames displayed.")
+        self._win.nFrames.setToolTip("Total number of frames processed/displayed. \nSome frames can be skipped for drawing if the painter can not keep up.")
         self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
         self._win.nMissedFrames.setToolTip("Total number of missed frames.")
         self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area. \nThis can be configured under 'Settings'.")
@@ -491,6 +491,7 @@ class ImageController:
         self._start_time = ptime.time()
         self.runtime = 0
         self._win.imageWidget.MB_received = 0.0
+        self._win.imageWidget.frames_processed = 0
         self._win.imageWidget.frames_displayed = 0
         self._last_frames = 0
         self.fps_current = 0
@@ -552,7 +553,9 @@ class ImageController:
                         (self.fps_current, self.fps_average),
                         fmt='%.0f / %.2f',
                         lolimit=self._win.imageWidget._pref['FPSLimit'])
-        self.statistics_update(self._win.nFrames, self._win.imageWidget.frames_displayed, fmt='%d')
+        self.statistics_update(self._win.nFrames,
+                        (self._win.imageWidget.frames_processed, self._win.imageWidget.frames_displayed),
+                        fmt='%d / %d')
         self.statistics_update(self._win.nMissedFramesCurrAvg,
                             (self.frames_missed_current, self.frames_missed_average),
                             fmt = '%.0f / %.2f')
