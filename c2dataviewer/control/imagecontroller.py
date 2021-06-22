@@ -82,6 +82,8 @@ class ImageController:
         self._image_settings_dialog.whiteMin.setMaximum(self.SPINNER_MAX_VAL)
         self._image_settings_dialog.whiteMax.setMinimum(self.SPINNER_MIN_VAL)
         self._image_settings_dialog.whiteMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.displayQueueSize.setMinimum(self._win.imageWidget.MIN_DISPLAY_QUEUE_SIZE)
+        self._image_settings_dialog.displayQueueSize.setMaximum(self._win.imageWidget.MAX_DISPLAY_QUEUE_SIZE)
         self._image_settings_dialog.sbCpuLimit.setMinimum(10)
         self._image_settings_dialog.sbCpuLimit.setMaximum(400)
         self._image_settings_dialog.sbNetworkLimit.setMinimum(10)
@@ -287,6 +289,8 @@ class ImageController:
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
 
+        self._image_settings_dialog.displayQueueSize.setValue(self._win.imageWidget.get_display_queue_size())
+
         self._image_settings_dialog.cbEnableDeadPixels.setChecked(self._win.imageWidget.get_preferences()['DPXEnabled'])
         self._image_settings_dialog.sbDeadPixelThreshold.setValue(self._win.imageWidget.get_preferences()['DPXLimit'])
         self._image_settings_dialog.sbEmbeddedDataLength.setValue(self._win.imageWidget.get_preferences()['EmbeddedDataLen'])
@@ -321,6 +325,8 @@ class ImageController:
             'NetLimit' : self._image_settings_dialog.sbNetworkLimit.value(),
         }
         self._win.imageWidget.set_preferences(preferences)
+
+        self._win.imageWidget.set_display_queue_size(self._image_settings_dialog.displayQueueSize.value())
 
         self._image_settings_dialog.close()
 
@@ -491,7 +497,7 @@ class ImageController:
         self._start_time = ptime.time()
         self.runtime = 0
         self._win.imageWidget.MB_received = 0.0
-        self._win.imageWidget.frames_processed = 0
+        self._win.imageWidget.frames_received = 0
         self._win.imageWidget.frames_displayed = 0
         self._last_frames = 0
         self.fps_current = 0
@@ -554,7 +560,7 @@ class ImageController:
                         fmt='%.0f / %.2f',
                         lolimit=self._win.imageWidget._pref['FPSLimit'])
         self.statistics_update(self._win.nFrames,
-                        (self._win.imageWidget.frames_processed, self._win.imageWidget.frames_displayed),
+                        (self._win.imageWidget.frames_received, self._win.imageWidget.frames_displayed),
                         fmt='%d / %d')
         self.statistics_update(self._win.nMissedFramesCurrAvg,
                             (self.frames_missed_current, self.frames_missed_average),
@@ -612,6 +618,9 @@ class ImageController:
 
         # General update TODO: why is this required?
         self._win.setStyleSheet('color: black; font-weight: normal')
+
+        # Update the values on the settings dialog
+        self._image_settings_dialog.currentDisplayQueueSize.setText(str(self._win.imageWidget.draw_queue.qsize()))
 
     def changeimageBlackLimits(self, minVal, maxVal):
         """

@@ -115,7 +115,7 @@
           <property name="geometry">
            <rect>
             <x>0</x>
-            <y>-84</y>
+            <y>0</y>
             <width>354</width>
             <height>870</height>
            </rect>
@@ -419,7 +419,7 @@
               <item row="5" column="0" colspan="2">
                <widget class="QLabel" name="label_67">
                 <property name="text">
-                 <string>Processed / displayed frames:</string>
+                 <string>Received / displayed frames:</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

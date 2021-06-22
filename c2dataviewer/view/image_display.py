@@ -9,7 +9,7 @@ PVA object viewer utilities for image display
 @author: Guobao Shen <gshen@anl.gov>
 """
 from collections import namedtuple
-from queue import Queue
+import queue
 
 import numpy as np
 from pyqtgraph import QtCore
@@ -23,6 +23,9 @@ from .image_profile_display import ImageProfileWidget
 Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
 
+    MIN_DISPLAY_QUEUE_SIZE = 0
+    MAX_DISPLAY_QUEUE_SIZE = 999
+    DEFAULT_DISPLAY_QUEUE_SIZE = 20
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
     _set_image_signal = QtCore.pyqtSignal()
@@ -41,7 +44,7 @@ class ImagePlotWidget(RawImageWidget):
         self.__last_array_id = None
         self.dataType = None
         self.MB_received = 0.0
-        self.frames_processed = 0
+        self.frames_received = 0
         self.frames_displayed = 0
         self.frames_missed = 0
 
@@ -141,7 +144,7 @@ class ImagePlotWidget(RawImageWidget):
         self.acquisition_timer = QtCore.QTimer()
 
         # Queue used to transfer the images from the process to the display thread
-        self.draw_queue = Queue(10)
+        self.draw_queue = queue.Queue(ImagePlotWidget.DEFAULT_DISPLAY_QUEUE_SIZE)
 
 
     def resizeEvent(self, event):
@@ -234,6 +237,29 @@ class ImagePlotWidget(RawImageWidget):
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
+
+    def set_display_queue_size(self, new_size):
+        """
+        Change display queue max size.
+
+        :param int new_size: Set queue size. Valid values are >=0.
+        """
+
+        if not isinstance(new_size, int) or new_size < 0:
+            return
+
+        self.draw_queue.maxsize = new_size
+        while self.draw_queue.qsize() > new_size:
+            try:
+                self.draw_queue.get_nowait()
+            except queue.Empty:
+                break
+
+    def get_display_queue_size(self):
+        """
+        Get queue max size.
+        """
+        return self.draw_queue.maxsize
 
     def __calculateZoomParameters(self, xminMouse, xmaxMouse, yminMouse, ymaxMouse):
         """
@@ -684,6 +710,14 @@ class ImagePlotWidget(RawImageWidget):
                             zoom.
         :return:
         """
+        # Count received frames
+        if not zoomUpdate:
+            self.frames_received += 1
+
+        # Check if the queue is full
+        if self.draw_queue.full() and not zoomUpdate:
+            return
+
         # Update dimensions
         if not zoomUpdate:
             self.__update_dimension(data)
@@ -830,15 +864,15 @@ class ImagePlotWidget(RawImageWidget):
             self.frames_missed += current_array_id - self.__last_array_id - 1
         self.__last_array_id = current_array_id
 
-        image = Image(current_array_id, not zoomUpdate, img, self.get_black(), self.get_white())
+        image = Image(current_array_id,
+                      not zoomUpdate,
+                      img.copy(),
+                      self.get_black(),
+                      self.get_white())
 
-        # Frames processed
-        if not zoomUpdate:
-            self.frames_processed += 1
-
-        if not self.draw_queue.full():
-            self.draw_queue.put(image)
-            self._set_image_signal.emit()
+        # Put the image on the queue and emit the signal
+        self.draw_queue.put(image)
+        self._set_image_signal.emit()
 
     def configureGuiLimits(self, dataType):
         """
