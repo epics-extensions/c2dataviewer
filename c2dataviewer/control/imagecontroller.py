@@ -101,7 +101,7 @@ class ImageController:
         self._image_settings_dialog.cancelButton.clicked.connect(lambda: self._callback_cancel_new_image_settings())
 
         # Frame DAQ control
-        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1}
+        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
@@ -235,7 +235,22 @@ class ImageController:
         :param cb: (QCheckBox) Checkbox object reference.
         :return:
         """
-        self._win.imageWidget.image_profile_widget.show(cb.isChecked())
+        if cb.isChecked():
+            self._win.imageWidget.image_profile_widget.show(True)
+            self._win.iocRate.blockSignals(True)
+            self._win.iocRate.removeItem(len(self._framerates)-1)
+            self._win.iocRate.blockSignals(False)
+            img_freq = round(self._win.imageWidget.datasource.get_event_freq())
+            if img_freq < 1:
+                img_freq = 1
+            defined_freq = filter(lambda x: x>0, self._framerates.values())
+            closest_freq = min(defined_freq, key=lambda x: abs(x-img_freq))
+            closest_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(closest_freq)]
+            self._win.iocRate.setCurrentText(closest_freq_key)
+        else:
+            self._win.imageWidget.image_profile_widget.show(False)
+            full_rate_key = list(self._framerates.keys())[-1]
+            self._win.iocRate.addItem(full_rate_key, self._framerates[full_rate_key])
 
         if self._win.freeze.isChecked() and cb.isChecked():
             self._win.imageWidget.calculate_profiles(self._win.imageWidget.last_displayed_image)

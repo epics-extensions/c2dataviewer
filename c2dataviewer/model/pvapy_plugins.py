@@ -8,6 +8,10 @@ PVA object viewer utilities using pvaPy as pvAccess binding
 
 @author: Guobao Shen <gshen@anl.gov>
 """
+import time
+from threading import Lock
+from collections import deque
+from statistics import mean
 
 import pvaccess as pva
 from pvaccess import PvaException
@@ -24,7 +28,12 @@ class DataSource:
         # EPICS7 channel
         self.channel = None
 
-        # default PV name
+        # Datarate
+        self.last_event = None
+        self.event_freq_buffer = deque(maxlen=5)
+        self.event_freq_buffer_lock = Lock()
+
+        # Default PV name
         self.device = None
         if default is not None:
             if type(default) in [list, tuple]:
@@ -40,6 +49,9 @@ class DataSource:
         self.trigger = None
         self.trigger_chan = None
 
+        # Routine to be called when callback happens
+        self.user_callback = None
+
     def __init_connection(self, name):
         """
         Create initial channel connection with given PV name
@@ -51,6 +63,21 @@ class DataSource:
         self.channel = pva.Channel(self.device)
         self.get()
 
+    def get_event_freq(self, average=False):
+        """
+        Return the rate of the data.
+
+        :param bool average: False to get the last time, True to get the
+                             average of the last 5 events.
+        """
+        with self.event_freq_buffer_lock:
+            if len(self.event_freq_buffer) == 0:
+                return None
+            elif average:
+                return 1/mean(self.event_freq_buffer)
+            else:
+                return 1/self.event_freq_buffer[-1]
+
     def get(self, field=None):
         """
         Get data of given field name.
@@ -61,6 +88,12 @@ class DataSource:
         """
         if self.channel is None:
             return None
+
+        now = time.time()
+        with self.event_freq_buffer_lock:
+            if self.last_event:
+                self.event_freq_buffer.append(now-self.last_event)
+            self.last_event = now
 
         if field is None:
             data = self.channel.get('field()')
@@ -103,7 +136,17 @@ class DataSource:
         :param data: new data from EPICS7 channel
         :return:
         """
-        self.data = data.get()
+
+        now = time.time()
+        with self.event_freq_buffer_lock:
+            if self.last_event:
+                self.event_freq_buffer.append(now-self.last_event)
+            self.last_event = now
+
+        if self.user_callback:
+            self.user_callback(data)
+        else:
+            self.data = data.get()
 
     def start(self, routine=None):
         """
@@ -115,11 +158,10 @@ class DataSource:
         if self.channel is None:
             # there is nothing to start since channel does not exist yet
             return
+
+        self.user_callback = routine
         try:
-            if routine is None:
-                self.channel.subscribe('monitorCallback', self.monitor_callback)
-            else:
-                self.channel.subscribe('monitorCallback', routine)
+            self.channel.subscribe('monitorCallback', self.monitor_callback)
             self.channel.startMonitor('')
         except PvaException:
             raise RuntimeError("Cannot connect to EPICS7 PV ({})".format(self.device))
