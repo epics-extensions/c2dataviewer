@@ -385,3 +385,26 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual(0, yOffset)
         self.assertEqual(10, width)
         self.assertEqual(10, height)
+
+        # Try to select outside the image (Check if the zoom is ignored if user click outside the widget)
+        QtTest.QTest.mousePress(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(300, 700), -1)
+        QtTest.QTest.mouseRelease(self.imageWidget, QtCore.Qt.LeftButton, QtCore.Qt.NoModifier,
+                            QtCore.QPoint(250, 200), 50)
+
+        # Assure that image was not zoomed
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertFalse(self.imageWidget.is_zoomed())
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(10, width)
+        self.assertEqual(10, height)
+
+        # Call reset zoom programmatically as we do not have the button available here
+        self.imageWidget.reset_zoom()
+        xOffset, yOffset, width, height = self.imageWidget.get_zoom_region()
+        self.assertFalse(self.imageWidget.is_zoomed())
+        self.assertEqual(0, xOffset)
+        self.assertEqual(0, yOffset)
+        self.assertEqual(10, width)
+        self.assertEqual(10, height)
