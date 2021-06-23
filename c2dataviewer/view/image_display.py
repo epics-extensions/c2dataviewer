@@ -77,6 +77,9 @@ class ImagePlotWidget(RawImageWidget):
             'height': 0,
         }
 
+        # ROI
+        self.roi_origin = None
+
         # Limit control to avoid overflow network for best performance
         self._pref = {"Max": 0,
                       "Min": 0,
@@ -150,9 +153,19 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        # Mouse buttom was pressed. We start panning.
-        self.panOrigin = event.pos()
-        self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.panOrigin, QtCore.QSize()))
+        # Get location of the click
+        click_position = event.pos()
+        x_position = click_position.x()
+        y_position = click_position.y()
+
+        # Check if the press happened on the image
+        img_width, img_height = self.calc_img_size_on_screen()
+        if (x_position > img_width or y_position > img_height):
+            return
+
+        # Mouse buttom was pressed on the image. We start panning.
+        self.roi_origin = click_position
+        self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.roi_origin, QtCore.QSize()))
         self.__zoomSelectionIndicator.show()
 
     def mouseMoveEvent(self, event):
@@ -162,9 +175,12 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
+        if self.roi_origin is None:
+            return
+
         # Mouse is moving, while selecting roi. Redraw the selection rectangle.
         self.__zoomSelectionIndicator.setGeometry(
-            QtCore.QRect(self.panOrigin, event.pos()).normalized())
+            QtCore.QRect(self.roi_origin, event.pos()).normalized())
 
     def mouseReleaseEvent(self, event):
         """
@@ -173,6 +189,9 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
+        if self.roi_origin is None:
+            return
+
         # We made the roi selection
         # Hide selection rectangle
         self.__zoomSelectionIndicator.hide()
@@ -184,7 +203,7 @@ class ImagePlotWidget(RawImageWidget):
         widget_hight = imageGeometry[3]
 
         # Calculate x parameters, x min/max and size in pixels
-        xmin = self.panOrigin.x()
+        xmin = self.roi_origin.x()
         xmax = panEnd.x()
         if xmin > xmax:
             xmax, xmin = xmin, xmax
@@ -194,7 +213,7 @@ class ImagePlotWidget(RawImageWidget):
             xmax = widget_width
 
         # Calculate y parameters, y min/max and size in pixels
-        ymin = self.panOrigin.y()
+        ymin = self.roi_origin.y()
         ymax = panEnd.y()
         if ymin > ymax:
             ymax, ymin = ymin, ymax
@@ -202,6 +221,8 @@ class ImagePlotWidget(RawImageWidget):
             ymin = 0
         if ymax > widget_hight:
             ymax = widget_hight
+
+        self.roi_origin = None
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
