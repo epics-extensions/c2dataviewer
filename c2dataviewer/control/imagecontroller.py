@@ -126,7 +126,8 @@ class ImageController:
         self._win.runtime.setToolTip("Total time data viewer has been running.")
         self._win.maxPixel.setToolTip("Maximum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.minPixel.setToolTip("Minimum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
-        self._win.frameRateCurrAvg.setToolTip("Current / average Frames Per Second.")
+        self._win.frameRateCurrAvg.setToolTip("Current / average display Frames Per Second.")
+        self._win.receiveRateCurrAvg.setToolTip("Current / average receive Frames Per Second.")
         self._win.nFrames.setToolTip("Total number of frames processed/displayed. \nSome frames can be skipped for drawing if the painter can not keep up.")
         self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
         self._win.nMissedFrames.setToolTip("Total number of missed frames.")
@@ -462,10 +463,22 @@ class ImageController:
         self._delta_frames = self._delta_frames[-3:]
         try:
             self.fps_current = sum(self._delta_frames) / sum(self._delta_time)
-        except:
+        except: # pylint: disable=bare-except
             self.fps_current = 0
         self.fps_current = self.fps_current if self.fps_current >=0 else 0
         self.fps_average = self._win.imageWidget.frames_displayed / self.runtime
+
+        # Calculate number of frames received betwean calls
+        delta_frames_received = self._win.imageWidget.frames_received - self._last_frames_received
+        self._last_frames_received = self._win.imageWidget.frames_received
+        self._delta_frames_received.append(delta_frames_received)
+        self._delta_frames_received = self._delta_frames_received[-3:]
+        try:
+            self.fps_current_received = sum(self._delta_frames_received) / sum(self._delta_time)
+        except: # pylint: disable=bare-except
+            self.fps_current_received = 0
+        self.fps_current_received = self.fps_current_received if self.fps_current_received >=0 else 0
+        self.fps_average_received = self._win.imageWidget.frames_received / self.runtime
 
         # Calculate number of missed frames betwean calls
         delta_missed_frames = self._win.imageWidget.frames_missed - self._last_missed_frames
@@ -515,8 +528,11 @@ class ImageController:
         self._win.imageWidget.frames_received = 0
         self._win.imageWidget.frames_displayed = 0
         self._last_frames = 0
+        self._last_frames_received = 0
         self.fps_current = 0
+        self.fps_current_received = 0
         self.fps_average = 0
+        self.fps_average_received = 0
         self._win.imageWidget.frames_missed = 0
         self._last_missed_frames = 0
         self.frames_missed_current = 0
@@ -525,6 +541,7 @@ class ImageController:
         self.cpu_usage = 0
         self.network_usage = 0
         self._delta_frames = [0]
+        self._delta_frames_received = [0]
         self._delta_missed_frames = [0]
         self._delta_bytes = [0]
         self._delta_time = [1]
@@ -572,6 +589,10 @@ class ImageController:
         # Update frames information
         self.statistics_update(self._win.frameRateCurrAvg,
                         (self.fps_current, self.fps_average),
+                        fmt='%.0f / %.2f',
+                        lolimit=self._win.imageWidget._pref['FPSLimit'])
+        self.statistics_update(self._win.receiveRateCurrAvg,
+                        (self.fps_current_received, self.fps_average_received),
                         fmt='%.0f / %.2f',
                         lolimit=self._win.imageWidget._pref['FPSLimit'])
         self.statistics_update(self._win.nFrames,
