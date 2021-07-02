@@ -255,11 +255,17 @@ class ImagePlotWidget(RawImageWidget):
             except queue.Empty:
                 break
 
-    def get_display_queue_size(self):
+    def get_display_max_queue_size(self):
         """
         Get queue max size.
         """
         return self.draw_queue.maxsize
+
+    def get_display_queue_size(self):
+        """
+        Get current display queue size.
+        """
+        return self.draw_queue.qsize()
 
     def __calculateZoomParameters(self, xminMouse, xmaxMouse, yminMouse, ymaxMouse):
         """

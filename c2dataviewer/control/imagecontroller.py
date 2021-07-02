@@ -305,7 +305,7 @@ class ImageController:
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
 
-        self._image_settings_dialog.displayQueueSize.setValue(self._win.imageWidget.get_display_queue_size())
+        self._image_settings_dialog.displayQueueSize.setValue(self._win.imageWidget.get_display_max_queue_size())
 
         self._image_settings_dialog.cbEnableDeadPixels.setChecked(self._win.imageWidget.get_preferences()['DPXEnabled'])
         self._image_settings_dialog.sbDeadPixelThreshold.setValue(self._win.imageWidget.get_preferences()['DPXLimit'])
@@ -602,6 +602,9 @@ class ImageController:
                             (self.frames_missed_current, self.frames_missed_average),
                             fmt = '%.0f / %.2f')
         self.statistics_update(self._win.nMissedFrames, self._win.imageWidget.frames_missed, fmt='%d')
+        self.statistics_update(self._win.nQueueSize,
+                            (self._win.imageWidget.get_display_queue_size(), self._win.imageWidget.get_display_max_queue_size()),
+                            fmt = '%d / %d')
 
         # No. of dead pixels
         if isZoomedImage:
