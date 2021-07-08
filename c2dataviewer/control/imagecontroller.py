@@ -237,17 +237,12 @@ class ImageController:
         :return:
         """
         if cb.isChecked():
-            self._win.imageWidget.image_profile_widget.show(True)
             self._win.iocRate.blockSignals(True)
             self._win.iocRate.removeItem(len(self._framerates)-1)
             self._win.iocRate.blockSignals(False)
-            img_freq = round(self._win.imageWidget.datasource.get_event_freq())
-            if img_freq < 1:
-                img_freq = 1
-            defined_freq = filter(lambda x: x>0, self._framerates.values())
-            closest_freq = min(defined_freq, key=lambda x: abs(x-img_freq))
-            closest_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(closest_freq)]
-            self._win.iocRate.setCurrentText(closest_freq_key)
+            new_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(1)] # Get key for 1 Hz
+            self._win.iocRate.setCurrentText(new_freq_key)
+            self._win.imageWidget.image_profile_widget.show(True)
         else:
             self._win.imageWidget.image_profile_widget.show(False)
             full_rate_key = list(self._framerates.keys())[-1]
