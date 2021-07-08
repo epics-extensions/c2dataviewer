@@ -258,6 +258,8 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual(0, self.ic._win.imageWidget.frames_displayed)
         self.assertAlmostEqual(0, self.ic.fps_current, delta=0.1)
         self.assertAlmostEqual(0, self.ic.fps_average, delta=0.1)
+        self.assertAlmostEqual(0, self.ic.fps_current_received, delta=0.1)
+        self.assertAlmostEqual(0, self.ic.fps_average_received, delta=0.1)
         self.assertEqual(0, self.ic.frames_missed_current)
         self.assertAlmostEqual(0.0, self.ic.frames_missed_average, delta=0.5)
         self.assertEqual(0, self.ic._win.imageWidget.frames_missed)

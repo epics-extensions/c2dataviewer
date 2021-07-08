@@ -82,6 +82,8 @@ class ImageController:
         self._image_settings_dialog.whiteMin.setMaximum(self.SPINNER_MAX_VAL)
         self._image_settings_dialog.whiteMax.setMinimum(self.SPINNER_MIN_VAL)
         self._image_settings_dialog.whiteMax.setMaximum(self.SPINNER_MAX_VAL)
+        self._image_settings_dialog.displayQueueSize.setMinimum(self._win.imageWidget.MIN_DISPLAY_QUEUE_SIZE)
+        self._image_settings_dialog.displayQueueSize.setMaximum(self._win.imageWidget.MAX_DISPLAY_QUEUE_SIZE)
         self._image_settings_dialog.sbCpuLimit.setMinimum(10)
         self._image_settings_dialog.sbCpuLimit.setMaximum(400)
         self._image_settings_dialog.sbNetworkLimit.setMinimum(10)
@@ -99,7 +101,7 @@ class ImageController:
         self._image_settings_dialog.cancelButton.clicked.connect(lambda: self._callback_cancel_new_image_settings())
 
         # Frame DAQ control
-        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1}
+        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
@@ -124,8 +126,9 @@ class ImageController:
         self._win.runtime.setToolTip("Total time data viewer has been running.")
         self._win.maxPixel.setToolTip("Maximum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
         self._win.minPixel.setToolTip("Minimum value in the image. In color modes RGB values are shown. \nIf ROI is selected, value in the \nparentheses apply for the displayed area.")
-        self._win.frameRateCurrAvg.setToolTip("Current / average Frames Per Second.")
-        self._win.nFrames.setToolTip("Total number of frames displayed.")
+        self._win.frameRateCurrAvg.setToolTip("Current / average display Frames Per Second.")
+        self._win.receiveRateCurrAvg.setToolTip("Current / average receive Frames Per Second.")
+        self._win.nFrames.setToolTip("Total number of frames processed/displayed. \nSome frames can be skipped for drawing if the painter can not keep up.")
         self._win.nMissedFramesCurrAvg.setToolTip("Current / average missed frames per second.")
         self._win.nMissedFrames.setToolTip("Total number of missed frames.")
         self._win.deadPixel.setToolTip("Number of pixels that exceed \nthe dead pixel threshold. \nIf ROI is selected, value in the \nparentheses apply for the displayed area. \nThis can be configured under 'Settings'.")
@@ -233,7 +236,17 @@ class ImageController:
         :param cb: (QCheckBox) Checkbox object reference.
         :return:
         """
-        self._win.imageWidget.image_profile_widget.show(cb.isChecked())
+        if cb.isChecked():
+            self._win.iocRate.blockSignals(True)
+            self._win.iocRate.removeItem(len(self._framerates)-1)
+            self._win.iocRate.blockSignals(False)
+            new_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(1)] # Get key for 1 Hz
+            self._win.iocRate.setCurrentText(new_freq_key)
+            self._win.imageWidget.image_profile_widget.show(True)
+        else:
+            self._win.imageWidget.image_profile_widget.show(False)
+            full_rate_key = list(self._framerates.keys())[-1]
+            self._win.iocRate.addItem(full_rate_key, self._framerates[full_rate_key])
 
         if self._win.freeze.isChecked() and cb.isChecked():
             self._win.imageWidget.calculate_profiles(self._win.imageWidget.last_displayed_image)
@@ -287,6 +300,8 @@ class ImageController:
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
         self._image_settings_dialog.whiteMax.setValue(self._win.imageWhiteSpinBox.maximum())
 
+        self._image_settings_dialog.displayQueueSize.setValue(self._win.imageWidget.get_display_max_queue_size())
+
         self._image_settings_dialog.cbEnableDeadPixels.setChecked(self._win.imageWidget.get_preferences()['DPXEnabled'])
         self._image_settings_dialog.sbDeadPixelThreshold.setValue(self._win.imageWidget.get_preferences()['DPXLimit'])
         self._image_settings_dialog.sbEmbeddedDataLength.setValue(self._win.imageWidget.get_preferences()['EmbeddedDataLen'])
@@ -321,6 +336,8 @@ class ImageController:
             'NetLimit' : self._image_settings_dialog.sbNetworkLimit.value(),
         }
         self._win.imageWidget.set_preferences(preferences)
+
+        self._win.imageWidget.set_display_queue_size(self._image_settings_dialog.displayQueueSize.value())
 
         self._image_settings_dialog.close()
 
@@ -441,10 +458,22 @@ class ImageController:
         self._delta_frames = self._delta_frames[-3:]
         try:
             self.fps_current = sum(self._delta_frames) / sum(self._delta_time)
-        except:
+        except: # pylint: disable=bare-except
             self.fps_current = 0
         self.fps_current = self.fps_current if self.fps_current >=0 else 0
         self.fps_average = self._win.imageWidget.frames_displayed / self.runtime
+
+        # Calculate number of frames received betwean calls
+        delta_frames_received = self._win.imageWidget.frames_received - self._last_frames_received
+        self._last_frames_received = self._win.imageWidget.frames_received
+        self._delta_frames_received.append(delta_frames_received)
+        self._delta_frames_received = self._delta_frames_received[-3:]
+        try:
+            self.fps_current_received = sum(self._delta_frames_received) / sum(self._delta_time)
+        except: # pylint: disable=bare-except
+            self.fps_current_received = 0
+        self.fps_current_received = self.fps_current_received if self.fps_current_received >=0 else 0
+        self.fps_average_received = self._win.imageWidget.frames_received / self.runtime
 
         # Calculate number of missed frames betwean calls
         delta_missed_frames = self._win.imageWidget.frames_missed - self._last_missed_frames
@@ -491,10 +520,14 @@ class ImageController:
         self._start_time = ptime.time()
         self.runtime = 0
         self._win.imageWidget.MB_received = 0.0
+        self._win.imageWidget.frames_received = 0
         self._win.imageWidget.frames_displayed = 0
         self._last_frames = 0
+        self._last_frames_received = 0
         self.fps_current = 0
+        self.fps_current_received = 0
         self.fps_average = 0
+        self.fps_average_received = 0
         self._win.imageWidget.frames_missed = 0
         self._last_missed_frames = 0
         self.frames_missed_current = 0
@@ -503,6 +536,7 @@ class ImageController:
         self.cpu_usage = 0
         self.network_usage = 0
         self._delta_frames = [0]
+        self._delta_frames_received = [0]
         self._delta_missed_frames = [0]
         self._delta_bytes = [0]
         self._delta_time = [1]
@@ -552,11 +586,20 @@ class ImageController:
                         (self.fps_current, self.fps_average),
                         fmt='%.0f / %.2f',
                         lolimit=self._win.imageWidget._pref['FPSLimit'])
-        self.statistics_update(self._win.nFrames, self._win.imageWidget.frames_displayed, fmt='%d')
+        self.statistics_update(self._win.receiveRateCurrAvg,
+                        (self.fps_current_received, self.fps_average_received),
+                        fmt='%.0f / %.2f',
+                        lolimit=self._win.imageWidget._pref['FPSLimit'])
+        self.statistics_update(self._win.nFrames,
+                        (self._win.imageWidget.frames_received, self._win.imageWidget.frames_displayed),
+                        fmt='%d / %d')
         self.statistics_update(self._win.nMissedFramesCurrAvg,
                             (self.frames_missed_current, self.frames_missed_average),
                             fmt = '%.0f / %.2f')
         self.statistics_update(self._win.nMissedFrames, self._win.imageWidget.frames_missed, fmt='%d')
+        self.statistics_update(self._win.nQueueSize,
+                            (self._win.imageWidget.get_display_queue_size(), self._win.imageWidget.get_display_max_queue_size()),
+                            fmt = '%d / %d')
 
         # No. of dead pixels
         if isZoomedImage:
@@ -609,6 +652,9 @@ class ImageController:
 
         # General update TODO: why is this required?
         self._win.setStyleSheet('color: black; font-weight: normal')
+
+        # Update the values on the settings dialog
+        self._image_settings_dialog.currentDisplayQueueSize.setText(str(self._win.imageWidget.draw_queue.qsize()))
 
     def changeimageBlackLimits(self, minVal, maxVal):
         """

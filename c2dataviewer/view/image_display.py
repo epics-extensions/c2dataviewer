@@ -8,6 +8,9 @@ PVA object viewer utilities for image display
 
 @author: Guobao Shen <gshen@anl.gov>
 """
+from collections import namedtuple
+import queue
+
 import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtGui
@@ -17,8 +20,12 @@ from pvaccess import PvaException
 from .image_definitions import *
 from .image_profile_display import ImageProfileWidget
 
+Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
 
+    MIN_DISPLAY_QUEUE_SIZE = 0
+    MAX_DISPLAY_QUEUE_SIZE = 999
+    DEFAULT_DISPLAY_QUEUE_SIZE = 20
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
     _set_image_signal = QtCore.pyqtSignal()
@@ -27,7 +34,6 @@ class ImagePlotWidget(RawImageWidget):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
 
         self._set_image_signal.connect(self._set_image_signal_callback)
-        self._image_mutex = QtCore.QMutex()
 
         self._noagc = kargs.get("noAGC", False)
         # self.camera_changed()
@@ -38,6 +44,7 @@ class ImagePlotWidget(RawImageWidget):
         self.__last_array_id = None
         self.dataType = None
         self.MB_received = 0.0
+        self.frames_received = 0
         self.frames_displayed = 0
         self.frames_missed = 0
 
@@ -136,6 +143,10 @@ class ImagePlotWidget(RawImageWidget):
         # Acquisition timer used to get specific request frame rate
         self.acquisition_timer = QtCore.QTimer()
 
+        # Queue used to transfer the images from the process to the display thread
+        self.draw_queue = queue.Queue(ImagePlotWidget.DEFAULT_DISPLAY_QUEUE_SIZE)
+
+
     def resizeEvent(self, event):
         """
         This method is called by the Qt when the widget change size. We use this to recalculate the
@@ -226,6 +237,35 @@ class ImagePlotWidget(RawImageWidget):
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
+
+    def set_display_queue_size(self, new_size):
+        """
+        Change display queue max size.
+
+        :param int new_size: Set queue size. Valid values are >=0.
+        """
+
+        if not isinstance(new_size, int) or new_size < 0:
+            return
+
+        self.draw_queue.maxsize = new_size
+        while self.draw_queue.qsize() > new_size:
+            try:
+                self.draw_queue.get_nowait()
+            except queue.Empty:
+                break
+
+    def get_display_max_queue_size(self):
+        """
+        Get queue max size.
+        """
+        return self.draw_queue.maxsize
+
+    def get_display_queue_size(self):
+        """
+        Get current display queue size.
+        """
+        return self.draw_queue.qsize()
 
     def __calculateZoomParameters(self, xminMouse, xmaxMouse, yminMouse, ymaxMouse):
         """
@@ -676,6 +716,14 @@ class ImagePlotWidget(RawImageWidget):
                             zoom.
         :return:
         """
+        # Count received frames
+        if not zoomUpdate:
+            self.frames_received += 1
+
+        # Check if the queue is full
+        if self.draw_queue.full() and not zoomUpdate:
+            return
+
         # Update dimensions
         if not zoomUpdate:
             self.__update_dimension(data)
@@ -816,18 +864,21 @@ class ImagePlotWidget(RawImageWidget):
 
         self.calculate_profiles(img)
 
-        self.last_displayed_image = img
-        self._set_image_on_main_thread(img)
-
-        # Frames displayed
-        if not zoomUpdate:
-            self.frames_displayed += 1
-
         # Missed frames
         current_array_id = data['uniqueId']
         if self.__last_array_id is not None and zoomUpdate == False:
             self.frames_missed += current_array_id - self.__last_array_id - 1
         self.__last_array_id = current_array_id
+
+        image = Image(current_array_id,
+                      not zoomUpdate,
+                      img.copy(),
+                      self.get_black(),
+                      self.get_white())
+
+        # Put the image on the queue and emit the signal
+        self.draw_queue.put(image)
+        self._set_image_signal.emit()
 
     def configureGuiLimits(self, dataType):
         """
@@ -854,26 +905,17 @@ class ImagePlotWidget(RawImageWidget):
         if self.image_profile_widget is not None:
             self.image_profile_widget.set_image_data(image, self.color_mode)
 
-    def _set_image_on_main_thread(self, image):
-        """Calls setImage on the same thread that Qt paintEvent is
-        called on.
-
-        Not doing this will cause race conditions
-        """
-        self._image_mutex.lock()
-        self._image = image
-        self._image_mutex.unlock()
-        self._set_image_signal.emit()
-
     def _set_image_signal_callback(self):
         """
         Update image on the widget.
 
         :return: None
         """
-        self._image_mutex.lock()
-        levels = [self.get_black(), self.get_white()]
-        self.setImage(self._image, levels = levels)
+        image = self.draw_queue.get()
+        levels = [image.black, image.white]
+        self.setImage(image.image, levels = levels)
         if self.image_profile_widget is not None:
             self.image_profile_widget.plot(*self.calc_img_size_on_screen())
-        self._image_mutex.unlock()
+        if image.new:
+            self.frames_displayed += 1
+        self.last_displayed_image = image
