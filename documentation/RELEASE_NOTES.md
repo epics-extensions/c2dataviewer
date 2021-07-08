@@ -1,3 +1,8 @@
+# RELEASE 1.5.2
+## Bug fixes
+- Prevent zoom if click outside of image
+- Hide non-numeric array fields in scope app
+- Fixed screen freeze when image profiles are on
 # RELEASE 1.5.1
 - Bug fixes
 
