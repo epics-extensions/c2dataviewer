@@ -11,6 +11,7 @@ Unit tests for ImageProfileWidget
 import sys
 import os
 import unittest
+import unittest.mock as mock
 import numpy as np
 import pyqtgraph as pg
 
@@ -24,6 +25,7 @@ os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 class TestImageProfileWidget(unittest.TestCase):
 
+    
     def setUp(self):
         """
         Build the environment for each unit test case.
@@ -41,12 +43,15 @@ class TestImageProfileWidget(unittest.TestCase):
 
         # Build GUI elements
         w = ImageWindow(None)
+        datasource = mock.Mock()
+        w.imageWidget.set_datasource(datasource)
         image_settings_dialog = ImageSettingsDialog(None)
         warning = WarningDialog(None)
 
         self.ic = ImageController(w, IMAGE_SETTINGS_DIALOG=image_settings_dialog, WARNING=warning,
                 PV={'test', 'test'}, timer=pg.Qt.QtCore.QTimer(), data=None)
 
+        
         # Get ImageProfileWidget
         self.w = self.ic._win.imageWidget.image_profile_widget
 
