@@ -161,7 +161,8 @@ class ImageController:
             lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
 
         self.frameRateChanged()
-
+        self.camera_changed()
+        
     def _callback_black_changed_slider(self):
         """
         This callback is called when user change the value on the "black" slider.

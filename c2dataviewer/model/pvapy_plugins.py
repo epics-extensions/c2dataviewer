@@ -184,7 +184,7 @@ class DataSource:
         self.channel = Channel(self.device, self.timer_factory())
         self.channel_cache[name] = self.channel
             
-        self.get()
+        #self.get()
 
     def get(self, field=None):
         """
