@@ -82,7 +82,7 @@ class ScopeController:
         self._win.graphicsWidget.max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
         self._win.graphicsWidget.samples_after_trig = int(self._win.graphicsWidget.max_length / 2)
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
-
+        
         self.default_trigger = kwargs.get("trigger", None)
         if self.default_trigger is not None:
             try:
@@ -132,7 +132,7 @@ class ScopeController:
         fdr = []
         fdr_scalar = []
         pv = self.model.get('')
-
+        
         if pv is None:
             return fdr, fdr_scalar
 
@@ -165,7 +165,13 @@ class ScopeController:
             fdr = []
             fdr_scalar = []
         else:
-            fdr, fdr_scalar = self.get_fdr()
+            try:
+                fdr, fdr_scalar = self.get_fdr()
+            except pva.PvaException as e:
+                self._warning.warningTextBrowse.setText('Failed to get PV field description: ' + (str(e)))
+                self._warning.show()
+                return
+
         fdr.insert(0, "None")
         fdr_scalar.insert(0, "None")
 
@@ -200,6 +206,12 @@ class ScopeController:
         # else:
         #     self.parameters.child("Acquisition").child('Trigger Threshold').setReadonly()
 
+    def connection_changed(self, state, msg):
+        txt = state
+        for q in self.parameters.child("Acquisition").children():
+            if q.name() == 'PV status':
+                q.setValue(txt)
+
     def parameter_change(self, params, changes):
         """
 
@@ -217,16 +229,17 @@ class ScopeController:
 
                 if childName == "Acquisition.PV":
                     # stop DAQ and update pv info
-                    try :
+                    try:
+                        self.stop_plotting()
                         self.model.update_device(data, restart=False)
                         if data != "":
                             self.update_fdr()
                         else:
                             self.update_fdr(empty=True)
-                    except pva.PvaException as e:
+                    except Exception as e:
                         self._warning.warningTextBrowse.setText('Failed to update PV: ' + (str(e)))
                         self._warning.show()
-
+                        
                 elif childName == "Acquisition.Trigger PV":
                     if data is None:
                         return
@@ -349,7 +362,7 @@ class ScopeController:
         self.model.stop()
 
         # start a new monitor
-        self.model.start(self.monitor_callback)
+        self.model.start(self.monitor_callback, self.connection_changed)
         try:
             self.timer.timeout.disconnect()
             self.timer.stop()
@@ -372,6 +385,7 @@ class ScopeController:
         if self._win.graphicsWidget.trigger_mode and self._win.graphicsWidget.plot_trigger_signal_emitter is not None:
             self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.connect(self._win.graphicsWidget.update_drawing)
 
+        self.parameters.child("Acquisition").child("Start").setValue(1)
 
     def stop_plotting(self):
         """
@@ -389,6 +403,7 @@ class ScopeController:
                 pass
         # Stop data source
         self.model.stop()
+        self.parameters.child("Acquisition").child("Start").setValue(0)
 
     def set_arrayid(self, value):
         """

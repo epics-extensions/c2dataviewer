@@ -89,6 +89,7 @@ class Configure:
                 # EPICS7 PV name, which assumes pvAccess protocol
                 # Alias name to be supported later
                 {"name": "PV", "type": "str", "value": pv},
+                {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True},
                 {"name": "Trigger PV", "type": "str", "value": self.default_trigger},
                 {"name": "Trigger Mode", "type": "bool", "value": False, "readonly": True},
                 {"name": "Trigger Threshold", "type": "float", "value": 0.0},
@@ -154,6 +155,7 @@ class Configure:
                 # EPICS7 PV name, which assumes pvAccess protocol
                 # Alias name to be supported later
                 {"name": "PV", "type": "str", "value": pv},
+                {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True},
                 {"name": "Trigger PV", "type": "str", "value": trigger_pv},
                 {"name": "Trigger Mode", "type": "bool", "value": trigger_mode, "readonly": trigger_mode_disabled},
                 # Due to issue: https://github.com/pyqtgraph/pyqtgraph/issues/263

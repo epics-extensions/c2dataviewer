@@ -29,7 +29,8 @@ class ImagePlotWidget(RawImageWidget):
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
     _set_image_signal = QtCore.pyqtSignal()
-
+    connection_changed_signal = QtCore.Signal(str, str)
+    
     def __init__(self, parent=None, **kargs):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
 
@@ -530,7 +531,8 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         if not self._freeze:
-            self.datasource.start(routine=self.data_callback)
+            self.datasource.start(routine=self.data_callback,
+                                  status_callback=self.connection_changed_signal.emit)
             
     def stop(self):
         """
@@ -557,7 +559,7 @@ class ImagePlotWidget(RawImageWidget):
         self.datasource.update_framerate(value)
         self.start()
         self.signal()
-
+        
     def data_callback(self, data):
         """
 
