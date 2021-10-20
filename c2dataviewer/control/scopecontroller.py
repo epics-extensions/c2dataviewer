@@ -12,6 +12,7 @@ PVA object viewer utilities
 import numpy as np
 import pyqtgraph
 import pvaccess as pva
+from ..model import ConnectionState
 
 class ScopeController:
 
@@ -206,10 +207,12 @@ class ScopeController:
         #     self.parameters.child("Acquisition").child('Trigger Threshold').setReadonly()
 
     def connection_changed(self, state, msg):
-        txt = state
+        if state == str(ConnectionState.FAILED_TO_CONNECT):
+            self.notify_warning('Connection lost: ' + msg)
+        
         for q in self.parameters.child("Acquisition").children():
             if q.name() == 'PV status':
-                q.setValue(txt)
+                q.setValue(state)
 
     def parameter_change(self, params, changes):
         """

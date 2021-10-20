@@ -56,10 +56,10 @@ class MonitorStrategy:
         self.ctx.data_callback_wrapper(data)
 
     def _connection_callback(self, is_connected):
-        if not is_connected and self.ctx.state in [Channel.State.CONNECTED, Channel.State.CONNECTING]:
+        if not is_connected and self.ctx.state in [ConnectionState.CONNECTED, ConnectionState.CONNECTING]:
             self.ctx.notify_error()
         else:
-            state = Channel.State.CONNECTED if is_connected else Channel.State.DISCONNECTED
+            state = ConnectionState.CONNECTED if is_connected else ConnectionState.DISCONNECTED
             self.ctx.set_state(state)
         
     def start(self):
@@ -77,25 +77,27 @@ class MonitorStrategy:
             self.ctx.channel.unsubscribe('monitorCallback')
         except PvaException:
             pass
-    
+
+
+class ConnectionState(enum.Enum):
+    CONNECTED = 1
+    CONNECTING = 2
+    DISCONNECTING = 3
+    DISCONNECTED = 4
+    FAILED_TO_CONNECT = 5
+
+    def __str__(self):
+        string_lookup = {
+            1 : 'Connected',
+            2 : 'Connecting',
+            3 : 'Disconnecting',
+            4 : 'Disconnected',
+            5 : 'Failed to connect'
+        }
+
+        return string_lookup[int(self.value)]
+
 class Channel:
-    class State(enum.Enum):
-        CONNECTED = 1
-        CONNECTING = 2
-        DISCONNECTING = 3
-        DISCONNECTED = 4
-        FAILED_TO_CONNECT = 5
-
-        def __str__(self):
-            string_lookup = {
-                1 : 'Connected',
-                2 : 'Connecting',
-                3 : 'Disconnecting',
-                4 : 'Disconnected',
-                5 : 'Failed to connect'
-            }
-
-            return string_lookup[int(self.value)]
         
     def __init__(self, name, timer):
         self.channel = pva.Channel(name)
@@ -108,17 +110,17 @@ class Channel:
         self.strategy = None
         self.rate = None
         self.status_callback = None
-        self.state = Channel.State.DISCONNECTED
+        self.state = ConnectionState.DISCONNECTED
         
     def data_callback_wrapper(self, data):
-        self.set_state(Channel.State.CONNECTED)
+        self.set_state(ConnectionState.CONNECTED)
         if self.data_callback:
             self.data_callback(data)
         else:
             self.data = data.get()
 
     def notify_error(self, msg=None):
-        self.set_state(Channel.State.FAILED_TO_CONNECT, msg)
+        self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
         
     def start(self, routine=None, rate=None, status_callback=None):
         self.data_callback = routine
@@ -128,7 +130,7 @@ class Channel:
             raise Exception("Can't poll data unless DataSource timer is configured")
         self.status_callback = status_callback
         self.strategy.start()
-        self.set_state(Channel.State.CONNECTING)
+        self.set_state(ConnectionState.CONNECTING)
 
     def set_state(self, state, msg=None):
         if state != self.state:
@@ -137,10 +139,10 @@ class Channel:
                 self.status_callback(str(state), msg)
                 
     def stop(self):
-        self.set_state(Channel.State.DISCONNECTING)
+        self.set_state(ConnectionState.DISCONNECTING)
         if self.strategy:
             self.strategy.stop()
-        self.set_state(Channel.State.DISCONNECTED)
+        self.set_state(ConnectionState.DISCONNECTED)
         
     def get(self):
         try:
@@ -194,8 +196,6 @@ class DataSource:
         self.channel = Channel(self.device, self.timer_factory())
         self.channel_cache[name] = self.channel
             
-        #self.get()
-
     def get(self):
         """
         Get data from current PV channel

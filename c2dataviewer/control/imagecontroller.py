@@ -15,6 +15,8 @@ from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
 
 from ..view.image_definitions import COLOR_MODE_MONO, COLOR_MODES
+from ..model import ConnectionState
+
 class ImageController:
 
     SLIDER_MAX_VAL = 1_000_000_000
@@ -367,8 +369,9 @@ class ImageController:
             self._warning.show()
         
     def connection_changed(self, status, msg):
-        if msg:
-            status += ": " + msg
+        if status == str(ConnectionState.FAILED_TO_CONNECT):
+            self.notify_warning('Connection lost: ' + msg)
+        
         self._win.lblConnectionStatus.setText(str(status))
         
     def camera_changed(self):
