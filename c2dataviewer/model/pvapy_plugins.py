@@ -55,8 +55,16 @@ class MonitorStrategy:
     def _data_callback(self, data):
         self.ctx.data_callback_wrapper(data)
 
+    def _connection_callback(self, is_connected):
+        if not is_connected and self.ctx.state in [Channel.State.CONNECTED, Channel.State.CONNECTING]:
+            self.ctx.notify_error()
+        else:
+            state = Channel.State.CONNECTED if is_connected else Channel.State.DISCONNECTED
+            self.ctx.set_state(state)
+        
     def start(self):
         try:
+            self.ctx.channel.setConnectionCallback(self._connection_callback)
             self.ctx.channel.subscribe('monitorCallback', self._data_callback)
             self.ctx.channel.startMonitor('')
         except PvaException as e:
@@ -64,6 +72,7 @@ class MonitorStrategy:
         
     def stop(self):
         try:
+            self.ctx.channel.setConnectionCallback(None)
             self.ctx.channel.stopMonitor()
             self.ctx.channel.unsubscribe('monitorCallback')
         except PvaException:
