@@ -56,11 +56,13 @@ class MonitorStrategy:
         self.ctx.data_callback_wrapper(data)
 
     def _connection_callback(self, is_connected):
-        if not is_connected and self.ctx.state in [ConnectionState.CONNECTED, ConnectionState.CONNECTING]:
+        if not self.ctx.is_running():
+            return
+        
+        if not is_connected:
             self.ctx.notify_error()
         else:
-            state = ConnectionState.CONNECTED if is_connected else ConnectionState.DISCONNECTED
-            self.ctx.set_state(state)
+            self.ctx.set_state(ConnectionState.CONNECTED)
         
     def start(self):
         try:
@@ -113,6 +115,9 @@ class Channel:
         self.state = ConnectionState.DISCONNECTED
         
     def data_callback_wrapper(self, data):
+        if not self.is_running():
+            return
+        
         self.set_state(ConnectionState.CONNECTED)
         if self.data_callback:
             self.data_callback(data)
@@ -143,7 +148,10 @@ class Channel:
         if self.strategy:
             self.strategy.stop()
         self.set_state(ConnectionState.DISCONNECTED)
-        
+
+    def is_running(self):
+        return self.state in [ConnectionState.CONNECTED, ConnectionState.CONNECTING]
+    
     def get(self):
         try:
             return self.channel.get('')
