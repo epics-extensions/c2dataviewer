@@ -360,6 +360,12 @@ class ImageController:
         """
         self._warning.close()
 
+    def notify_warning(self, msg):
+        if self._warning is not None:
+            self.acceptWarning()
+            self._warning.warningTextBrowse.setText(msg)
+            self._warning.show()
+        
     def connection_changed(self, status, msg):
         if msg:
             status += ": " + msg
@@ -377,11 +383,9 @@ class ImageController:
         try:
             self._win.imageWidget.camera_changed(pv)
         except (ValueError, RuntimeError):
-            if self._warning is not None:
-                self._warning.warningTextBrowse.setText("No data from: {}. Stop image display. \n"
-                                                        "Please select a different channel.".
-                                                        format(pv))
-                self._warning.show()
+            self.notify_warning("No data from: {}. Stop image display. \n"
+                                "Please select a different channel.".
+                                format(pv))
 
     def statistics_update(self, valuefield, value, roi_value=None, **kargs):
         """

@@ -168,8 +168,7 @@ class ScopeController:
             try:
                 fdr, fdr_scalar = self.get_fdr()
             except pva.PvaException as e:
-                self._warning.warningTextBrowse.setText('Failed to get PV field description: ' + (str(e)))
-                self._warning.show()
+                self.notify_warning('Failed to get PV field description: ' + (str(e)))
                 return
 
         fdr.insert(0, "None")
@@ -237,15 +236,13 @@ class ScopeController:
                         else:
                             self.update_fdr(empty=True)
                     except Exception as e:
-                        self._warning.warningTextBrowse.setText('Failed to update PV: ' + (str(e)))
-                        self._warning.show()
+                        self.notify_warning('Failed to update PV: ' + (str(e)))
                         
                 elif childName == "Acquisition.Trigger PV":
                     if data is None:
                         return
                     if self._win.graphicsWidget.plotting_started:
-                        self._warning.warningTextBrowse.setText("Please stop plotting first before changing trigger PV")
-                        self._warning.show()
+                        self.notify_warning("Please stop plotting first before changing trigger PV")
                         return
                     data = data.strip()
                     if data != "":
@@ -267,15 +264,13 @@ class ScopeController:
                                 self.start_trigger_mode()
                         except RuntimeError as e:
                             self._win.graphicsWidget.trigger_rec_type = None
-                            self._warning.warningTextBrowse.setText(repr(e))
-                            self._warning.show()
+                            self.notify_warning(repr(e))
                             self.parameters.child("Acquisition").child('Trigger Mode').setReadonly()
                             self.stop_trigger_mode()
                             # TODO clear trigger PV text field
                         except Exception as e:
                             self._win.graphicsWidget.trigger_rec_type = None
-                            self._warning.warningTextBrowse.setText("Channel {} timed out. \n{}".format(data, repr(e)))
-                            self._warning.show()
+                            self.notify_warning("Channel {} timed out. \n{}".format(data, repr(e)))
                             self.stop_trigger_mode()
                             # TODO clear trigger PV text field
                 elif childName == "Acquisition.Trigger Mode":
@@ -506,6 +501,13 @@ class ScopeController:
         """
         self._warning.close()
 
+    def notify_warning(self, msg):
+        #close previous warning
+        self.accept_warning()
+        
+        self._warning.warningTextBrowse.setText(msg)
+        self._warning.show()
+    
     def update_status(self):
         """
         Update statistics status.
