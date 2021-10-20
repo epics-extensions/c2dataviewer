@@ -30,14 +30,17 @@ class PollStrategy:
         self.ctx.notify_error(msg)
         
     def poll(self):
-        try:
-            self.data = self.ctx.get()
-        except PvaException as e:
-            self.stop()
+        # try:
+        #     self.data = self.ctx.get()
+        # except PvaException as e:
+        #     self.stop()
+        # self._data_callback(self.data)
 
-        #locks needed?
-        self._data_callback(self.data)
-            
+        try:
+            self.ctx.channel.asyncGet(self._data_callback, self._err_callback, '')
+        except pva.PvaException:
+            #error because too many asyncGet calls at once.  Ignore
+            pass
         
     def start(self):
         self.timer.start(1000/self.ctx.rate)
@@ -67,8 +70,6 @@ class MonitorStrategy:
             pass
     
 class Channel:
-    ALL_FIELDS = 'field()'
-    
     class State(enum.Enum):
         CONNECTED = 1
         CONNECTING = 2
@@ -186,12 +187,9 @@ class DataSource:
             
         #self.get()
 
-    def get(self, field=None):
+    def get(self):
         """
-        Get data of given field name.
-        If field is None, get whole EPICS7 record data from current EPICS7 channel.
-
-        :param field: EPICS7 field name
+        Get data from current PV channel
         :return:
         """
         if self.channel is None:
@@ -222,8 +220,6 @@ class DataSource:
                 chan = Channel(name, self.timer_factory())
                 self.channel_cache[name] = chan
                 
-            # channel connected successfully
-            # update old channel information with the new one
             self.channel = chan
             self.device = name
 

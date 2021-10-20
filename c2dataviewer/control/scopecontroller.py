@@ -131,7 +131,7 @@ class ScopeController:
         """
         fdr = []
         fdr_scalar = []
-        pv = self.model.get('')
+        pv = self.model.get()
         
         if pv is None:
             return fdr, fdr_scalar
