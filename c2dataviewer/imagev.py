@@ -92,7 +92,7 @@ def imagev(pv, label, scale=None, noAGC=True):
         print('QApplication instance already exists: %s' % str(app))
 
     w = ImageWindow(None)
-    data = DataReceiver(default=list(pv.values())[0])
+    data = DataReceiver(QtCore.QTimer, default=list(pv.values())[0])
     w.imageWidget.set_datasource(data)
 
     settings_dialog = ImageSettingsDialog(None)

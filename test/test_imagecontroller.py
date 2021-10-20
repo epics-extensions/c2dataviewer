@@ -11,6 +11,7 @@ Unit tests for Imagev
 import os
 import sys
 import unittest
+import unittest.mock as mock
 from pvaccess import PvObject
 from pvaccess import NtNdArray
 import pvaccess as pva
@@ -45,6 +46,8 @@ class TestImageDisplay(unittest.TestCase):
 
         # Build GUI elements
         w = ImageWindow(None)
+        datasource = mock.Mock()
+        w.imageWidget.set_datasource(datasource)
         image_settings_dialog = ImageSettingsDialog(None)
         warning = WarningDialog(None)
 

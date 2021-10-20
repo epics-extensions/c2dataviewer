@@ -15,6 +15,8 @@ from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
 
 from ..view.image_definitions import COLOR_MODE_MONO, COLOR_MODES
+from ..model import ConnectionState
+
 class ImageController:
 
     SLIDER_MAX_VAL = 1_000_000_000
@@ -32,15 +34,17 @@ class ImageController:
         if self._win is None:
             raise RuntimeError("Widget is unknown")
 
-        self._cameras = kargs.get("PV", None)
-        if self._cameras is None:
+        cameras = kargs.get("PV", None)
+        if cameras is None:
             raise RuntimeError("EPICS PV for camera is unknown")
 
         self.datareceiver = kargs.get('data', None)
 
-        self._win.pvPrefix.addItems(self._cameras)
-        self._win.pvPrefix.currentIndexChanged.connect(lambda: self.camera_changed())
-
+        self._win.pvPrefix.setEditable(True)
+        self._win.pvPrefix.setInsertPolicy(Qt.QtWidgets.QComboBox.InsertAtBottom)
+        self._win.pvPrefix.addItems(cameras)
+        self._win.pvPrefix.currentIndexChanged.connect(self.camera_changed)
+        self._win.imageWidget.connection_changed_signal.connect(self.connection_changed)
 
         self._image_settings_dialog  = kargs.get("IMAGE_SETTINGS_DIALOG", None)
         self._warning = kargs.get("WARNING", None)
@@ -101,9 +105,10 @@ class ImageController:
         self._image_settings_dialog.cancelButton.clicked.connect(lambda: self._callback_cancel_new_image_settings())
 
         # Frame DAQ control
-        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
+        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, '20 Hz': 20, '30 Hz': 30, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
+        self.frameRateChanged()
         self._win.iocRate.currentIndexChanged.connect(lambda: self.frameRateChanged())
         self._win.freeze.stateChanged.connect(lambda: self._callback_freeze_changed())
 
@@ -158,7 +163,8 @@ class ImageController:
             lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
 
         self.frameRateChanged()
-
+        self.camera_changed()
+        
     def _callback_black_changed_slider(self):
         """
         This callback is called when user change the value on the "black" slider.
@@ -356,6 +362,18 @@ class ImageController:
         """
         self._warning.close()
 
+    def notify_warning(self, msg):
+        if self._warning is not None:
+            self.acceptWarning()
+            self._warning.warningTextBrowse.setText(msg)
+            self._warning.show()
+        
+    def connection_changed(self, status, msg):
+        if status == str(ConnectionState.FAILED_TO_CONNECT):
+            self.notify_warning('Connection lost: ' + msg)
+        
+        self._win.lblConnectionStatus.setText(str(status))
+        
     def camera_changed(self):
         """
 
@@ -363,16 +381,14 @@ class ImageController:
         :return:
         """
 
-        n = self._win.pvPrefix.currentIndex()
         self.reset_statistics()
+        pv = self._win.pvPrefix.currentText()
         try:
-            self._win.imageWidget.camera_changed(self._cameras[n])
+            self._win.imageWidget.camera_changed(pv)
         except (ValueError, RuntimeError):
-            if self._warning is not None:
-                self._warning.warningTextBrowse.setText("No data from: {}. Stop image display. \n"
-                                                        "Please select a different channel.".
-                                                        format(self._cameras[n]))
-                self._warning.show()
+            self.notify_warning("No data from: {}. Stop image display. \n"
+                                "Please select a different channel.".
+                                format(pv))
 
     def statistics_update(self, valuefield, value, roi_value=None, **kargs):
         """

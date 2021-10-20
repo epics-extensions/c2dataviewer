@@ -29,7 +29,8 @@ class ImagePlotWidget(RawImageWidget):
     ZOOM_LENGTH_MIN = 4 # Using zoom this is the smallest number of pixels to display in each direction
 
     _set_image_signal = QtCore.pyqtSignal()
-
+    connection_changed_signal = QtCore.Signal(str, str)
+    
     def __init__(self, parent=None, **kargs):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
 
@@ -54,7 +55,6 @@ class ImagePlotWidget(RawImageWidget):
         self.x = None
         self.y = None
         self.z = None
-        self.fps = -1
 
         # max value of image pixel
         self.maxVal = 0
@@ -139,9 +139,6 @@ class ImagePlotWidget(RawImageWidget):
             'floatValue' :  {'minVal' : int(-2**24),      'maxVal' : int(2**24),         'npdt' : "float32",},
             'doubleValue' : {'minVal' : int(-2**53),      'maxVal' : int(2**53),         'npdt' : "float64",},
         }
-
-        # Acquisition timer used to get specific request frame rate
-        self.acquisition_timer = QtCore.QTimer()
 
         # Queue used to transfer the images from the process to the display thread
         self.draw_queue = queue.Queue(ImagePlotWidget.DEFAULT_DISPLAY_QUEUE_SIZE)
@@ -450,9 +447,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         if source is not None:
             self.datasource = source
-            # self.__update_dimension(self.datasource.get())
-            self.acquisition_timer.timeout.connect(self.get)
-
+        
     def __update_dimension(self, data):
         """
 
@@ -536,17 +531,14 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         if not self._freeze:
-            if self.fps == -1:
-                self.datasource.start(routine=self.monitor_callback)
-            else:
-                self.acquisition_timer.start(1000/self.fps)
-
+            self.datasource.start(routine=self.data_callback,
+                                  status_callback=self.connection_changed_signal.emit)
+            
     def stop(self):
         """
 
         :return:
         """
-        self.acquisition_timer.stop()
         try:
             if self.datasource is not None:
                 self.datasource.stop()
@@ -561,35 +553,20 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.wait()
         self.stop()
-        self.fps = value
+        if value == -1:
+            value = None
+            
+        self.datasource.update_framerate(value)
         self.start()
         self.signal()
-
-    def monitor_callback(self, data):
+        
+    def data_callback(self, data):
         """
 
         :param data:
         :return:
         """
         self.data = data
-        self.wait()
-        try:
-            self.display(self.data)
-            self.signal()
-        except RuntimeError:
-            self.signal()
-
-    def get(self):
-        """
-
-        :return:
-        """
-        try:
-            self.data = self.datasource.get('field()')
-        except PvaException:
-            self.stop()
-            # raise e
-
         self.wait()
         try:
             self.display(self.data)
@@ -613,17 +590,10 @@ class ImagePlotWidget(RawImageWidget):
             # pvAccess connection error
             # release mutex lock
             self.signal()
-            # stop display
-            self.stop()
-            # Raise runtime exception
+            # NOTE: data source is already stopped on error. calling stop here will override
+            # the connection status
+            #self.stop()
             raise RuntimeError(str(e))
-        try:
-            # self.__update_dimension(self.datasource.get())
-            pass
-        except ValueError as e:
-            self.stop()
-            self.signal()
-            raise e
 
         try:
             self.set_scaling()

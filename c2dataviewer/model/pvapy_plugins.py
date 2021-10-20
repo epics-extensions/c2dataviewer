@@ -12,13 +12,155 @@ import time
 from threading import Lock
 from collections import deque
 from statistics import mean
+import enum
 
 import pvaccess as pva
 from pvaccess import PvaException
 
+class PollStrategy:
+    def __init__(self, context, timer):
+        self.ctx = context
+        self.timer = timer
+        self.timer.timeout.connect(self.poll)
+        
+    def _data_callback(self, data):        
+        self.ctx.data_callback_wrapper(data)
 
+    def _err_callback(self, msg):
+        self.ctx.notify_error(msg)
+        
+    def poll(self):
+        # try:
+        #     self.data = self.ctx.get()
+        # except PvaException as e:
+        #     self.stop()
+        # self._data_callback(self.data)
+
+        try:
+            self.ctx.channel.asyncGet(self._data_callback, self._err_callback, '')
+        except pva.PvaException:
+            #error because too many asyncGet calls at once.  Ignore
+            pass
+        
+    def start(self):
+        self.timer.start(1000/self.ctx.rate)
+
+    def stop(self):
+        self.timer.stop()
+    
+class MonitorStrategy:
+    def __init__(self, context):
+        self.ctx = context
+        
+    def _data_callback(self, data):
+        self.ctx.data_callback_wrapper(data)
+
+    def _connection_callback(self, is_connected):
+        if not self.ctx.is_running():
+            return
+        
+        if not is_connected:
+            self.ctx.notify_error()
+        else:
+            self.ctx.set_state(ConnectionState.CONNECTED)
+        
+    def start(self):
+        try:
+            self.ctx.channel.setConnectionCallback(self._connection_callback)
+            self.ctx.channel.subscribe('monitorCallback', self._data_callback)
+            self.ctx.channel.startMonitor('')
+        except PvaException as e:
+            self.ctx.notify_error(str(e))
+        
+    def stop(self):
+        try:
+            self.ctx.channel.setConnectionCallback(None)
+            self.ctx.channel.stopMonitor()
+            self.ctx.channel.unsubscribe('monitorCallback')
+        except PvaException:
+            pass
+
+
+class ConnectionState(enum.Enum):
+    CONNECTED = 1
+    CONNECTING = 2
+    DISCONNECTING = 3
+    DISCONNECTED = 4
+    FAILED_TO_CONNECT = 5
+
+    def __str__(self):
+        string_lookup = {
+            1 : 'Connected',
+            2 : 'Connecting',
+            3 : 'Disconnecting',
+            4 : 'Disconnected',
+            5 : 'Failed to connect'
+        }
+
+        return string_lookup[int(self.value)]
+
+class Channel:
+        
+    def __init__(self, name, timer):
+        self.channel = pva.Channel(name)
+        self.name = name
+        self.rate = None
+        self.data_callback = None
+        self.data = None
+        self.monitor_strategy = MonitorStrategy(self)
+        self.poll_strategy = PollStrategy(self, timer) if timer else None
+        self.strategy = None
+        self.rate = None
+        self.status_callback = None
+        self.state = ConnectionState.DISCONNECTED
+        
+    def data_callback_wrapper(self, data):
+        if not self.is_running():
+            return
+        
+        self.set_state(ConnectionState.CONNECTED)
+        if self.data_callback:
+            self.data_callback(data)
+        else:
+            self.data = data.get()
+
+    def notify_error(self, msg=None):
+        self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
+        
+    def start(self, routine=None, rate=None, status_callback=None):
+        self.data_callback = routine
+        self.rate = rate
+        self.strategy = self.poll_strategy if self.rate else self.monitor_strategy
+        if not self.strategy:
+            raise Exception("Can't poll data unless DataSource timer is configured")
+        self.status_callback = status_callback
+        self.strategy.start()
+        self.set_state(ConnectionState.CONNECTING)
+
+    def set_state(self, state, msg=None):
+        if state != self.state:
+            self.state = state
+            if self.status_callback:
+                self.status_callback(str(state), msg)
+                
+    def stop(self):
+        self.set_state(ConnectionState.DISCONNECTING)
+        if self.strategy:
+            self.strategy.stop()
+        self.set_state(ConnectionState.DISCONNECTED)
+
+    def is_running(self):
+        return self.state in [ConnectionState.CONNECTED, ConnectionState.CONNECTING]
+    
+    def get(self):
+        try:
+            return self.channel.get('')
+        except PvaException as e:
+            self.notify_error(str(e))
+            raise
+        
 class DataSource:
-    def __init__(self, default=None):
+    def __init__(self, timer_factory=None, default=None):
         """
 
         :param default:
@@ -27,12 +169,13 @@ class DataSource:
         self.data = None
         # EPICS7 channel
         self.channel = None
-
-        # Datarate
-        self.last_event = None
-        self.event_freq_buffer = deque(maxlen=5)
-        self.event_freq_buffer_lock = Lock()
-
+        self.channel_cache = {}
+        self.fps = None
+        self.timer_factory = timer_factory if timer_factory else lambda: None
+            
+        self.data_callback = None
+        self.status_callback = None
+        
         # Default PV name
         self.device = None
         if default is not None:
@@ -49,9 +192,6 @@ class DataSource:
         self.trigger = None
         self.trigger_chan = None
 
-        # Routine to be called when callback happens
-        self.user_callback = None
-
     def __init_connection(self, name):
         """
         Create initial channel connection with given PV name
@@ -60,47 +200,23 @@ class DataSource:
         :return:
         """
         self.device = name
-        self.channel = pva.Channel(self.device)
-        self.get()
 
-    def get_event_freq(self, average=False):
+        self.channel = Channel(self.device, self.timer_factory())
+        self.channel_cache[name] = self.channel
+            
+    def get(self):
         """
-        Return the rate of the data.
-
-        :param bool average: False to get the last time, True to get the
-                             average of the last 5 events.
-        """
-        with self.event_freq_buffer_lock:
-            if len(self.event_freq_buffer) == 0:
-                return None
-            elif average:
-                return 1/mean(self.event_freq_buffer)
-            else:
-                return 1/self.event_freq_buffer[-1]
-
-    def get(self, field=None):
-        """
-        Get data of given field name.
-        If field is None, get whole EPICS7 record data from current EPICS7 channel.
-
-        :param field: EPICS7 field name
+        Get data from current PV channel
         :return:
         """
         if self.channel is None:
             return None
 
-        now = time.time()
-        with self.event_freq_buffer_lock:
-            if self.last_event:
-                self.event_freq_buffer.append(now-self.last_event)
-            self.last_event = now
+        return self.channel.get()
 
-        if field is None:
-            data = self.channel.get('field()')
-        else:
-            data = self.channel.get(field)
-        return data
-
+    def update_framerate(self, fps):
+        self.fps = fps
+        
     def update_device(self, name, restart=False):
         """
         Update device, EPICS PV name, and test its connectivity
@@ -114,41 +230,25 @@ class DataSource:
             self.stop()
 
         if name != "":
-            chan = pva.Channel(name)
-            # test channel connectivity
-            chan.get("field()")
-
-            # channel connected successfully
-            # update old channel information with the new one
+            chan = None
+            if name in self.channel_cache:
+                chan = self.channel_cache[name]
+            else:
+                chan = Channel(name, self.timer_factory())
+                self.channel_cache[name] = chan
+                
             self.channel = chan
             self.device = name
+
+            # test channel connectivity
+            chan.get()
 
             if restart:
                 self.start()
         else:
             self.channel = None
 
-    def monitor_callback(self, data):
-        """
-        Default call back routine for EPICS7 channel of current device.
-        It updates the data with the latest value.
-
-        :param data: new data from EPICS7 channel
-        :return:
-        """
-
-        now = time.time()
-        with self.event_freq_buffer_lock:
-            if self.last_event:
-                self.event_freq_buffer.append(now-self.last_event)
-            self.last_event = now
-
-        if self.user_callback:
-            self.user_callback(data)
-        else:
-            self.data = data.get()
-
-    def start(self, routine=None):
+    def start(self, routine=None, status_callback=None):
         """
         Start a EPICS7 monitor for current device.
 
@@ -156,15 +256,15 @@ class DataSource:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
         if self.channel is None:
-            # there is nothing to start since channel does not exist yet
             return
 
-        self.user_callback = routine
-        try:
-            self.channel.subscribe('monitorCallback', self.monitor_callback)
-            self.channel.startMonitor('')
-        except PvaException:
-            raise RuntimeError("Cannot connect to EPICS7 PV ({})".format(self.device))
+        if routine:
+            self.data_callback = routine
+
+        if status_callback:
+            self.status_callback = status_callback
+            
+        self.channel.start(routine=self.data_callback, rate=self.fps, status_callback=self.status_callback)
 
     def stop(self):
         """
@@ -174,14 +274,9 @@ class DataSource:
         :raise PvaException: raise pvaccess exception when channel fails to disconnect.
         """
         if self.channel is None:
-            # there is nothing to stop since channel does not exist yet
             return
-        try:
-            self.channel.stopMonitor()
-            self.channel.unsubscribe('monitorCallback')
-        except PvaException:
-            # raise RuntimeError("Fail to disconnect EPICS7 PV ({})".format(self.device))
-            pass
+
+        self.channel.stop()
 
     def update_trigger(self, name, proto='ca'):
         """
