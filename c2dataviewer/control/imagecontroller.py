@@ -105,7 +105,7 @@ class ImageController:
         self._image_settings_dialog.cancelButton.clicked.connect(lambda: self._callback_cancel_new_image_settings())
 
         # Frame DAQ control
-        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
+        self._framerates = {'1 Hz': 1, '2 Hz': 2, '5 Hz': 5, '10 Hz': 10, '20 Hz': 20, '30 Hz': 30, 'Full IOC Rate': -1} #Full IOC rate must be on the last place
         self._win.iocRate.addItems(self._framerates.keys())
         self._win.iocRate.setCurrentIndex(2)
         self.frameRateChanged()
