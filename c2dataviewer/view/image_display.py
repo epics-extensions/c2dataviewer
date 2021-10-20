@@ -590,17 +590,10 @@ class ImagePlotWidget(RawImageWidget):
             # pvAccess connection error
             # release mutex lock
             self.signal()
-            # stop display
-            self.stop()
-            # Raise runtime exception
+            # NOTE: data source is already stopped on error. calling stop here will override
+            # the connection status
+            #self.stop()
             raise RuntimeError(str(e))
-        try:
-            # self.__update_dimension(self.datasource.get())
-            pass
-        except ValueError as e:
-            self.stop()
-            self.signal()
-            raise e
 
         try:
             self.set_scaling()
