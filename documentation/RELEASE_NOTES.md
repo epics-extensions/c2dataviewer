@@ -1,3 +1,10 @@
+# RELEASE 1.6.0
+## New Features
+- Add 20 and 30Hz options to image app
+- Don't exit application if PV is invalid
+- Add ability to switch to different PVs to image app
+- Show PV connection status in scope and image app
+
 # RELEASE 1.5.2
 ## Bug fixes
 - Prevent zoom if click outside of image
