@@ -12,10 +12,20 @@ PVA object viewer utilities
 
 
 import os
+import sys
 import pkg_resources
 import argparse
 from configparser import ConfigParser
+import enum
+import logging
 
+class AppType(enum.Enum):
+    SCOPE = "scope"
+    IMAGE = "image"
+    STRIPTOOL = "striptool"
+
+    def __str__(self):
+        return self.value
 
 def qxl_module_loaded():
     fn = "/proc/modules"
@@ -105,8 +115,8 @@ def main():
     parser = argparse.ArgumentParser(
             description='C2DataViewer for EPICS7 PVStructure Data display via pvAccess')
 
-    parser.add_argument('--app', type=str,
-                        help='Application name. It currently supports "image" and "scope" ')
+    parser.add_argument('--app', type=AppType,
+                        help='Application name', choices=list(AppType))
     # TODO: add CLI interface later to over write configuration
     parser.add_argument('--config', type=str,
                         help='configuration file')
@@ -132,15 +142,33 @@ def main():
                              'Protocol is optional, and needs to be either "ca" or "pva" when specified, '
                              'by default, uses EPICS7 pvAccess.'
                              ' e.g. ca://MY:TEST:TRIG:PV or MY:TEST:TRIG:PV')
+    parser.add_argument(
+        "--log-level",
+        dest="loglevel",
+        default="error",
+        help="log level. Accepts lower or uppercase values. Defaults to ERROR",
+    )
 
     args = parser.parse_args()
+
+    logging.basicConfig(
+        stream=sys.stdout,
+        level=args.loglevel.upper(),
+        format="%(asctime)s %(levelname)-6s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    
     cfg = load_config(args.config)
 
     pv_map = None
     if args.pv is not None:
         pv_map = pvmaps(args.pv, args.alias)
 
-    if args.app == "image" or (cfg["DEFAULT"]["APP"] == "IMAGE" and args.app != "scope"):
+    app = args.app
+    if args.app is None:
+        app = AppType(cfg["DEFAULT"]["APP"].lower())
+    
+    if app == AppType.IMAGE:
         from c2dataviewer import imagev
         # application from CLI overwrite the one in configuration file
         section = cfg[cfg["DEFAULT"]["APP"]]["SECTION"]
@@ -164,10 +192,13 @@ def main():
         except KeyError:
             noAGC = False
         imagev(pv_map, list(pv_map.keys()), scale, noAGC)
-    elif args.app == "scope" or cfg["DEFAULT"]["APP"] == "SCOPE":
+    elif app == AppType.SCOPE:
         from c2dataviewer import scope
         scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.xaxes,
               max=args.max, min=args.min, trigger=args.trigger)
+    elif app == AppType.STRIPTOOL:
+        from c2dataviewer import striptool
+        striptool(cfg, pv=pv_map)
     else:
         raise RuntimeError("Unknown application ({0})".format(args.app))
 
