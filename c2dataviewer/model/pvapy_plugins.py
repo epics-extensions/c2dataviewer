@@ -109,9 +109,9 @@ class ConnectionState(enum.Enum):
         return string_lookup[int(self.value)]
 
 class Channel:
-        
-    def __init__(self, name, timer):
-        self.channel = pva.Channel(name)
+    def __init__(self, name, timer, provider=pva.PVA):
+        self.channel = pva.Channel(name, provider)
+        self.provider = provider
         self.name = name
         self.rate = None
         self.data_callback = None
@@ -122,7 +122,7 @@ class Channel:
         self.rate = None
         self.status_callback = None
         self.state = ConnectionState.DISCONNECTED
-        
+
     def data_callback_wrapper(self, data):
         if not self.is_running():
             return
@@ -201,6 +201,14 @@ class DataSource:
         self.trigger = None
         self.trigger_chan = None
 
+    def create_connection(self, name, provider):
+        if name in self.channel_cache and self.channel_cache[name].provider == provider:
+            return self.channel_cache[name]
+        else:
+            chan = Channel(name, self.timer_factory(), provider=provider)
+            self.channel_cache[name] = chan
+            return chan
+    
     def __init_connection(self, name):
         """
         Create initial channel connection with given PV name
