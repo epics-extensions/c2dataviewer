@@ -68,13 +68,10 @@ class MonitorStrategy:
         self.ctx.data_callback_wrapper(data)
 
     def _connection_callback(self, is_connected):
-        if not self.ctx.is_running():
-            return
-        
-        if not is_connected:
-            self.ctx.notify_error()
-        else:
+        if is_connected:
             self.ctx.set_state(ConnectionState.CONNECTED)
+        elif self.ctx.is_running():
+            self.ctx.notify_error()            
         
     def start(self):
         try:
@@ -146,8 +143,8 @@ class Channel:
         if not self.strategy:
             raise Exception("Can't poll data unless DataSource timer is configured")
         self.status_callback = status_callback
-        self.strategy.start()
         self.set_state(ConnectionState.CONNECTING)
+        self.strategy.start()
 
     def set_state(self, state, msg=None):
         if state != self.state:
