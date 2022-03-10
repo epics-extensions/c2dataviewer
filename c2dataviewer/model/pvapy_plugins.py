@@ -17,6 +17,18 @@ import enum
 import pvaccess as pva
 from pvaccess import PvaException
 
+def make_protocol(proto):
+    if isinstance(proto, pva.ProviderType):
+        return proto
+    
+    proto = proto.lower()
+    if proto == 'ca':
+        return pva.ProviderType.CA
+    elif proto == 'pva':
+        return pva.ProviderType.PVA
+    else:
+        raise Error('Invalid protocol: ' + proto)
+    
 class PollStrategy:
     def __init__(self, context, timer):
         self.ctx = context
