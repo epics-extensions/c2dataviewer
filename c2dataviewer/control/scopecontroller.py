@@ -124,9 +124,6 @@ class ScopeController(ScopeControllerBase):
             c.setValue("None")
 
     def connection_changed(self, state, msg):
-        if state == str(ConnectionState.FAILED_TO_CONNECT):
-            self.notify_warning('Connection lost: ' + msg)
-        
         for q in self.parameters.child("Acquisition").children():
             if q.name() == 'PV status':
                 q.setValue(state)
