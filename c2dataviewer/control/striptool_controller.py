@@ -208,14 +208,14 @@ class StripToolController(ScopeControllerBase):
             si = self.pvdict[pvname]
             
             pname = param.name()
-            if pname is 'Hide':
+            if pname == 'Hide':
                 si.set_hide(data)
-            elif pname is 'Color':
+            elif pname == 'Color':
                 c = data.getRgb()
                 si.channel.color = '#%02x%02x%02x' % (c[0], c[1], c[2])
-            elif pname is 'DC offset':
+            elif pname == 'DC offset':
                 si.channel.dc_offset = data
-            elif pname is 'Axis location':
+            elif pname == 'Axis location':
                 si.channel.axis_location = data
 
         self._setup_plot()

@@ -237,7 +237,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.channels:
             self.plot.addLegend()
         for ch in self.channels:
-            if ch.pvname is "None":
+            if ch.pvname == "None":
                 continue
             curve = self.plot.plot(pen=ch.color, name=ch.pvname)
             curve.plotdata_ave = None
@@ -259,7 +259,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         left_axis = []
         right_axis = []
         for i, ch in enumerate(self.channels):
-            if ch.pvname is "None":
+            if ch.pvname == "None":
                 continue
 
             axis = pyqtgraph.AxisItem(ch.axis_location)
@@ -300,7 +300,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         count = 0
 
         for i, ch in enumerate(self.channels):
-            if ch.pvname is 'None':
+            if ch.pvname == 'None':
                 continue
             
             curve = pyqtgraph.PlotCurveItem(pen=ch.color)
