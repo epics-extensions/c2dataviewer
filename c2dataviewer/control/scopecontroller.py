@@ -39,6 +39,8 @@ class ScopeController(ScopeControllerBase):
 
         super().__init__(widget, model, parameters, warning, channels=self.channels, **kwargs)
 
+        self.auto_buffer_size = self._win.graphicsWidget.max_length is None
+            
     def __flatten_dict(dobj, kprefixs=[]):
         """
         Genenerator that can traverse through nested dictionaries and return
@@ -152,6 +154,9 @@ class ScopeController(ScopeControllerBase):
                             self.update_fdr()
                         else:
                             self.update_fdr(empty=True)
+                        if self.auto_buffer_size:
+                            self._win.graphicsWidget.max_length = None
+                            
                     except Exception as e:
                         self.notify_warning('Failed to update PV: ' + (str(e)))
                         
