@@ -17,6 +17,18 @@ import enum
 import pvaccess as pva
 from pvaccess import PvaException
 
+def make_protocol(proto):
+    if isinstance(proto, pva.ProviderType):
+        return proto
+    
+    proto = proto.lower()
+    if proto == 'ca':
+        return pva.ProviderType.CA
+    elif proto == 'pva':
+        return pva.ProviderType.PVA
+    else:
+        raise Error('Invalid protocol: ' + proto)
+    
 class PollStrategy:
     def __init__(self, context, timer):
         self.ctx = context
@@ -56,13 +68,10 @@ class MonitorStrategy:
         self.ctx.data_callback_wrapper(data)
 
     def _connection_callback(self, is_connected):
-        if not self.ctx.is_running():
-            return
-        
-        if not is_connected:
-            self.ctx.notify_error()
-        else:
+        if is_connected:
             self.ctx.set_state(ConnectionState.CONNECTED)
+        elif self.ctx.is_running():
+            self.ctx.notify_error()            
         
     def start(self):
         try:
@@ -100,9 +109,9 @@ class ConnectionState(enum.Enum):
         return string_lookup[int(self.value)]
 
 class Channel:
-        
-    def __init__(self, name, timer):
-        self.channel = pva.Channel(name)
+    def __init__(self, name, timer, provider=pva.PVA):
+        self.channel = pva.Channel(name, provider)
+        self.provider = provider
         self.name = name
         self.rate = None
         self.data_callback = None
@@ -113,7 +122,7 @@ class Channel:
         self.rate = None
         self.status_callback = None
         self.state = ConnectionState.DISCONNECTED
-        
+
     def data_callback_wrapper(self, data):
         if not self.is_running():
             return
@@ -134,8 +143,8 @@ class Channel:
         if not self.strategy:
             raise Exception("Can't poll data unless DataSource timer is configured")
         self.status_callback = status_callback
-        self.strategy.start()
         self.set_state(ConnectionState.CONNECTING)
+        self.strategy.start()
 
     def set_state(self, state, msg=None):
         if state != self.state:
@@ -192,6 +201,14 @@ class DataSource:
         self.trigger = None
         self.trigger_chan = None
 
+    def create_connection(self, name, provider):
+        if name in self.channel_cache and self.channel_cache[name].provider == provider:
+            return self.channel_cache[name]
+        else:
+            chan = Channel(name, self.timer_factory(), provider=provider)
+            self.channel_cache[name] = chan
+            return chan
+    
     def __init_connection(self, name):
         """
         Create initial channel connection with given PV name

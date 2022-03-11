@@ -14,33 +14,41 @@ import pyqtgraph
 import pyqtgraph.ptime as ptime
 from pyqtgraph.Qt import QtCore
 
+class PlotChannel:
+    def __init__(self, pvname, color):
+        self.color = color
+        self.pvname = pvname
+        self.dc_offset = 0
+        self.axis_location = 'left'
+        
 
 class PlotWidget(pyqtgraph.GraphicsWindow):
 
     def __init__(self, parent=None, **kargs):
         pyqtgraph.GraphicsWindow.__init__(self, parent=parent)
         self.setParent(parent)
-        self.color_pattern = kargs.get("color",
-                                       ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
-                                        '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000'])
 
         self.param_changed = False
         self.model = None
-        self.names = []
+        self.channels = []
         self.auto_scale = False
         self.first_data = True
         self.plotting_started = False
-
+        
+        self.sampling_mode = False        
+        self.sample_data = {}
+        
         self.mutex = pyqtgraph.QtCore.QMutex()
 
-        self.max_length = 256
+        self.max_length = None
         self.data_size = 0
         self.new_buffer = True
         self.data = {}
         self.trig_data = {}
         self.first_run = True
         self.new_plot = True
-
+        self.is_max_length = False
+        
         # last id number of array received
         self.lastArrayId = None
         # count of lost arrays
@@ -74,20 +82,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         }
 
         self.axis = []
-        self.default_axis_location = "left"
-        self.axis_locations = {
-            0 : self.default_axis_location,
-            1 : self.default_axis_location,
-            2 : self.default_axis_location,
-            3 : self.default_axis_location,
-        }
-        self.default_dc_offset = 0
-        self.dc_offsets = {
-            0 : self.default_dc_offset,
-            1 : self.default_dc_offset,
-            2 : self.default_dc_offset,
-            3 : self.default_dc_offset,
-        }
         self.views = []
         self.curves = []
 
@@ -156,6 +150,16 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
         self.model = model
 
+
+    def enable_sampling_mode(self, val):
+        """
+        Set sampling mode.  If true, plot only the latest value at each refresh interval.
+        Set this mode if plotting multiple data sources that have different data rates.
+        """
+        self.sampling_mode = val
+        self.data.clear()
+        self.setup_plot()
+        
     def set_arrayid(self, value):
         """
         Set current field name for array id
@@ -176,7 +180,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if value != self.current_xaxes:
             self.current_xaxes = value
 
-    def setup_plot(self, names, single_axis=True):
+    def setup_plot(self, channels=None, single_axis=None):
         """
         Setup plotting
 
@@ -184,6 +188,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param single_axis: flag to share single axis, or have a axis for each figure. FFT and PSD support only single axis
         :return:
         """
+        if single_axis is None:
+            single_axis = self.single_axis
 
         # FFT and PSD support only single axis, PyQTGraph currently doesn't support log scale on the multiple axis setup
         if not single_axis and (self.fft or self.psd):
@@ -195,7 +201,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.delete_plots()
 
         # Set new list of signals
-        self.names = names
+        if channels:
+            self.channels = channels
 
         # Create plot item
         self.plot = pyqtgraph.PlotItem()
@@ -208,9 +215,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # Generate plot items
         self.single_axis = single_axis
         if single_axis:
-            self.setup_plot_single_axis(names)
+            self.setup_plot_single_axis()
         else:
-            self.setup_plot_multi_axis(names)
+            self.setup_plot_multi_axis()
 
         # Update plots
         self.plot.vb.sigResized.connect(self.update_views)
@@ -218,23 +225,27 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         # Set for autoscale the first time
         self.new_plot = True
-
-    def setup_plot_single_axis(self, names):
+        self.data_size = 0
+        
+    def setup_plot_single_axis(self):
         """
         Setup items for single Y axis plot.
 
         :names: (list -> strings) List of channels to bi displayed. "None" should be used to ignore that channel.
         :return: (None)
         """
-        for i in range(len(names)):
-            if names[i] != "None":
-                curve = self.plot.plot(pen=self.color_pattern[i])
-                curve.plotdata_ave = None
-                self.curves.append(curve)
+        if self.channels:
+            self.plot.addLegend()
+        for ch in self.channels:
+            if ch.pvname is "None":
+                continue
+            curve = self.plot.plot(pen=ch.color, name=ch.pvname)
+            curve.plotdata_ave = None
+            self.curves.append(curve)
 
         self.ci.addItem(self.plot, row=2)
 
-    def setup_plot_multi_axis(self, names):
+    def setup_plot_multi_axis(self):
         """
         Setup items for multiple Y axis plot.
 
@@ -247,13 +258,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # Create axis and views
         left_axis = []
         right_axis = []
-        for i, field_name in enumerate(names):
-            # Skip if None was selected
-            if field_name == "None":
+        for i, ch in enumerate(self.channels):
+            if ch.pvname is "None":
                 continue
-            axis = pyqtgraph.AxisItem(self.axis_locations[i])
-            axis.setLabel(f"Channel {i+1} [{field_name}]", color=self.color_pattern[i])
-            if self.axis_locations[i] == "left":
+
+            axis = pyqtgraph.AxisItem(ch.axis_location)
+            axis.setLabel(f"Channel {i+1} [{ch.pvname}]", color=ch.color)
+            if ch.axis_location == "left":
                 left_axis.append(axis)
             else:
                 right_axis.append(axis)
@@ -287,14 +298,16 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         # Make curves
         count = 0
-        for i, field_name in enumerate(names):
-            if field_name == "None":
+
+        for i, ch in enumerate(self.channels):
+            if ch.pvname is 'None':
                 continue
-            curve = pyqtgraph.PlotCurveItem(pen=self.color_pattern[i])
+            
+            curve = pyqtgraph.PlotCurveItem(pen=ch.color)
             curve.plotdata_ave = None
             left_curve = []
             right_curve = []
-            if self.axis_locations[i] == "left":
+            if ch.axis_location == "left":
                 left_curve.append(curve)
             else:
                 right_curve.append(curve)
@@ -393,7 +406,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.max_length = value
         self.samples_after_trig = int(self.max_length/2)
         self.new_buffer = True
-
+        self.is_max_length = False
+        
     def set_range(self, **kwargs):
         """
         Set data range for data filtering.
@@ -603,6 +617,12 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             return (True, idx)
 
 
+    def clear_sample_data(self, pvname):
+        if pvname in self.sample_data:
+            del self.sample_data[pvname]
+            if self.sampling_mode and pvname in self.data:
+                del self.data[pvname]
+                
     def data_process(self, data_generator):
         """
         Process raw data off the wire
@@ -634,8 +654,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
 
         for k, v in data_generator():
-
-            # TODO: what is this logic doing?
             if k == self.current_arrayid:
                 if self.lastArrayId is not None:
                     if v - self.lastArrayId > 1:
@@ -648,19 +666,32 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if type(v) is list:
                 v = np.array(v)
 
-            # When program is here, the v4 field is either a np array, or some sort of scalar.
-            if type(v) != np.ndarray:
-                # If not an array then we have a scalar, so store the scalar into the local copy of data,
-                # and do NOT add to a long stored buffer
-                self.data[k] = v
+            if np.isscalar(v):
+                v = np.array([v])
+                
+            if type(v) is not np.ndarray:
+                continue
 
+            # At this point in program we found an nd array that may or may not have data. nd array is
+            # not an EPICS7 NDArray, but a numpy ndarray.
+            # If no data in a pv field, we just skip this whole loop iteration.
+            if len(v) == 0:
+                continue
+
+            if not np.isscalar(v[0]):
+                continue
+
+            if self.data_size == 0:
+                type_size = v[0].dtype.itemsize
+                new_size += type_size * len(v)
+
+            if not self.is_max_length and len(self.data.get(k, [])) >= self.max_length:
+                self.is_max_length = True
+
+            if self.sampling_mode:
+                self.sample_data[k] = v[-1]
             else:
-                # At this point in program we found an nd array that may or may not have data. nd array is
-                # not an EPICS7 NDArray, but a numpy ndarray.
-                # If no data in a pv field, we just skip this whole loop iteration.
-                if len(v) == 0:
-                    continue
-
+                
                 # If we get here, then we found an epics array in the EPICS7 pv that has data.
                 # Count array type signals that have data, so triggering works.
                 signal_count += 1
@@ -683,17 +714,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 else:
                     # We are in free running mode. Only last max_length of the data can be stored.
                     self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-
-                # TODO: This is not used anywhere. What should be used for?
-                if self.size == 0:
-                    if self.data[k][0].dtype == 'float32':
-                        new_size += 4 * len(self.data[k])
-                    elif self.data[k][0].dtype == 'float64':
-                        new_size += 8 * len(self.data[k])
-                    elif self.data[k][0].dtype == 'int16':
-                        new_size += 2 * len(self.data[k])
-                    elif self.data[k][0].dtype == 'int32':
-                        new_size += 4 * len(self.data[k])
 
         # Trigger mode is enabled, trigger triggered and we received vector data, execute trigger procedure.
         if (self.trigger_mode
@@ -721,7 +741,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.signal()
         if self.data_size == 0:
             self.data_size = new_size
-
+            
         if self.first_data:
             self.first_data = False
 
@@ -794,7 +814,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         return new_data_ave
 
-    def draw_curve(self, count, data, index, draw_trig_mark=False):
+    def draw_curve(self, count, data, channel, draw_trig_mark=False):
         """
         Draw a waveform curve
 
@@ -863,14 +883,14 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         # Draw waveform where X axis are indexes of data array which is drawn on Y axis
         elif time_array is None:
-            data_to_plot = self.filter(data) + self.dc_offsets[index]
+            data_to_plot = self.filter(data) + channel.dc_offset
             self.curves[count].setData(data_to_plot)
             self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.samples_after_trig, [data_to_plot.min(), data_to_plot.max()])
 
         # Draw time_array on the X axis and data on Y
         else:
             d, t = self.filter(data, time_array)
-            data_to_plot = d + self.dc_offsets[index]
+            data_to_plot = d + channel.dc_offset
             self.curves[count].setData(t - t[0], data_to_plot)
             self.__handle_trigger_marker__(draw_trig_mark, self.trigger_timestamp - time_array[0], [data_to_plot.min(), data_to_plot.max()])
 
@@ -888,11 +908,12 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if draw_trig_mark:
                 # Add trigger marker on plotting
                 vr = self.plot.viewRange()[1]
+                pvnames = [ c.pvname for c in self.channels ] 
                 if vr[0] == 0 and vr[1] == 1:
                     min_value = max_value = None
                     if self.single_axis:
                         for field, value in self.trig_data.items():
-                            if field in self.names:
+                            if field in pvnames:
                                 a_min = np.amin(value).item()
                                 a_max = np.amax(value).item()
                                 min_value = a_min if min_value is None else min(min_value, a_min)
@@ -925,25 +946,24 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # Take ownership the self.data variable which holds all the waveforms
         self.wait()
 
+        if self.sampling_mode:
+            for k, v in self.sample_data.items():
+                self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
+
         # Iterate over the names (channels) selected on the GUI and draw a line for each
         count = 0
         draw_trig_mark = True
-        for idx, name in enumerate(self.names):
-            if name != "None":
-                try:
-                    if self.trigger_mode:
-                        data = self.trig_data[name]
-                    else:
-                        data = self.data[name]
-                    if data is None:
-                        continue
-                    self.draw_curve(count, data, idx, draw_trig_mark)
+        for idx, ch in enumerate(self.channels):
+            if ch.pvname != "None":
+                if self.trigger_mode:
+                    data = self.trig_data.get(ch.pvname)
+                else:
+                    data = self.data.get(ch.pvname)
+                if data is not None:
+                    self.draw_curve(count, data, ch, draw_trig_mark)
                     draw_trig_mark = False
-                    count = count + 1
-                except KeyError:
-                    # TODO solve the race condition in a better way, and add logging support later
-                    # data is not ready yet
-                    pass
+                count = count + 1
+                
 
         # Trigger curves were drawn - Freeze the scope
         if self.trigger_mode and self.is_triggered:
@@ -957,6 +977,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.first_run = False
             self.new_buffer = False
             self.new_plot = False
+        elif not self.is_max_length:
+            self.do_autoscale(auto_scale=True)
+            
         # Then set it to the correct setting
         self.do_autoscale()
 

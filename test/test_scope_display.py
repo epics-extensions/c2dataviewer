@@ -14,6 +14,8 @@ import unittest
 import numpy as np
 
 from c2dataviewer.view.scope_display import PlotWidget
+from c2dataviewer.view.scope_display import PlotChannel
+
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 array1 = [
@@ -35,7 +37,8 @@ class TestScopeDisplay(unittest.TestCase):
         """
         # Create instance of the PlotWidget
         self.pw = PlotWidget()
-
+        self.pw.update_buffer(100)
+        
     def tearDown(self):
         """
         Tear down the environment after each test case.
@@ -236,14 +239,39 @@ class TestScopeDisplay(unittest.TestCase):
 
         :return:
         """
-        signals = ["x1", "x1", "x1", "x1"]
-
+        signals = [PlotChannel('x1', '#0000FF')] * 4
         self.pw.setup_plot(signals, single_axis=False)
 
         self.assertIsNotNone(self.pw.plot)
         self.assertEqual(len(signals), len(self.pw.axis))
         self.assertEqual(len(signals), len(self.pw.views))
         self.assertEqual(len(signals), len(self.pw.curves))
+
+        
+    def test_sampling_mode(self):
+        self.pw.enable_sampling_mode(True)
+        self.pw.setup_plot([PlotChannel('ch1', '#000000')])
+        self.pw.plotting_started = True
+        val = 0
+        def generator():
+            yield 'ch1', val
+            
+        self.pw.data_process(generator)
+        val = 1
+        self.pw.data_process(generator)
+        self.pw.update_drawing()
+        val = 2
+        self.pw.data_process(generator)
+        val = 3
+        self.pw.data_process(generator)
+        self.pw.update_drawing()
+        self.pw.update_drawing()
+
+        expected = np.array([1,3,3])
+        actual = self.pw.data['ch1']
+        self.assertTrue((actual == expected).all())
+        
+        
     def test_trigger_process(self):
         """
         Test "trigger_process" method which is used as the callback for the trigger `camonitor` event.

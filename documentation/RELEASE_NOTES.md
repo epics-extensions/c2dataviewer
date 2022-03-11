@@ -1,3 +1,9 @@
+# RELEASE 1.7.0
+## New Features
+- Added new striptool application. 
+- Scope app: default buffer size to initial waveform size
+- bug fixes
+
 # RELEASE 1.6.0
 ## New Features
 - Add 20 and 30Hz options to image app
