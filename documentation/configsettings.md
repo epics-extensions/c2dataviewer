@@ -12,4 +12,12 @@ Configuration common for all c2dataviewer applications.  Default configuration f
 TODO
 
 ### DISPLAY
-TODO
+| Setting | Description |
+|---|---|
+|FFT_FILTER| FFT filter type. Possible values are `NONE`, `HAMMING` |
+|AVERAGE| Size for moving average. |
+|AUTOSCALE| Turns on/off autoscale. Possible values are `TRUE`, `FALSE` |
+|SINGLE_AXIS| Turns on/off single axis.  Possible values are `TRUE`, `FALSE`|
+|HISTOGRAM| Turns on/off histogram.  Possible values are `TRUE`, `FALSE`|
+|N_BIN| Number of bins |
+|REFRESH| Refresh time in milliseconds |
