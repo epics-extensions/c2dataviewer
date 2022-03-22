@@ -87,9 +87,10 @@ class StripToolController(ScopeControllerBase):
         self._pvedit_dialog = PvEditDialogController(pvedit_widget, model,
                                                      default_proto=st_config.default_proto)
         self._win.editPvButton.clicked.connect(self._on_pvedit_click)
-        #default to showing 1 second of data
+        self.default_config(**kwargs)
+        #default to showing 60 second of data
         if not self._win.graphicsWidget.max_length:
-            self.update_buffer(int(1000 / self.refresh))
+            self.update_buffer(int(60000 / self.refresh))
 
         self._win.graphicsWidget.enable_sampling_mode(True)
         self._pvedit_dialog.set_completion_callback(self.pv_edit_callback)

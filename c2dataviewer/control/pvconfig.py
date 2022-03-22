@@ -7,7 +7,7 @@ def randcolor():
 
 class PvConfig:
     default_colors = ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
-                      '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000']
+                      '#FFAA00', '#FF5555', '#0000FF', '#AAAA00', '#FFFFFF']
     color_index = 0
     
     def __init__(self, pvname=None, color=None, proto=None):
