@@ -1,3 +1,6 @@
+# RELEASE 1.7.1
+- bug fixes
+
 # RELEASE 1.7.0
 ## New Features
 - Added new striptool application. 
