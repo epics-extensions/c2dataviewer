@@ -9,7 +9,11 @@ Configuration common for all c2dataviewer applications.  Default configuration f
 |APP| set default application.  Possible values are `IMAGE`, `SCOPE`, and `STRIPTOOL`
 
 ### ACQUISITION
-TODO
+| Setting | Description |
+|---|---|
+|BUFFER| Buffer size |
+|TRIGGER| Trigger PV name and protocol, which comes with format of `proto://pv_name`. `proto` can either be `pva` or `ca`  |
+|WAIT_TRIGGER| Turns on/off trigger mode. Possible values are `TRUE`, `FALSE` |
 
 ### DISPLAY
 | Setting | Description |
