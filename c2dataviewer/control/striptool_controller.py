@@ -36,12 +36,12 @@ class PvScopeItem:
             
     def stop(self):
         self.connection.stop()
+        self.parent_controller._win.graphicsWidget.clear_sample_data(self.pvname)
 
     def update_properties(self, props):
         self.channel.color = props.color
         if self.proto != props.proto:
             self.stop()
-            self.parent_controller._win.graphicsWidget.clear_sample_data(self.pvname)
             self.proto = props.proto
             self.connection = self.parent_controller.model.create_connection(self.pvname, provider=self.proto)
             self.connection_changed_callback(self.connection.state, None)

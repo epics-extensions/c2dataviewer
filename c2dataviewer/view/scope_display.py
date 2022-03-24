@@ -617,12 +617,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         else:
             return (True, idx)
 
-
+   
     def clear_sample_data(self, pvname):
+        """
+        Clear sample data for PV, usually when the connection is lost.  
+        """
         if pvname in self.sample_data:
-            del self.sample_data[pvname]
-            if self.sampling_mode and pvname in self.data:
-                del self.data[pvname]
+            self.sample_data[pvname] = 0
                 
     def data_process(self, data_generator):
         """
