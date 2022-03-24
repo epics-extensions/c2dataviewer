@@ -159,6 +159,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.sampling_mode = val
         self.data.clear()
         self.setup_plot()
+        self.is_max_length = False
         
     def set_arrayid(self, value):
         """
