@@ -87,12 +87,13 @@ class PvEditDialogController:
         self._win.pvTableWidget.setCellWidget(rowcount, 3, item)
         
     def show(self, pvlist):
+        self._set_pvlist(pvlist)
+        self._win.exec_()
+
+    def _set_pvlist(self, pvlist):
         self._win.pvTableWidget.clearContents()
         self._win.pvTableWidget.setRowCount(0)
         
         for p in pvlist:
             self._add_pv(p.pvname, make_color_tuple(p.color), p.proto)
-            
-        self._win.exec_()
-
-    
+        
