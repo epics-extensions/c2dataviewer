@@ -1,4 +1,5 @@
 import pyqtgraph
+import random
 from PyQt5 import QtGui
 from PyQt5 import QtCore
 from .pvconfig import PvConfig
@@ -12,6 +13,10 @@ def make_color_tuple(c):
 
 def make_color_hex(c):
     return '#%02x%02x%02x' % (c[0], c[1], c[2])
+
+def randcolor():
+    color = "#"+''.join([random.choice('0123456789ABCDEF') for j in range(6)])
+    return make_color_tuple(color)
 
 class PvEditDialogController:
     def __init__(self, widget, model, default_proto=None):
@@ -27,6 +32,8 @@ class PvEditDialogController:
         if default_proto is not None:
             self._win.protocolComboBox.setCurrentText(str(default_proto).lower())
 
+        self._win.colorButton.setColor(randcolor())
+            
     def set_completion_callback(self, callback):
         self.callback = callback
             
@@ -35,6 +42,7 @@ class PvEditDialogController:
         proto = self._win.protocolComboBox.currentText()
         color = self._win.colorButton.color(mode='byte')
         self._add_pv(pv_name, color, proto)
+        self._win.colorButton.setColor(randcolor())
         
     def _on_cancel(self):
         self._win.close()
