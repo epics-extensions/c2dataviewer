@@ -61,7 +61,11 @@ class ScopeControllerBase:
             self._win.graphicsWidget.update_buffer(int(max_length))
             
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
-        
+
+        refresh = self.parameters.child("Display").child("Refresh").value()
+        if refresh:
+            self.set_freshrate(refresh)
+            
         self.default_trigger = kwargs.get("trigger", None)
         if self.default_trigger is not None:
             try:

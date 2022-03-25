@@ -159,6 +159,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.sampling_mode = val
         self.data.clear()
         self.setup_plot()
+        self.is_max_length = False
         
     def set_arrayid(self, value):
         """
@@ -616,12 +617,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         else:
             return (True, idx)
 
-
+   
     def clear_sample_data(self, pvname):
+        """
+        Clear sample data for PV, usually when the connection is lost.  
+        """
         if pvname in self.sample_data:
-            del self.sample_data[pvname]
-            if self.sampling_mode and pvname in self.data:
-                del self.data[pvname]
+            self.sample_data[pvname] = 0
                 
     def data_process(self, data_generator):
         """

@@ -36,7 +36,17 @@ class TestStriptoolController(unittest.TestCase):
 
         # Build GUI elements
         self.warning = WarningDialog(None)
+        self.pvedit_dialog = PvEditDialog()
+
+    def create_controller(self, cfgtext):
+        cfg = ConfigParser()
+        cfg.read_string(cfgtext)
+        self.cfg = cfg
         
+        self.striptool_controller = StripToolController(
+            self.window,  self.model, self.pvedit_dialog, self.warning, self.parameters, self.cfg)
+        
+    def test_pvlist(self):
         raw = """
 [STRIPTOOL]
 Chan1.PV = pva://Bar:Baz
@@ -44,22 +54,14 @@ Chan2.PV = pva://Bar:Baz2
 Chan1.Color = #000000
 Chan2.Color = #FFFFFF
         """
-        cfg = ConfigParser()
-        cfg.read_string(raw)
-        self.cfg = cfg
 
-        self.pvedit_dialog = PvEditDialog()
+        self.create_controller(raw)
         
-        self.scope_controller = StripToolController(
-            self.window,  self.model, self.pvedit_dialog, self.warning, self.parameters, self.cfg)
-
-    
-    def test_pvlist(self):
         expected = {
             'Bar:Baz' : PvConfig('Bar:Baz', '#000000', 'pva'),
             'Bar:Baz2' : PvConfig('Bar:Baz2', '#FFFFFF', 'pva'),
             }
-        pvdict = self.scope_controller.pvdict
+        pvdict = self.striptool_controller.pvdict
         self.assertEqual(len(expected), len(pvdict))
         for k, v in expected.items():
             self.assertTrue(k in pvdict)
@@ -70,9 +72,9 @@ Chan2.Color = #FFFFFF
 
 
         newpvlist = [ PvConfig('Foo:bar', '#444444', 'ca'), PvConfig('Foo:bar2', '#555555', 'ca') ]
-        self.scope_controller.pv_edit_callback(newpvlist)
+        self.striptool_controller.pv_edit_callback(newpvlist)
         self.assertEqual(len(newpvlist), len(pvdict))
-        pvdict = self.scope_controller.pvdict
+        pvdict = self.striptool_controller.pvdict
         for v in newpvlist:
             self.assertTrue(v.pvname in pvdict)
             p = pvdict[v.pvname].make_pvconfig()
@@ -80,5 +82,43 @@ Chan2.Color = #FFFFFF
             self.assertEqual(p.color, v.color)
             self.assertEqual(p.proto, v.proto)
             
-        
 
+    def test_pvedit(self):
+        raw = """
+[STRIPTOOL]
+DefaultProtocol = pva
+Chan0.PV = Ch0
+Chan1.PV = Ch1
+Chan2.PV = Ch2
+Chan3.PV = Ch3
+Chan4.PV = Ch4
+Chan5.PV = Ch5
+Chan6.PV = Ch6
+Chan7.PV = Ch7
+Chan8.PV = Ch8
+Chan9.PV = Ch9
+Chan10.PV = Ch10
+Chan11.PV = Ch11
+Chan12.PV = Ch12
+Chan13.PV = Ch13
+Chan14.PV = Ch14
+Chan15.PV = Ch15
+"""
+
+        pvcount = 16
+        self.create_controller(raw)
+
+        self.assertEqual(len(self.striptool_controller.pvdict), pvcount)
+        pvlist = []
+        for p in self.striptool_controller.pvdict.values():
+            cfg = p.make_pvconfig()
+            pvlist.append(cfg)
+
+        pvedit = self.striptool_controller._pvedit_dialog
+        pvedit._set_pvlist(pvlist)
+        pvedit._add_pv('Ch16', '#000000', 'pva')
+        pvedit._on_ok()
+
+        self.assertEqual(len(self.striptool_controller.pvdict), pvcount + 1)
+        self.assertTrue('Ch16' in self.striptool_controller.pvdict)
+        
