@@ -1,3 +1,6 @@
+# RELEASE 1.7.2
+- bug fixes
+
 # RELEASE 1.7.1
 - bug fixes
 
