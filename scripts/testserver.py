@@ -13,10 +13,10 @@ class WaveformType(enum.Enum):
         return self.value
 
 class LinearGenerator:
-    def __init__(self):
-        self.offset = random.uniform(0, 100)
+    def __init__(self, offset, size):
+        self.offset = offset
         self.x = 0
-        self.size = random.uniform(100, 5000)
+        self.size = size
     def calc(self):
         self.x += 1
         self.x = self.x % self.size
@@ -28,6 +28,29 @@ class RandomGenerator:
     
     def calc(self):
         return random.uniform(0, 100)
+
+class Trigger:
+    def __init__(self, args):
+        self.pvname = args.triggerpv
+        self.schema = {'value': pva.FLOAT,
+                       'timeStamp' : {
+                           'secondsPastEpoch' : pva.UINT,
+                           'nanoseconds' : pva.UINT
+                       }
+                       }
+        self.server = pva.PvaServer(self.pvname, pva.PvObject(self.schema))
+        self.delay = args.trigger_interval
+        self.gen = LinearGenerator(-10, 20)
+
+    def fire(self, trigger_time):
+        value = self.gen.calc()
+        ts = int(trigger_time)
+        tns = (trigger_time - ts)*1e9
+        pv = pva.PvObject(self.schema, {'value':value,
+                                        'timeStamp' :
+                                        { 'secondsPastEpoch' : ts, 'nanoseconds' : int(tns) } })
+        self.server.update(pv)
+
     
 def run_striptool_pvserver(arg):
     pvname = arg[1].pvprefix + str(arg[0])
@@ -38,7 +61,9 @@ def run_striptool_pvserver(arg):
     print('starting %s at %f Hz' % (pvname, 1/delay))
     wftype = arg[1].wftype
     if wftype == WaveformType.LINEAR:
-        gen = LinearGenerator()
+        offset = random.uniform(0, 100)
+        size = random.uniform(100, 5000);
+        gen = LinearGenerator(offset, size)
     else:
         gen = RandomGenerator()
         
@@ -54,17 +79,35 @@ def run_striptool(args):
         arglist = [ (c, args) for c in range(args.numpvs) ]
         p.map(run_striptool_pvserver, arglist)
 
+def trigger_process(args):
+    pvname = args.triggerpv
+    trigger = Trigger(args)
+    print('trigger %s started' % (pvname))
+    while(True):
+        trigger.fire(time.time())
+        time.sleep(args.trigger_interval)
+    
 def run_scope(args):
+    if args.triggerpv:
+        p = mp.Process(target=trigger_process, args=(args,))
+        p.start()
+        
     pvname = args.pvname
-    schema = { 'obj1' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'obj2' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}}
+    schema = { 'obj1' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'obj2' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'time': [pva.DOUBLE], 'objectTime': pva.DOUBLE}
     server = pva.PvaServer(pvname, pva.PvObject(schema))
     print('starting', pvname)
+    delay = 0.5
+    nsamples = 100
+    sample_time_interval = delay / nsamples
     while(True):
-        x = [ random.uniform(-i, i) for i in range(0, 100) ]
-        y = [ random.uniform(-i, i) for i in range(0, 100) ]
-        pv = pva.PvObject(schema, {'obj1':{'x':x, 'y':y}, 'obj2': {'x':x, 'y':y}})
+        objectTime = float(time.time())
+        time.sleep(delay)
+        times = [ i*sample_time_interval + objectTime for i in range(0, nsamples) ]
+        x = [ random.uniform(-i, i) for i in range(0, nsamples) ]
+        y = [ random.uniform(-i, i) for i in range(0, nsamples) ]
+        pv = pva.PvObject(schema, {'obj1':{'x':x, 'y':y}, 'obj2': {'x':x, 'y':y},
+                                   'objectTime': objectTime, 'time' : times })
         server.update(pv)
-        time.sleep(0.5)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser('Test server')
@@ -76,6 +119,8 @@ if __name__ == "__main__":
     striptool.add_argument('--waveform-type', dest='wftype', default=WaveformType.RANDOM, type=WaveformType, choices=list(WaveformType))
     scope = subparsers.add_parser('scope', help='Test server for scope app')
     scope.add_argument('pvname', help='structure pv to host')
+    scope.add_argument('--trigger-pv', help='Adds a trigger PV.  PV values will range between -10 and 10', dest='triggerpv')
+    scope.add_argument('--trigger-interval', help='Fires at given interval in seconds', dest='trigger_interval', default=1, type=float)
     args = parser.parse_args()
     if args.command == 'striptool':
         run_striptool(args)
