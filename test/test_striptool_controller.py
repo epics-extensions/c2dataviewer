@@ -90,22 +90,9 @@ DefaultProtocol = pva
 Chan0.PV = Ch0
 Chan1.PV = Ch1
 Chan2.PV = Ch2
-Chan3.PV = Ch3
-Chan4.PV = Ch4
-Chan5.PV = Ch5
-Chan6.PV = Ch6
-Chan7.PV = Ch7
-Chan8.PV = Ch8
-Chan9.PV = Ch9
-Chan10.PV = Ch10
-Chan11.PV = Ch11
-Chan12.PV = Ch12
-Chan13.PV = Ch13
-Chan14.PV = Ch14
-Chan15.PV = Ch15
 """
 
-        pvcount = 16
+        pvcount = 3
         self.create_controller(raw)
 
         self.assertEqual(len(self.striptool_controller.pvdict), pvcount)
@@ -116,9 +103,8 @@ Chan15.PV = Ch15
 
         pvedit = self.striptool_controller._pvedit_dialog
         pvedit._set_pvlist(pvlist)
-        pvedit._add_pv('Ch16', '#000000', 'pva')
+        pvedit._add_pv('Ch3', '#000000', 'pva')
         pvedit._on_ok()
 
         self.assertEqual(len(self.striptool_controller.pvdict), pvcount + 1)
-        self.assertTrue('Ch16' in self.striptool_controller.pvdict)
-        
+        self.assertTrue('Ch3' in self.striptool_controller.pvdict)
