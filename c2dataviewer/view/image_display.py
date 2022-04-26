@@ -10,6 +10,7 @@ PVA object viewer utilities for image display
 """
 from collections import namedtuple
 import queue
+import logging
 
 import numpy as np
 from pyqtgraph import QtCore
@@ -455,19 +456,25 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
 
-        # Get color mode
-        attributes = data['attribute']
-        if any(('name' in attr and attr['name'] == "ColorMode") for attr in attributes ):
-            for attribute in attributes:
-                if attribute['name'] == "ColorMode":
-                    self.color_mode = attribute['value'][0]['value']
-        else:
-            raise RuntimeError(f"NDArray does not contain ColorMode Attribute.")
-
         # Get dimensions
         dims = data['dimension']
         self.dimensions = len(dims)
-
+        
+        # Get color mode
+        try:
+            attributes = data['attribute']
+            if any(('name' in attr and attr['name'] == "ColorMode") for attr in attributes ):
+                for attribute in attributes:
+                    if attribute['name'] == "ColorMode":
+                        self.color_mode = attribute['value'][0]['value']
+            else:
+                raise RuntimeError(f"NDArray does not contain ColorMode Attribute.")
+        except:
+            if self.dimensions == 2:
+                self.color_mode = COLOR_MODE_MONO
+            else:
+                raise
+            
         if self.dimensions == 2 and self.color_mode == COLOR_MODE_MONO:
             x = dims[0]
             y = dims[1]
@@ -543,7 +550,7 @@ class ImagePlotWidget(RawImageWidget):
             if self.datasource is not None:
                 self.datasource.stop()
         except RuntimeError as e:
-            print(repr(e))
+            logging.getLogger().debug('Error stopping source: ' + str(e))
 
     def set_framerate(self, value):
         """
@@ -570,8 +577,9 @@ class ImagePlotWidget(RawImageWidget):
         self.wait()
         try:
             self.display(self.data)
-            self.signal()
-        except RuntimeError:
+        except RuntimeError as e:
+            logging.getLogger().error('Error displaying data: ' + str(e))
+        finally:
             self.signal()
 
     def camera_changed(self, value):
