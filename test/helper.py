@@ -75,8 +75,9 @@ def create_image(id, image=None, data_type='ubyteValue', nx=None, ny=None, nz=No
     nda['uncompressedSize'] = nx*ny*(nz if nz is not None else 1)
     nda['timeStamp'] = time_stamp
     nda['dataTimeStamp'] = time_stamp
-    attrs = [pva.NtAttribute('ColorMode', pva.PvInt(color_mode))]
-    nda['attribute'] = attrs
+    if color_mode is not None:
+        attrs = [pva.NtAttribute('ColorMode', pva.PvInt(color_mode))]
+        nda['attribute'] = attrs
     nda['value'] = {data_type : image}
 
     return nda

@@ -408,3 +408,11 @@ class TestImageDisplay(unittest.TestCase):
         self.assertEqual(0, yOffset)
         self.assertEqual(10, width)
         self.assertEqual(10, height)
+
+    def test_no_color_mode(self):
+        #Make sure that can process mono images even though they don't have a color mode
+        image = create_image(1, nx=8, ny=8)
+        try:
+            self.imageWidget.display(image)
+        except RuntimeError as e:
+            self.assertTrue(False, e)
