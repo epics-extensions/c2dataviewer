@@ -1,3 +1,7 @@
+# Release 1.7.3 (04/26/2022)
+## Image app
+- make color mode optional
+
 # RELEASE 1.7.2
 - bug fixes
 
