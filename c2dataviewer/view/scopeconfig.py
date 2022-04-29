@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .scope_config_base import ScopeConfigureBase
-
+import logging
 """
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
@@ -22,7 +22,7 @@ class Configure(ScopeConfigureBase):
         :param params: parameters parsed from command line and configuration file
         :param pvs: pv name dictionary, format: {"alias": "PV:Name"}
         """
-        super().__init__(params, show_start=True, show_trigger=True, **kwargs)
+        super().__init__(params, show_start=True, **kwargs)
         self.pvs = kwargs.get("pv", None)
 
         self.counts = 4
@@ -106,7 +106,7 @@ class Configure(ScopeConfigureBase):
             sections = self.params["SCOPE"]["SECTION"].split(",")
             for idx, section in enumerate(sections):
                 # remove unnecessary space
-                sections[idx] = section.strip()
+                sections[idx] = section.strip() 
             if "ACQUISITION" in sections:
                 acquisition = self.assemble_acquisition(self.params["ACQUISITION"])
             else:
@@ -119,17 +119,26 @@ class Configure(ScopeConfigureBase):
                 channel = self.assemble_channel(self.params["CHANNELS"])
             else:
                 channel = self.assemble_channel()
-        except KeyError:
+            if "TRIGGER" in sections:
+                trigger = self.assemble_trigger(self.params["TRIGGER"])
+            else:
+                trigger = self.assemble_trigger()
+        except KeyError as e:
+            logging.getLogger().warning('Key %s not found in config:' %  (str(e)))
             acquisition = self.assemble_acquisition()
             display = self.assemble_display()
             channel = self.assemble_channel()
-
+            trigger = self.assemble_trigger()
+            
         if acquisition is None or display is None or channel is None:
             raise RuntimeError("No enough information for scope")
 
+        
         cfg = self.assemble_config()
+
+        
         # line up in order
-        paramcfg = [acquisition, display, cfg]
+        paramcfg = [acquisition, trigger, display, cfg]
         for ch in channel:
             paramcfg.append(ch)
         statistics = self.assemble_statistics()

@@ -4,7 +4,6 @@ class ScopeConfigureBase:
         self.default_arrayid = kwargs.get("arrayid", "None")
         self.default_xaxes = kwargs.get("xaxes", "None")
         self.default_trigger = kwargs.get("trigger", None)
-        self.show_trigger = kwargs.get("show_trigger", True)
         self.show_start = kwargs.get("show_start", False)
 
 
@@ -14,7 +13,7 @@ class ScopeConfigureBase:
         should be implemented by the child class
         """
         return children
-    
+
     def assemble_acquisition(self, section=None):
         """
         Assemble acquisition information
@@ -24,67 +23,14 @@ class ScopeConfigureBase:
         """
         
         children = []
-        trigger_pv = self.default_trigger
-        trigger_mode = False
-        trigger_mode_disabled = True
         buffer = None
         
         if section:
             try:
                 buffer = section["BUFFER"]
-            except ValueError:
+            except Exception:
                 pass
-
-            # Trigger PV name and protocol, which comes with format of proto://pv_name
-            # the protocol is either ca:// for channel access or pva:// for pvAccess
-            trigger_pv = section.get("TRIGGER", None)
-            if self.default_trigger is not None:
-                trigger_pv = self.default_trigger
-
-            if trigger_pv is not None and trigger_pv.upper().strip() == "NONE":
-                # set trigger PV value to None if a "None" string comes from configuration
-                trigger_pv = None
-            if trigger_pv is None:
-                trigger_mode = None
-            else:
-                trigger_mode = section.get("WAIT_TRIGGER", None)
-            if trigger_mode is not None:
-                if trigger_mode.upper().strip() in ["TRUE"]:
-                    trigger_mode = True
-                else:
-                    # set trigger PV value to None if a "None" string comes from configuration
-                    trigger_mode = False
-            else:
-                trigger_mode = False
-
-            trigger_mode_disabled = True
-            if trigger_mode:
-                trigger_mode_disabled = False
-
-            # post_trigger_pause = 0.0
-            # try:
-            #     post_trigger_pause = section.getfloat("POST_TRIGGER_PAUSE", 0.0)
-            # except ValueError:
-            #     pass
-            # trigger_holdoff = 0.0
-            # try:
-            #     trigger_holdoff = section.getfloat("TRIGGER_HOLDOFF", 0.0)
-            # except ValueError:
-            #     pass
-
-        if self.show_trigger:
-            children += [
-                {"name": "Trigger PV", "type": "str", "value": trigger_pv},
-                {"name": "Trigger Mode", "type": "bool", "value": trigger_mode, "readonly": trigger_mode_disabled},
-                # Due to issue: https://github.com/pyqtgraph/pyqtgraph/issues/263
-                # always make the trigger level writable instead of disabling writing
-                {"name": "Trigger Threshold", "type": "float", "value": 0.0}
-                # {"name": "PostTrigger", "type": "float", "value": post_trigger_pause, "siPrefix": True,
-                #  "suffix": "Second"},
-                # {"name": "HoldTrigger", "type": "float", "value": trigger_holdoff, "siPrefix": True,
-                #  "suffix": "Second"},
-            ]
-
+            
         children += [
             {"name": "Freeze", "type": "bool", "value": False},
             {"name": "Buffer (Samples)", "type": "int", "value": buffer, "siPrefix": False, 'decimals': 20}
@@ -205,6 +151,50 @@ class ScopeConfigureBase:
         return display
 
 
+    def assemble_trigger(self, section=None):
+        trigger_pv = self.default_trigger
+        trigger_mode = 'none'
+
+        if section:
+            # Trigger PV name and protocol, which comes with format of proto://pv_name
+            # the protocol is either ca:// for channel access or pva:// for pvAccess
+            trigger_pv = section.get("TRIGGER", None)
+            if self.default_trigger is not None:
+                trigger_pv = self.default_trigger
+
+            if trigger_pv is not None and trigger_pv.upper().strip() == "NONE":
+                # set trigger PV value to None if a "None" string comes from configuration
+                trigger_pv = None
+            if trigger_pv is None:
+                trigger_mode = None
+            else:
+                trigger_mode = section.get("TRIGGER_MODE", None)
+            if trigger_mode is not None:
+                trigger_mode = trigger_mode.lower().strip()
+                if trigger_mode == 'off':
+                    trigger_mode = 'none'
+            else:
+                trigger_mode = 'none'
+        
+        cfg ={"name": "Trigger",
+              "type": "group",
+              "children" : [
+                  { "name" :  "Mode", "type": "list", "values": {
+                    "Off" : "none",
+                    "On change" : "onchange",
+                    "Greater than threshold" : "gtthreshold",
+                    "Lesser than threshold" : "ltthreshold"
+                    },
+                  "value" : trigger_mode
+                 },
+                  {"name": "PV", "type": "str", "value": trigger_pv},
+                  {"name": "Time Field", "type": "list", "values" :
+                   [ "None" ], "default" : "None", "visible" : False},
+                  {"name": "Data Time Field", "type": "list", "values" :["None"], "default" : "None" },
+                {"name": "Threshold", "type": "float", "value": 0.0}
+              ]}
+        return cfg
+        
     def assemble_config(self):
         # Assemble extra configuration information for plotting
         # which is ArrayId selection, and x axes
@@ -236,5 +226,6 @@ class ScopeConfigureBase:
             {"name": "Rate", "type": "float", "value": 0., "readonly": True, "siPrefix": True,
              "suffix": "Frames/sec"},
             {"name": "TrigStatus", "type": "str", "value": "", "readonly": True},
+            {"name": "TrigValue", "type": "str", "value": "", "readonly": True}
         ]}
         return statistics

@@ -297,19 +297,21 @@ class DataSource:
 
     def update_trigger(self, name, proto='ca'):
         """
-        Update trigger PV name
+        Update trigger PV name.  If failed to connect, trigger is set to None
 
         :param name: PV name for external trigger
         :param proto: protocol, should be 'pva' or 'ca'. 'ca' by default
-        :return:
+        :return: trigger fields
         """
         if self.trigger_chan is not None:
             self.stop_trigger()
 
+        self.trigger = None
+        
         if name == self.trigger:
             # nothing change
             return
-
+        
         if proto.lower() == "ca":
             # use channel access protocol, which is default
             trigger_chan = pva.Channel(name, pva.CA)
@@ -320,42 +322,29 @@ class DataSource:
             raise RuntimeError("Unknown EPICS communication protocol {}".format(proto))
 
         # test connectivity, which might cause for example timeout exception
-        trigger_chan.get("")
-
-        # test the record type.
-        # For the first implementation, it accepts bi/bo
-        trigger_rec_type = pva.Channel(name+".RTYP", pva.CA).get()["value"]
-        if trigger_rec_type not in ["bi", "bo", "ai", "ao", "longin", "longout", "calc", "event"]:
-            if self.trigger_chan is not None:
-                self.trigger = None
-                self.trigger_chan = None
-            raise RuntimeError("Trigger record has to be one in [ai, ao, bi, bo, calc, longin, longout, event]")
+        pv = trigger_chan.get("")
 
         # update trigger name & channel
         self.trigger = name
+        self.trigger_proto = proto.lower()
         self.trigger_chan = trigger_chan
-        return trigger_rec_type
+        pv_structure = pv.getStructureDict()
+        keys =[ k for k,v in pv_structure.items() ]
+        
+        return keys
 
-    def trigger_monitor_callback(self, data):
-        """
-
-        :param data:
-        :return:
-        """
-        # TODO implement trigger support
-        # print(data)
-
-    def start_trigger(self, routine=None):
+    def start_trigger(self, routine):
         """
 
         :return:
         """
         try:
-            if routine is None:
-                self.trigger_chan.subscribe('triggerMonitorCallback', self.trigger_monitor_callback)
-            else:
-                self.trigger_chan.subscribe('triggerMonitorCallback', routine)
-            self.trigger_chan.startMonitor('field(timeStamp,value)')
+            self.trigger_chan.subscribe('triggerMonitorCallback', routine)
+            req = ''
+            if self.trigger_proto == 'ca':
+                #need to explicitly ask for timeStamp 
+                req = 'field(timeStamp,value)'
+            self.trigger_chan.startMonitor(req)
         except PvaException:
             raise RuntimeError("Cannot connect to PV {}".format(self.trigger))
 
@@ -364,6 +353,9 @@ class DataSource:
 
         :return:
         """
+        if not self.trigger_chan:
+            return
+        
         try:
             self.trigger_chan.stopMonitor()
             self.trigger_chan.unsubscribe('triggerMonitorCallback')

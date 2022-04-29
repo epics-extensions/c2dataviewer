@@ -12,9 +12,11 @@ import os
 import sys
 import unittest
 import numpy as np
+import time
 
 from c2dataviewer.view.scope_display import PlotWidget
 from c2dataviewer.view.scope_display import PlotChannel
+from c2dataviewer.view.scope_display import TriggerType
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -271,6 +273,22 @@ class TestScopeDisplay(unittest.TestCase):
         actual = self.pw.data['ch1']
         self.assertTrue((actual == expected).all())
         
+
+    def create_trig_data(self, val, time):
+        return {
+            'value' : val,
+            'timeStamp' : {
+                'secondsPastEpoch' : time,
+                'nanoseconds' : 0
+                }
+            };
+
+    def call_data_process(self, data):
+        def data_generator():
+            for field, value in data.items():
+                yield (field, value)
+
+        self.pw.data_process(data_generator)
         
     def test_trigger_process(self):
         """
@@ -278,106 +296,59 @@ class TestScopeDisplay(unittest.TestCase):
 
         :return:
         """
+        #set up trigger
+        self.pw.trigger.data_time_field = 'time'
+        
+        self.pw.data = {}
+        self.pw.trigger.set_trigger_mode(True)
+        self.pw.trigger.set_trigger_type(TriggerType.ON_CHANGE)
+        self.pw.notify_plotting_started(True)
+        self.pw.trigger.data_callback(self.create_trig_data(0, 0))
 
-        # Test bi record
-        self.pw.trigger_rec_type = "bi"
-        data = {}
-        data['value'] = {}
-        data['value']['index'] = 1
-        data['timeStamp'] = {}
-        data['timeStamp']['secondsPastEpoch'] = 111
-        data['timeStamp']['nanoseconds'] = 222
-        ts = data['timeStamp']['secondsPastEpoch'] + 1e-9*data['timeStamp']['nanoseconds']
+        class MockSignal:
+            def __init__(self, pw):
+                self.pw = pw
+                
+            def emit(self):
+                #unlock before calling update_drawing
+                self.pw.signal()
+                self.pw.update_drawing()
+                
+        self.pw.trigger.plot_trigger_signal_emitter = MockSignal(self.pw)
+        
+        self.call_data_process({
+            'x' : list(range(0, 50)),
+            'time' : list(range(0, 50))
+        })
+        self.assertFalse(self.pw.trigger.is_triggered())
+        self.pw.trigger.data_callback(self.create_trig_data(0, 125))
 
-        self.pw.plotting_started = True
+        #no data, trigger not happened yet
+        self.assertEqual(len(self.pw.data), 0)
+        self.assertTrue(self.pw.trigger.is_triggered())
 
-        # Test init state
-        self.assertTrue(self.pw.plotting_started)
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
+        self.call_data_process({
+            'x' : list(range(50, 100)),
+            'time' : list(range(50, 100))
+        })
 
-        # Run and test state after first, trigger as the first monitor should be
-        # ignored because of the init connection call
-        self.pw.trigger_process(data)
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
+        #no data, have not filled buffer
+        self.assertEqual(len(self.pw.data), 0)
+        self.assertTrue(self.pw.trigger.is_triggered())
 
-        # Call the callback again and check if values were set correctly
-        self.pw.trigger_process(data)
-        self.assertTrue(self.pw.is_triggered)
-        self.assertFalse(self.pw.trigger_data_done)
-        self.assertAlmostEqual(ts, self.pw.trigger_timestamp)
+        self.call_data_process({
+            'x' : list(range(100, 150)),
+            'time' : list(range(100, 150))
+        })
+        self.call_data_process({
+            'x' : list(range(150, 200)),
+            'time' : list(range(150, 200))
+        })
 
-        # Reset the state
-        self.pw.is_triggered = False
-        self.pw.trigger_data_done = True
-        self.pw.trigger_timestamp = 0.0
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
-
-
-        # Test with ai record
-        self.pw.trigger_rec_type = "ai"
-        self.pw.trigger_level = 10
-        data = {}
-        data['value'] = 1
-        data['timeStamp'] = {}
-        data['timeStamp']['secondsPastEpoch'] = 1e+4
-        data['timeStamp']['nanoseconds'] = 66
-        ts = data['timeStamp']['secondsPastEpoch'] + 1e-9*data['timeStamp']['nanoseconds']
-
-        # Test init state
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
-
-        # Run and test state after first, trigger as the first monitor should be
-        # ignored because of the init connection call
-        self.pw.trigger_process(data)
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
-
-        # Call the callback again and check if values were set correctly (values < trigger_level)
-        self.pw.trigger_process(data)
-        self.assertFalse(self.pw.is_triggered)
-        self.assertTrue(self.pw.trigger_data_done)
-        self.assertAlmostEqual(0.0, self.pw.trigger_timestamp)
-
-        # Call the callback again and check if values were set correctly (values > trigger_level)
-        data['value'] = 11
-        self.pw.trigger_process(data)
-        self.assertTrue(self.pw.is_triggered)
-        self.assertFalse(self.pw.trigger_data_done)
-        self.assertAlmostEqual(ts, self.pw.trigger_timestamp)
-
-    def test_is_trigger_in_array(self):
-        """
-
-        """
-        # Test trigger too small
-        self.pw.trigger_timestamp = 1
-        time_array = np.arange(100, 200, 0.01)
-        in_array, inx = self.pw._PlotWidget__is_trigger_in_array(time_array)
-        self.assertFalse(in_array)
-        self.assertIsNone(inx)
-
-        # In array
-        self.pw.trigger_timestamp = 111
-        time_array = np.arange(100, 200, 0.01)
-        in_array, inx = self.pw._PlotWidget__is_trigger_in_array(time_array)
-        self.assertTrue(in_array)
-        self.assertEqual(1100, inx)
-
-        # Test trigger too small
-        self.pw.trigger_timestamp = 1111
-        time_array = np.arange(100, 200, 0.01)
-        in_array, inx = self.pw._PlotWidget__is_trigger_in_array(time_array)
-        self.assertFalse(in_array)
-        self.assertIsNone(inx)
+        #data should have been plotted
+        self.assertFalse(self.pw.trigger.is_triggered())
+        self.assertEqual(len(self.pw.data), 2)
+        self.assertEqual(len(self.pw.data['x']), self.pw.max_length)
 
 
     def test_data_process(self):
@@ -402,43 +373,14 @@ class TestScopeDisplay(unittest.TestCase):
         # Check init state
         self.assertEqual(0, self.pw.arraysReceived)
         self.assertFalse(self.pw.data) #Empty dict evaluate to False
-        self.assertFalse(self.pw.trig_data) #Empty dict evaluate to False
-        self.assertEqual(0, self.pw.samples_after_trig_cnt)
 
         # Call data callback
         self.pw.data_process(data_generator)
 
-        # Check after run (no trigger)
+        # Check after run 
         self.assertEqual(1, self.pw.arraysReceived)
+        self.assertEqual(len(self.pw.data), len(data))
+
         for field, value in data.items():
              np.testing.assert_array_almost_equal(value[-self.pw.max_length:], self.pw.data[field])
-        self.assertFalse(self.pw.trig_data) #Empty dict evaluate to False
-        self.assertEqual(0, self.pw.samples_after_trig_cnt)
 
-        # Simulate trigger in the future
-        self.pw.trigger_mode = True
-        self.pw.is_triggered = True
-        self.trigger_timestamp = 11_000
-
-        # Call data callback
-        self.pw.data_process(data_generator)
-
-        # Check after run (no trigger)
-        self.assertEqual(2, self.pw.arraysReceived)
-        for field, value in data.items():
-             np.testing.assert_array_almost_equal(np.concatenate((value[-self.pw.max_length:], value)), self.pw.data[field])
-        self.assertFalse(self.pw.trig_data) #Empty dict evaluate to False
-        self.assertEqual(0, self.pw.samples_after_trig_cnt)
-
-        # Set trigger timestamp in range
-        self.pw.trigger_timestamp = 3_766.667
-
-        # Call data callback
-        self.pw.data_process(data_generator)
-
-        # Check after run (trigger)
-        self.assertEqual(3, self.pw.arraysReceived)
-        for field, value in data.items():
-             np.testing.assert_array_almost_equal(np.concatenate((value[-2*array_len:], value)), self.pw.data[field])
-        self.assertEqual(set(data.keys()), set(self.pw.trig_data.keys()))
-        self.assertEqual(17000, self.pw.samples_after_trig_cnt)

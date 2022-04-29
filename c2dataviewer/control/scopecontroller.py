@@ -119,6 +119,9 @@ class ScopeController(ScopeControllerBase):
         child = self.parameters.child("Config").child("X Axes")
         child.setLimits(fdr)
 
+        child = self.parameters.child("Trigger").child("Data Time Field")
+        child.setLimits(fdr)
+        
         for idx in range(len(self.channels)):
             child = self.parameters.child("Channel %s" % (idx + 1))
             c = child.child("Field")
@@ -161,7 +164,6 @@ class ScopeController(ScopeControllerBase):
                         self.notify_warning('Failed to update PV: ' + (str(e)))
                         
                 elif childName == "Acquisition.Start":
-                    # self.plotting_started = data
                     if data:
                         self.start_plotting()
                     else:
@@ -206,9 +208,12 @@ class ScopeController(ScopeControllerBase):
         # start a new monitor
         self.model.start(self.monitor_callback, self.connection_changed)
 
-        super().start_plotting()
-        self.parameters.child("Acquisition").child("Start").setValue(1)
-
+        try:
+            super().start_plotting()
+            self.parameters.child("Acquisition").child("Start").setValue(1)
+        except Exception as e:
+            self.parameters.child("Acquisition").child("Start").setValue(0)
+            self.notify_warning('Failed to start plotting: ' + str(e))
     def stop_plotting(self):
         """
 
