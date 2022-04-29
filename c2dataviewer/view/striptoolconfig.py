@@ -4,7 +4,6 @@ class StripToolConfigure(ScopeConfigureBase):
     def __init__(self, params, **kwargs):
         super().__init__(params,
                          show_start=False,
-                         show_trigger=False,
                          **kwargs)
 
     def add_source_acquisition_props(self, children, section):
