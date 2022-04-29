@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .scope_config_base import ScopeConfigureBase
-
+import logging
 """
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
@@ -106,7 +106,7 @@ class Configure(ScopeConfigureBase):
             sections = self.params["SCOPE"]["SECTION"].split(",")
             for idx, section in enumerate(sections):
                 # remove unnecessary space
-                sections[idx] = section.strip()
+                sections[idx] = section.strip() 
             if "ACQUISITION" in sections:
                 acquisition = self.assemble_acquisition(self.params["ACQUISITION"])
             else:
@@ -123,7 +123,8 @@ class Configure(ScopeConfigureBase):
                 trigger = self.assemble_trigger(self.params["TRIGGER"])
             else:
                 trigger = self.assemble_trigger()
-        except KeyError:
+        except KeyError as e:
+            logging.getLogger().warning('Key %s not found in config:' %  (str(e)))
             acquisition = self.assemble_acquisition()
             display = self.assemble_display()
             channel = self.assemble_channel()

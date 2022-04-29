@@ -28,7 +28,7 @@ class ScopeConfigureBase:
         if section:
             try:
                 buffer = section["BUFFER"]
-            except ValueError:
+            except Exception:
                 pass
             
         children += [

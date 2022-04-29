@@ -76,10 +76,11 @@ def load_config(N=None):
         raise RuntimeError("No configuration file found.")
     cf = ConfigParser()
     if N is not None:
+        if not os.path.isfile(N):
+            raise RuntimeError("%s not found." % (N))
         cf.read(N)
     else:
         cf.read(cfgfile)
-
     return cf
 
 
@@ -167,7 +168,7 @@ def main():
     app = args.app
     if args.app is None:
         app = AppType(cfg["DEFAULT"]["APP"].lower())
-    
+        
     if app == AppType.IMAGE:
         from c2dataviewer import imagev
         # application from CLI overwrite the one in configuration file
