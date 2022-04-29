@@ -337,3 +337,5 @@ class ScopeControllerBase:
                 if self.trigger_is_monitor:
                     stat_str = self._win.graphicsWidget.trigger.status()
                 q.setValue(stat_str)
+            elif q.name() == 'TrigValue':
+                q.setValue(str(self._win.graphicsWidget.trigger.trigger_value))

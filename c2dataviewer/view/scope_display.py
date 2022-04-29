@@ -73,6 +73,8 @@ class Trigger:
         self.trigger_time_field = 'timeStamp'
         self.data_time_field = None
         self.is_triggered_func = None
+
+        self.trigger_value = None
         
     def __trigger_on_change(self, val):
         return True
@@ -103,6 +105,7 @@ class Trigger:
             return
 
         logging.getLogger().debug('Trigger received value ' + str(data['value']))
+        self.trigger_value = data['value']
 
         if not self.parent.plotting_started:
             return
@@ -203,6 +206,7 @@ class Trigger:
         self.trigger_count = 0
         self.is_triggered_ = False
         self.trigger_data_done = True
+        self.trigger_value = None
         
     def connect_to_callback(self):
         if self.trigger_mode:

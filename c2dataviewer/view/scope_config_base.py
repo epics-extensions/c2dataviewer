@@ -226,5 +226,6 @@ class ScopeConfigureBase:
             {"name": "Rate", "type": "float", "value": 0., "readonly": True, "siPrefix": True,
              "suffix": "Frames/sec"},
             {"name": "TrigStatus", "type": "str", "value": "", "readonly": True},
+            {"name": "TrigValue", "type": "str", "value": "", "readonly": True}
         ]}
         return statistics
