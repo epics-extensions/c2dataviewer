@@ -349,7 +349,7 @@ class TestScopeDisplay(unittest.TestCase):
         self.assertFalse(self.pw.trigger.is_triggered())
         self.assertEqual(len(self.pw.data), 2)
         self.assertEqual(len(self.pw.data['x']), self.pw.max_length)
-
+        self.assertEqual(self.pw.trigger.display_trigger_index(), 50)
 
     def test_data_process(self):
         """

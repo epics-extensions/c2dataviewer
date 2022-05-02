@@ -46,11 +46,10 @@ class Trigger:
         # Counts trigger PV monitor fired callback (count monitor updates)
         self.trigger_count = 0
 
-        # Number samples to take after trigger
-        self.samples_after_trig = 0
-
-        # Number of samples captured after trigger
-        self.samples_after_trig_cnt = 0
+        #trigger position in trig_data
+        self.trigger_index = 0
+        #index in trig_data where to plot data
+        self.display_start_index = 0
 
         self.trigger_data_done = True
         
@@ -75,6 +74,7 @@ class Trigger:
         self.is_triggered_func = None
 
         self.trigger_value = None
+        self.missed_triggers = 0
         
     def __trigger_on_change(self, val):
         return True
@@ -119,7 +119,6 @@ class Trigger:
         self.is_triggered_ = True
         self.trigger_data_done = False
 
-        self.samples_after_trig_cnt = 0
         ts = data[self.trigger_time_field]
         self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
 
@@ -155,7 +154,7 @@ class Trigger:
         # In trigger mode the minimum we must save is the whole last array (+ part of the old ones if max_length > vector_len)
         # We must store all the arrayes as the "Time" field determinate how much data do we really need, and the "Time" field can arrive last.
         vector_len = len(v)
-        required_data = 2 * (vector_len if vector_len > max_length else max_length)
+        required_data = int(1.5 * (vector_len if vector_len > max_length else max_length))
         self.trig_data[k] = np.append(self.trig_data.get(k, []), v)[-required_data:]
 
     def draw_data(self):
@@ -165,15 +164,18 @@ class Trigger:
         max_length = self.parent.max_length
         
         if self.trigger_mode and self.is_triggered_:
-            self.samples_after_trig = int(max_length / 2)
+            samples_after_trig = int(max_length / 2)
 
             # Check if we have trigger timestamp in buffer
             time_data = self.trig_data[self.data_time_field]
             idx = self.__is_trigger_in_array(time_data)
             if idx >= 0:
-                self.samples_after_trig_cnt = time_data.size - idx
+                self.trigger_index = idx
+                samples_after_trig_cnt = time_data.size - idx
                 # Check if we have the requested number of samples, to trigger the plotting
-                if self.samples_after_trig_cnt >= self.samples_after_trig:
+                if samples_after_trig_cnt >= samples_after_trig:
+                    self.display_start_index = max(idx - samples_after_trig, 0)
+                    endindex = idx + samples_after_trig
                     for k, v in self.trig_data.items():
                         if type(v) != np.ndarray:
                             continue
@@ -185,15 +187,23 @@ class Trigger:
                         # Goal is to get the slice of the waveform so the sample when the trigger happened is in the middle.
                         # samples_after_trig determinate how much samples do we want to show after the trigger (idx + samples_after_trig),
                         # while max_length holds a maximum number of samples to show, for this reason we need `(self.max_length-self.samples_after_trig`
-                        # samples before trigger/idx.                        
-                        index = self.samples_after_trig_cnt
-                        sample_half = self.samples_after_trig
-                        self.parent.data[k] = self.trig_data[k][index - sample_half : index + sample_half]
+                        # samples before trigger/idx.
+                        self.parent.data[k] = self.trig_data[k][self.display_start_index : endindex]
                     self.plot_trigger_signal_emitter.emit()
             elif idx == -1:
-                logging.getLogger().warning('Unable to find data matching trigger time.  Trigger and data may be out of sync')
+                datatimediff = time_data[-1] - time_data[0]
+                timediff = time_data[0] - self.trigger_timestamp
+                increasesize = int(len(time_data) * timediff / datatimediff)
+                logging.getLogger().warning('Unable to draw data at trigger because data time is %f seconds ahead trigger time. Try increasing buffer size to %i' % (timediff, self.parent.max_length + increasesize))
+                self.missed_triggers += 1
                 self.is_triggered_ = False
                 self.trigger_data_done = True
+
+    def display_trigger_index(self):
+        """
+        Returns the position of the trigger in the display buffer (i.e self.parent.data)
+        """
+        return self.trigger_index - self.display_start_index
     
     def finish_drawing(self):
         # Trigger curves were drawn - Freeze the scope
@@ -202,11 +212,11 @@ class Trigger:
             self.trigger_data_done = True
 
     def reset(self):
-        self.samples_after_trig_cnt = 0
         self.trigger_count = 0
         self.is_triggered_ = False
         self.trigger_data_done = True
         self.trigger_value = None
+        self.missed_triggers = 0
         
     def connect_to_callback(self):
         if self.trigger_mode:
@@ -897,7 +907,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         elif time_array is None:
             data_to_plot = self.filter(data) + channel.dc_offset
             self.curves[count].setData(data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.max_length - self.trigger.samples_after_trig,  [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.display_trigger_index(),  [data_to_plot.min(), data_to_plot.max()])
 
         # Draw time_array on the X axis and data on Y
         else:
@@ -918,22 +928,18 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         if self.trigger.is_triggered():
             if draw_trig_mark:
                 # Add trigger marker on plotting
-                vr = self.plot.viewRange()[1]
-                pvnames = [ c.pvname for c in self.channels ] 
-                if vr[0] == 0 and vr[1] == 1:
-                    min_value = max_value = None
-                    if self.single_axis:
-                        for field, value in self.data.items():
-                            if field in pvnames:
-                                a_min = np.amin(value).item()
-                                a_max = np.amax(value).item()
-                                min_value = a_min if min_value is None else min(min_value, a_min)
-                                max_value = a_max if max_value is None else max(max_value, a_max)
-                        mark_size = [min_value, max_value]
-                    else:
-                        mark_size = mark_size
+                pvnames = [ c.pvname for c in self.channels ]
+                min_value = max_value = None
+                if self.single_axis:
+                    for field, value in self.data.items():
+                        if field in pvnames:
+                            a_min = np.amin(value).item()
+                            a_max = np.amax(value).item()
+                            min_value = a_min if min_value is None else min(min_value, a_min)
+                            max_value = a_max if max_value is None else max(max_value, a_max)
+                    mark_size = [min_value, max_value]
                 else:
-                     mark_size = vr
+                    mark_size = mark_size
                 self.trigMarker.setData(np.array([marktime, marktime]),
                                         np.array(mark_size))
         else:
