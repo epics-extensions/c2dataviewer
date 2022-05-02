@@ -28,7 +28,15 @@ def make_protocol(proto):
         return pva.ProviderType.PVA
     else:
         raise Error('Invalid protocol: ' + proto)
-    
+
+def parse_pvname(pvname, default_proto):
+    proto = default_proto
+    if "://" in pvname:
+        proto, pvname = name.split('://')
+        proto = make_protocol(proto.lower().strip())
+
+    return pvname, proto
+
 class PollStrategy:
     def __init__(self, context, timer):
         self.ctx = context
@@ -216,9 +224,11 @@ class DataSource:
         :param name: EPICS7 PV name
         :return:
         """
+
+        name, proto = parse_pvname(name, pva.ProviderType.PVA)
         self.device = name
 
-        self.channel = Channel(self.device, self.timer_factory())
+        self.channel = Channel(self.device, self.timer_factory(), proto)
         self.channel_cache[name] = self.channel
             
     def get(self):
@@ -251,7 +261,8 @@ class DataSource:
             if name in self.channel_cache:
                 chan = self.channel_cache[name]
             else:
-                chan = Channel(name, self.timer_factory())
+                name, proto = parse_pvname(name, pva.ProviderType.PVA)
+                chan = Channel(name, self.timer_factory(), provider=proto)
                 self.channel_cache[name] = chan
                 
             self.channel = chan
