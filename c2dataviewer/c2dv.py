@@ -144,17 +144,21 @@ def main():
                              'by default, uses EPICS7 pvAccess.'
                              ' e.g. ca://MY:TEST:TRIG:PV or MY:TEST:TRIG:PV')
     parser.add_argument(
-        "--log-level",
-        dest="loglevel",
-        default="error",
-        help="log level. Accepts lower or uppercase values. Defaults to ERROR",
+        "--debug",
+        action='store_true',
+        help="Turn on debug messages"
     )
 
     args = parser.parse_args()
 
+    level = logging.WARNING
+
+    if args.debug:
+        level = logging.DEBUG
+        
     logging.basicConfig(
         stream=sys.stdout,
-        level=args.loglevel.upper(),
+        level=level,
         format="%(asctime)s %(levelname)-6s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
