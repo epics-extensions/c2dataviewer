@@ -188,10 +188,13 @@ class ScopeConfigureBase:
                   "value" : trigger_mode
                  },
                   {"name": "PV", "type": "str", "value": trigger_pv},
+                  {"name": "Trig Status", "type": "str", "value": "", "readonly": True},
+                  {"name": "Trig Value", "type": "str", "value": "", "readonly": True},
                   {"name": "Time Field", "type": "list", "values" :
                    [ "None" ], "default" : "None", "visible" : False},
                   {"name": "Data Time Field", "type": "list", "values" :["None"], "default" : "None" },
-                {"name": "Threshold", "type": "float", "value": 0.0}
+                  {"name": "Autoscale Buffer", "type": "bool", "value" : True},
+                  {"name": "Threshold", "type": "float", "value": 0.0},
               ]}
         return cfg
         
@@ -225,7 +228,5 @@ class ScopeConfigureBase:
              "suffix": "/sec"},
             {"name": "Rate", "type": "float", "value": 0., "readonly": True, "siPrefix": True,
              "suffix": "Frames/sec"},
-            {"name": "TrigStatus", "type": "str", "value": "", "readonly": True},
-            {"name": "TrigValue", "type": "str", "value": "", "readonly": True}
         ]}
         return statistics

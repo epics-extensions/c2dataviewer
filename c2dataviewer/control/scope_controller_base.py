@@ -2,6 +2,7 @@ import numpy as np
 import pyqtgraph
 import pvaccess as pva
 from ..model import ConnectionState
+import math
 
 class ScopeControllerBase:
     def __init__(self, widget, model, parameters, warning, channels=[], **kwargs):
@@ -30,6 +31,7 @@ class ScopeControllerBase:
         self.current_xaxes = "None"
         self.default_trigger = None
         self.trigger_is_monitor = False
+        self.trigger_auto_scale = False
         
         self._win.graphicsWidget.setup_plot(channels=channels, single_axis=True)
         
@@ -102,6 +104,11 @@ class ScopeControllerBase:
         self.default_trigger = kwargs.get("trigger", None)
         if self.default_trigger is not None:
             self.set_trigger_pv(self.default_trigger)
+
+        try:
+            self.trigger_auto_scale = self.parameters.child("Trigger").child("Autoscale Buffer").value()
+        except:
+            pass
         
     def update_buffer(self, size):
         self._win.graphicsWidget.update_buffer(size)
@@ -133,7 +140,9 @@ class ScopeControllerBase:
                 elif childName == "Trigger.Data Time Field":
                     self._win.graphicsWidget.trigger.data_time_field = data
                 elif childName == "Trigger.Time Field":
-                    self._win.graphicsWidget.trigger.trigger_time_field = data                    
+                    self._win.graphicsWidget.trigger.trigger_time_field = data
+                elif childName == "Trigger.Autoscale Buffer":
+                    self.trigger_auto_scale = data
                 elif childName == "Acquisition.Buffer (Samples)":
                     self._win.graphicsWidget.update_buffer(data)
                 elif childName == "Acquisition.Freeze":
@@ -332,10 +341,31 @@ class ScopeControllerBase:
                 q.setValue(self.arrays.mean() * self._win.graphicsWidget.data_size)
             elif q.name() == 'Rate':
                 q.setValue(self._win.graphicsWidget.fps)
-            elif q.name() == 'TrigStatus':
-                stat_str = 'Disconnected'
-                if self.trigger_is_monitor:
-                    stat_str = self._win.graphicsWidget.trigger.status()
-                q.setValue(stat_str)
-            elif q.name() == 'TrigValue':
-                q.setValue(str(self._win.graphicsWidget.trigger.trigger_value))
+
+        try:
+            for q in self.parameters.child("Trigger").children():
+                if q.name() == "Trig Status":
+                    stat_str = 'Disconnected'
+                    if self.trigger_is_monitor:
+                        stat_str = self._win.graphicsWidget.trigger.status()
+                    q.setValue(stat_str)
+                elif q.name() == "Trig Value":
+                    q.setValue(str(self._win.graphicsWidget.trigger.trigger_value))
+        except:
+            pass
+
+        #handle any auto-adjustments
+        if self.trigger_auto_scale and self._win.graphicsWidget.trigger_mode():
+            if self._win.graphicsWidget.trigger.missed_triggers > 0:
+                newsize = self._win.graphicsWidget.trigger.missed_adjust_buffer_size
+
+                # Round up to 3 10's places
+                # ex. 12345 would be rounded to 12400
+                precision = 3
+                exp = math.ceil(math.log10(newsize))
+                roundunit = 10**max(exp - precision, 0)
+                newsize = math.ceil(newsize / roundunit) * roundunit
+
+                self.update_buffer(newsize)
+            
+        

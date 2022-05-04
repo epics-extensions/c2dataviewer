@@ -75,6 +75,7 @@ class Trigger:
 
         self.trigger_value = None
         self.missed_triggers = 0
+        self.missed_adjust_buffer_size = 0
         
     def __trigger_on_change(self, val):
         return True
@@ -104,7 +105,6 @@ class Trigger:
         if self.trigger_count <= 1:
             return
 
-        logging.getLogger().debug('Trigger received value ' + str(data['value']))
         self.trigger_value = data['value']
 
         if not self.parent.plotting_started:
@@ -144,17 +144,21 @@ class Trigger:
     def status(self):
         if not self.trigger_mode:
             return 'Off'
-
-        if self.is_triggered_:
-            return 'Collecting data'
+        
+        if self.missed_triggers > 0:
+            return 'Trig off by %.1f s (Set buf=%.1e)' % (self.missed_time, self.missed_adjust_buffer_size)
+        elif self.is_triggered_:
+            return 'Collecting Data'
         else:
             return 'Waiting for trigger'
 
-    def add_to_trig_data(self, k, v, max_length):
+    def __trig_max_length(self):
+        return int(1.5 * self.parent.max_length)
+    
+    def add_to_trig_data(self, k, v):
         # In trigger mode the minimum we must save is the whole last array (+ part of the old ones if max_length > vector_len)
         # We must store all the arrayes as the "Time" field determinate how much data do we really need, and the "Time" field can arrive last.
-        vector_len = len(v)
-        required_data = int(1.5 * (vector_len if vector_len > max_length else max_length))
+        required_data = self.__trig_max_length()
         self.trig_data[k] = np.append(self.trig_data.get(k, []), v)[-required_data:]
 
     def draw_data(self):
@@ -170,6 +174,7 @@ class Trigger:
             time_data = self.trig_data[self.data_time_field]
             idx = self.__is_trigger_in_array(time_data)
             if idx >= 0:
+                self.missed_triggers = 0                
                 self.trigger_index = idx
                 samples_after_trig_cnt = time_data.size - idx
                 # Check if we have the requested number of samples, to trigger the plotting
@@ -190,14 +195,22 @@ class Trigger:
                         # samples before trigger/idx.
                         self.parent.data[k] = self.trig_data[k][self.display_start_index : endindex]
                     self.plot_trigger_signal_emitter.emit()
+                else:
+                    logging.getLogger().debug('Needs to acquire %i more samples before plotting' % (samples_after_trig - samples_after_trig_cnt))
             elif idx == -1:
-                datatimediff = time_data[-1] - time_data[0]
-                timediff = time_data[0] - self.trigger_timestamp
-                increasesize = int(len(time_data) * timediff / datatimediff)
-                logging.getLogger().warning('Unable to draw data at trigger because data time is %f seconds ahead trigger time. Try increasing buffer size to %i' % (timediff, self.parent.max_length + increasesize))
-                self.missed_triggers += 1
-                self.is_triggered_ = False
-                self.trigger_data_done = True
+                if len(time_data) >= self.__trig_max_length():
+                    datatimediff = time_data[-1] - time_data[0]
+                    timediff = time_data[0] - self.trigger_timestamp
+                    increasesize = len(time_data) * timediff / datatimediff
+                    self.missed_triggers += 1
+                    self.missed_adjust_buffer_size = increasesize + self.parent.max_length
+                    self.missed_time = timediff
+                    self.is_triggered_ = False
+                    self.trigger_data_done = True
+                else:
+                    self.missed_triggers = 0
+            else:
+                logging.getLogger().debug("Data is %f seconds behind trigger time" % (self.trigger_timestamp - time_data[-1]))
 
     def display_trigger_index(self):
         """
@@ -753,7 +766,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if self.sampling_mode:
                 self.sample_data[k] = v[-1]
             elif self.trigger.trigger_mode:
-                self.trigger.add_to_trig_data(k, v, self.max_length)
+                self.trigger.add_to_trig_data(k, v)
             else:
                 # We are in free running mode. Only last max_length of the data can be stored.
                 self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
@@ -908,7 +921,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         elif time_array is None:
             data_to_plot = self.filter(data) + channel.dc_offset
             self.curves[count].setData(data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.display_trigger_index(),  [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.display_trigger_index(), [data_to_plot.min(), data_to_plot.max()])
 
         # Draw time_array on the X axis and data on Y
         else:
@@ -917,7 +930,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.curves[count].setData(t - t[0], data_to_plot)
             self.__handle_trigger_marker__(draw_trig_mark, self.trigger.trigger_timestamp - time_array[0], [data_to_plot.min(), data_to_plot.max()])
 
-    def __handle_trigger_marker__(self, draw_trig_mark, marktime, mark_size=None):
+    def __handle_trigger_marker__(self, draw_trig_mark, marktime, mark_size):
         """
         Draw vertical line trigger mark at the specified marktime.
 
