@@ -861,6 +861,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
 
         data_len = len(data)
+        if data_len == 0:
+            return
+        
         # in case on time reference in PV, we declare sample period to sec per sample.
         # 1 second per sample as initial
         sample_period = 1.0
