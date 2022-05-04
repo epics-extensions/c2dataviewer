@@ -43,6 +43,7 @@ pip-test:
 
 .PHONY:pip-upload
 pip-upload:
+	rm dist/*dirty*
 	$(PYTHON) -m twine upload dist/*
 
 .PHONY:pip-clean
