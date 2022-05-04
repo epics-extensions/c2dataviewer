@@ -15,6 +15,7 @@ def parse_pv(val):
 class StriptoolConfig():
     def __init__(self, cfg, **kwargs):
         self.default_proto = None
+        self.pvs = {}
         
         cfg = cfg['STRIPTOOL']
         if not cfg:
@@ -39,8 +40,6 @@ class StriptoolConfig():
                     chcfg.color = str(v)
                     
                 cfgpvs[ch] = chcfg
-
-        self.pvs = {}
 
         for p in cfgpvs.values():
             self.pvs[p.pvname] = p

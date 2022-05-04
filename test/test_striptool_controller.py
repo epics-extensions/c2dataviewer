@@ -17,6 +17,9 @@ from c2dataviewer.control.pvconfig import PvConfig
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
 class TestStriptoolController(unittest.TestCase):
+    DEFAULT_CFG = """
+[STRIPTOOL]
+"""
     def setUp(self):
         # Create Qt application
         self.app = QtWidgets.QApplication(sys.argv)
@@ -38,7 +41,9 @@ class TestStriptoolController(unittest.TestCase):
         self.warning = WarningDialog(None)
         self.pvedit_dialog = PvEditDialog()
 
-    def create_controller(self, cfgtext):
+    def create_controller(self, cfgtext=None):
+        if not cfgtext:
+            cfgtext = self.DEFAULT_CFG
         cfg = ConfigParser()
         cfg.read_string(cfgtext)
         self.cfg = cfg
@@ -108,3 +113,13 @@ Chan2.PV = Ch2
 
         self.assertEqual(len(self.striptool_controller.pvdict), pvcount + 1)
         self.assertTrue('Ch3' in self.striptool_controller.pvdict)
+
+    def test_update_status(self):
+        """
+        Test update statistics
+        """
+        self.create_controller()
+        
+        #make sure that update_status runs without errors
+        self.striptool_controller.update_status()
+        

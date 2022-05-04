@@ -69,6 +69,13 @@ class TestImageDisplay(unittest.TestCase):
         """
         self.app.quit()
 
+    def test_update_status(self):
+        """
+        Test update statistics
+        """
+        #make sure that update_status runs without errors
+        self.scope_controller.update_status()
+        
     def test_get_fdr(self):
         """
         Test if the PV structure is properly parsed and correct fields are

@@ -124,7 +124,8 @@ class Configure(ScopeConfigureBase):
             else:
                 trigger = self.assemble_trigger()
         except KeyError as e:
-            logging.getLogger().warning('Key %s not found in config:' %  (str(e)))
+            if str(e) not in ["'SCOPE'"]:
+                logging.getLogger().warning('Key %s not found in config' %  (str(e)))
             acquisition = self.assemble_acquisition()
             display = self.assemble_display()
             channel = self.assemble_channel()
