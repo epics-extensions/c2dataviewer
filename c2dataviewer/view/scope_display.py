@@ -372,7 +372,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # Create plot item
         self.plot = pyqtgraph.PlotItem()
         self.plot.showGrid(x=True, y=True)
-        self.trigMarker = self.plot.plot(pen='r')
         self.do_autoscale()
         if self.fft or self.psd:
             self.plot.setLogMode(x=True, y=True)
@@ -383,6 +382,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.setup_plot_single_axis()
         else:
             self.setup_plot_multi_axis()
+
+        self.trigMarker = self.plot.plot()
 
         # Update plots
         self.plot.vb.sigResized.connect(self.update_views)
@@ -940,6 +941,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     mark_size = [min_value, max_value]
                 else:
                     mark_size = mark_size
+                # Create a new pen each plot to ensure line width is 1
+                # Otherwise, line can disappear when increasing size of data to plot
+                self.trigMarker.setPen(pyqtgraph.mkPen(color='r', width=1))
                 self.trigMarker.setData(np.array([marktime, marktime]),
                                         np.array(mark_size))
         else:
