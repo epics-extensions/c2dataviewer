@@ -1,3 +1,10 @@
+# Release 1.7.4 (05/04/2022)
+## Scope app
+- Fixed several bugs in trigger support and improved usability
+- Added ability to autoscale buffer to fit trigger
+- Added ability to pass in CA waveform into scope app
+
+
 # Release 1.7.3 (04/26/2022)
 ## Image app
 - make color mode optional
