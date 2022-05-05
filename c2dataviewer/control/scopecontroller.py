@@ -40,7 +40,8 @@ class ScopeController(ScopeControllerBase):
         super().__init__(widget, model, parameters, warning, channels=self.channels, **kwargs)
 
         self.auto_buffer_size = self._win.graphicsWidget.max_length is None
-            
+        self.model.status_callback = self.connection_changed
+        
     def __flatten_dict(dobj, kprefixs=[]):
         """
         Genenerator that can traverse through nested dictionaries and return
@@ -162,7 +163,7 @@ class ScopeController(ScopeControllerBase):
                             
                     except Exception as e:
                         self.notify_warning('Failed to update PV: ' + (str(e)))
-                        
+                    
                 elif childName == "Acquisition.Start":
                     if data:
                         self.start_plotting()
@@ -206,7 +207,7 @@ class ScopeController(ScopeControllerBase):
         self.model.stop()
 
         # start a new monitor
-        self.model.start(self.monitor_callback, self.connection_changed)
+        self.model.start(self.monitor_callback)
 
         try:
             super().start_plotting()
