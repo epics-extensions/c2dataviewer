@@ -176,6 +176,13 @@ class Channel:
         except PvaException as e:
             self.notify_error(str(e))
             raise
+
+    def async_get(self, data_callback, error_callback):
+        try:
+            self.channel.asyncGet(data_callback, error_callback, '')
+        except pva.PvaException:
+            #error because too many asyncGet calls at once.  Ignore
+            pass
         
 class DataSource:
     def __init__(self, timer_factory=None, default=None):
@@ -228,7 +235,7 @@ class DataSource:
 
         name, proto = parse_pvname(name, pva.ProviderType.PVA)
         self.device = name
-
+        
         self.channel = Channel(self.device, self.timer_factory(), proto)
         self.channel_cache[name] = self.channel
             
@@ -244,6 +251,25 @@ class DataSource:
             self.channel.status_callback = self.status_callback
         
         return self.channel.get()
+
+    def async_get(self, success_callback=None, error_callback=None):
+        """
+        Get data from current PV channel
+        :return:
+        """
+        if self.channel is None:
+            return
+
+        if not self.channel.status_callback:
+            self.channel.status_callback = self.status_callback
+
+        if not success_callback:
+            success_callback = lambda x: None
+
+        if not error_callback:
+            error_callback = lambda x: None
+            
+        self.channel.async_get(success_callback, error_callback)
 
     def update_framerate(self, fps):
         self.fps = fps
