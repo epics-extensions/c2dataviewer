@@ -15,6 +15,7 @@ import pvaccess as pva
 from ..model import ConnectionState
 from .scope_controller_base import ScopeControllerBase
 from ..view.scope_display import PlotChannel as ScopePlotChannel
+from pyqtgraph.Qt import QtCore
 
 class ScopeController(ScopeControllerBase):
 
@@ -40,7 +41,18 @@ class ScopeController(ScopeControllerBase):
         super().__init__(widget, model, parameters, warning, channels=self.channels, **kwargs)
 
         self.auto_buffer_size = self._win.graphicsWidget.max_length is None
-            
+        self.model.status_callback = self.connection_changed
+        self.failed_connection = False
+        self.connection_timer = pyqtgraph.QtCore.QTimer()
+        self.connection_timer.timeout.connect(self.__check_connection)
+        class FlagSignal(QtCore.QObject):
+            sig = QtCore.pyqtSignal(bool)
+            def __init__(self):
+                QtCore.QObject.__init__(self)
+
+        self.connection_timer_signal = FlagSignal()
+        self.connection_timer_signal.sig.connect(self.__failed_connection_callback)
+        
     def __flatten_dict(dobj, kprefixs=[]):
         """
         Genenerator that can traverse through nested dictionaries and return
@@ -128,11 +140,40 @@ class ScopeController(ScopeControllerBase):
             c.setLimits(fdr)
             c.setValue("None")
 
+    def __failed_connection_callback(self, flag):
+        """
+        Called initially if failed to connect to PV
+        Will start periodically checking the connection.
+        Once able to connect successfully, this function is called
+        again with flag=False
+        """
+        if not flag:
+            # Start periodically checking connection
+            self.connection_timer.start(5000)
+        else:
+            # Got a connection, so turn off timer
+            # and reload the fdr
+            restart = self._win.graphicsWidget.plotting_started
+            self.connection_timer.stop()
+            self.stop_plotting()
+            self.update_fdr()
+            if restart:
+                self.start_plotting()                
+            
     def connection_changed(self, state, msg):
         for q in self.parameters.child("Acquisition").children():
             if q.name() == 'PV status':
                 q.setValue(state)
 
+        if state == 'Failed to connect':
+            self.connection_timer_signal.sig.emit(False)
+
+    def __check_connection(self):
+        def success_callback(data):
+            self.connection_timer_signal.sig.emit(True)
+
+        self.model.async_get(success_callback=success_callback)
+        
     def parameter_change(self, params, changes):
         """
 
@@ -162,7 +203,7 @@ class ScopeController(ScopeControllerBase):
                             
                     except Exception as e:
                         self.notify_warning('Failed to update PV: ' + (str(e)))
-                        
+                    
                 elif childName == "Acquisition.Start":
                     if data:
                         self.start_plotting()
@@ -202,13 +243,14 @@ class ScopeController(ScopeControllerBase):
 
         :return:
         """
+        
         # stop a model first anyway to ensure it is clean
         self.model.stop()
-
+        
         # start a new monitor
-        self.model.start(self.monitor_callback, self.connection_changed)
-
-        try:
+        self.model.start(self.monitor_callback)
+        
+        try:                
             super().start_plotting()
             self.parameters.child("Acquisition").child("Start").setValue(1)
         except Exception as e:

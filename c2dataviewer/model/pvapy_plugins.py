@@ -117,7 +117,7 @@ class ConnectionState(enum.Enum):
         return string_lookup[int(self.value)]
 
 class Channel:
-    def __init__(self, name, timer, provider=pva.PVA):
+    def __init__(self, name, timer, provider=pva.PVA, status_callback=None):
         self.channel = pva.Channel(name, provider)
         self.provider = provider
         self.name = name
@@ -128,7 +128,7 @@ class Channel:
         self.poll_strategy = PollStrategy(self, timer) if timer else None
         self.strategy = None
         self.rate = None
-        self.status_callback = None
+        self.status_callback = status_callback
         self.state = ConnectionState.DISCONNECTED
 
     def data_callback_wrapper(self, data):
@@ -150,7 +150,8 @@ class Channel:
         self.strategy = self.poll_strategy if self.rate else self.monitor_strategy
         if not self.strategy:
             raise Exception("Can't poll data unless DataSource timer is configured")
-        self.status_callback = status_callback
+        if status_callback:
+            self.status_callback = status_callback
         self.set_state(ConnectionState.CONNECTING)
         self.strategy.start()
 
@@ -175,6 +176,13 @@ class Channel:
         except PvaException as e:
             self.notify_error(str(e))
             raise
+
+    def async_get(self, data_callback, error_callback):
+        try:
+            self.channel.asyncGet(data_callback, error_callback, '')
+        except pva.PvaException:
+            #error because too many asyncGet calls at once.  Ignore
+            pass
         
 class DataSource:
     def __init__(self, timer_factory=None, default=None):
@@ -227,7 +235,7 @@ class DataSource:
 
         name, proto = parse_pvname(name, pva.ProviderType.PVA)
         self.device = name
-
+        
         self.channel = Channel(self.device, self.timer_factory(), proto)
         self.channel_cache[name] = self.channel
             
@@ -239,7 +247,29 @@ class DataSource:
         if self.channel is None:
             return None
 
+        if not self.channel.status_callback:
+            self.channel.status_callback = self.status_callback
+        
         return self.channel.get()
+
+    def async_get(self, success_callback=None, error_callback=None):
+        """
+        Get data from current PV channel
+        :return:
+        """
+        if self.channel is None:
+            return
+
+        if not self.channel.status_callback:
+            self.channel.status_callback = self.status_callback
+
+        if not success_callback:
+            success_callback = lambda x: None
+
+        if not error_callback:
+            error_callback = lambda x: None
+            
+        self.channel.async_get(success_callback, error_callback)
 
     def update_framerate(self, fps):
         self.fps = fps
@@ -262,7 +292,7 @@ class DataSource:
                 chan = self.channel_cache[name]
             else:
                 name, proto = parse_pvname(name, pva.ProviderType.PVA)
-                chan = Channel(name, self.timer_factory(), provider=proto)
+                chan = Channel(name, self.timer_factory(), provider=proto, status_callback=self.status_callback)
                 self.channel_cache[name] = chan
                 
             self.channel = chan
