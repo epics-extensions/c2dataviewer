@@ -42,7 +42,6 @@ class ScopeController(ScopeControllerBase):
 
         self.auto_buffer_size = self._win.graphicsWidget.max_length is None
         self.model.status_callback = self.connection_changed
-        self.failed_connection = False
         self.connection_timer = pyqtgraph.QtCore.QTimer()
         self.connection_timer.timeout.connect(self.__check_connection)
         class FlagSignal(QtCore.QObject):
@@ -142,10 +141,10 @@ class ScopeController(ScopeControllerBase):
 
     def __failed_connection_callback(self, flag):
         """
-        Called initially if failed to connect to PV
+        Called initially with flag=False if failed to connect to PV
         Will start periodically checking the connection.
         Once able to connect successfully, this function is called
-        again with flag=False
+        again with flag=True
         """
         if not flag:
             # Start periodically checking connection
