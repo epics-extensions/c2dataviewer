@@ -146,14 +146,17 @@ def main():
     parser.add_argument(
         "--debug",
         action='store_true',
-        help="Turn on debug messages. Can also turn this on by setting environment variable C2DV_DEBUG=1"
+        help="Turn on debug messages. Can also turn this on by setting environment variable C2DV_LOG_LEVEL=DEBUG"
     )
 
     args = parser.parse_args()
 
     level = logging.CRITICAL
 
-    if args.debug or os.getenv('C2DV_DEBUG') == '1':
+    if os.getenv('C2DV_LOG_LEVEL'):
+        level = os.getenv('C2DV_LOG_LEVEL').upper()
+        
+    if args.debug:
         level = logging.DEBUG
         
     logging.basicConfig(
