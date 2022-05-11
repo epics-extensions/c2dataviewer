@@ -456,12 +456,13 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
 
-        # Get dimensions
-        dims = data['dimension']
-        self.dimensions = len(dims)
-        
-        # Get color mode
         try:
+            # Get dimensions
+            dims = data['dimension']
+            self.dimensions = len(dims)
+        
+
+            # Get color mode
             attributes = data['attribute']
             if any(('name' in attr and attr['name'] == "ColorMode") for attr in attributes ):
                 for attribute in attributes:
@@ -492,7 +493,7 @@ class ImagePlotWidget(RawImageWidget):
             y = dims[1]
             z = dims[2]
         else:
-            raise RuntimeError(f"Invalid data/color mode data.")
+            raise RuntimeError(f"Invalid data/color mode data. dimensions=%r, colormode=%r" % (self.dimensions, self.color_mode) )
 
         if (x['size'] != self.x) or (y['size'] != self.y) or (z is not None and z['size'] != self.z):
             self.x = x['size']
@@ -577,7 +578,7 @@ class ImagePlotWidget(RawImageWidget):
         self.wait()
         try:
             self.display(self.data)
-        except RuntimeError as e:
+        except Exception as e:
             logging.getLogger().error('Error displaying data: ' + str(e))
         finally:
             self.signal()
