@@ -1,3 +1,12 @@
+# Release 1.7.5 (05/11/2022)
+- Add environment variable for turning on logging
+
+## Scope app
+- Load field list if failed PV comes up 
+
+## Image app
+- Add more debug information to error message if failed to read PV data
+
 # Release 1.7.4 (05/04/2022)
 ## Scope app
 - Fixed several bugs in trigger support and improved usability
