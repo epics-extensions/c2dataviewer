@@ -198,25 +198,6 @@ class ScopeConfigureBase:
               ]}
         return cfg
         
-    def assemble_config(self):
-        # Assemble extra configuration information for plotting
-        # which is ArrayId selection, and x axes
-        id_value = ["None"]
-        if self.default_arrayid != "None":
-            id_value.append(self.default_arrayid)
-        axes = ["None"]
-        if self.default_xaxes != "None":
-            axes.append(self.default_xaxes)
-
-        cfg = {"name": "Config",
-               "type": "group",
-               "children": [
-                   {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
-                   {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
-               ]
-               }
-        return cfg
-
     def assemble_statistics(self):
         statistics = {"name": "Statistics", "type": "group", "children": [
             {"name": "CPU", "type": "float", "value": 0, "readonly": True, "suffix": "%"},

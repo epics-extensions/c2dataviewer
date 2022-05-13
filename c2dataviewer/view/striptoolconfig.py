@@ -21,10 +21,9 @@ class StripToolConfigure(ScopeConfigureBase):
         except KeyError:
             display = self.assemble_display()
             
-        cfg = self.assemble_config()
         statistics = self.assemble_statistics()
         # line up in order
-        paramcfg = [acquisition, display, cfg, statistics]
+        paramcfg = [acquisition, display, statistics]
 
         return paramcfg
 

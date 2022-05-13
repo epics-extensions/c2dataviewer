@@ -170,10 +170,6 @@ class ScopeControllerBase:
                     self._win.graphicsWidget.set_binning(data)
                 elif childName == "Display.Refresh":
                     self.set_freshrate(data)
-                elif childName == "Config.ArrayId":
-                    self.set_arrayid(data)
-                elif childName == "Config.X Axes":
-                    self.set_xaxes(data)
 
     def set_freshrate(self, value):
         """
@@ -221,30 +217,7 @@ class ScopeControllerBase:
 
         self.timer.stop()
         self.stop_trigger()
-        
-    def set_arrayid(self, value):
-        """
-        Set current field name for array id
-            
-        :param value:
-        :return:
-        """
-        if value != self.current_arrayid:
-            self.current_arrayid = value
-            self._win.graphicsWidget.current_arrayid = value
-
-    def set_xaxes(self, value):
-        """
-        Set current field name for x axes
-            
-        :param value:
-        :return:
-        """
-        if value != self.current_xaxes:
-            self.current_xaxes = value
-            self._win.graphicsWidget.current_xaxes = value
-            self.new_buffer = True
-            
+                    
     def set_trigger_mode(self, value):
         """
         Set trigger mode.

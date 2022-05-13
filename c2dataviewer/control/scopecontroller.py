@@ -172,7 +172,30 @@ class ScopeController(ScopeControllerBase):
             self.connection_timer_signal.sig.emit(True)
 
         self.model.async_get(success_callback=success_callback)
-        
+
+    def set_arrayid(self, value):
+        """
+        Set current field name for array id
+            
+        :param value:
+        :return:
+        """
+        if value != self.current_arrayid:
+            self.current_arrayid = value
+            self._win.graphicsWidget.current_arrayid = value
+
+    def set_xaxes(self, value):
+        """
+        Set current field name for x axes
+            
+        :param value:
+        :return:
+        """
+        if value != self.current_xaxes:
+            self.current_xaxes = value
+            self._win.graphicsWidget.current_xaxes = value
+            self.new_buffer = True
+
     def parameter_change(self, params, changes):
         """
 
@@ -218,6 +241,10 @@ class ScopeController(ScopeControllerBase):
                         elif childName == 'Channel %s.Axis location' % (i + 1):
                             chan.axis_location = data
                     self._win.graphicsWidget.setup_plot(channels=self.channels)
+                elif childName == "Config.ArrayId":
+                    self.set_arrayid(data)
+                elif childName == "Config.X Axes":
+                    self.set_xaxes(data)
 
         super().parameter_change(params, changes)
         
