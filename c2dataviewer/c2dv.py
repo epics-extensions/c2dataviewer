@@ -18,6 +18,7 @@ import argparse
 from configparser import ConfigParser
 import enum
 import logging
+import faulthandler
 
 class AppType(enum.Enum):
     SCOPE = "scope"
@@ -112,7 +113,7 @@ def main():
     """
 
     :return:
-    """
+    """    
     parser = argparse.ArgumentParser(
             description='C2DataViewer for EPICS7 PVStructure Data display via pvAccess')
 
@@ -151,6 +152,9 @@ def main():
 
     args = parser.parse_args()
 
+    # Dump backtrace to stderr on SEGFAULT
+    faulthandler.enable()
+    
     level = logging.CRITICAL
 
     if os.getenv('C2DV_LOG_LEVEL'):
