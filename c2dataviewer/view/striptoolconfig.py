@@ -6,9 +6,13 @@ class StripToolConfigure(ScopeConfigureBase):
                          show_start=False,
                          **kwargs)
 
-    def add_source_acquisition_props(self, children, section):
+    def assemble_acquisition(self, section=None):
+        acquisition = super().assemble_acquisition(section)
+        children = acquisition['children']
+
         children.append({"name": "Sample Mode", "type":"bool", "value": True})
-        return children
+
+        return acquisition
     
     def parse(self):
         try:

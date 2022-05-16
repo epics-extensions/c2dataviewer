@@ -73,7 +73,10 @@ class Configure(ScopeConfigureBase):
 
         return channel
 
-    def add_source_acquisition_props(self, children, section):
+    def assemble_acquisition(self, section=None):
+        acquisition = super().assemble_acquisition(section)
+        children = acquisition['children']
+        
         pv = None
         if self.pvs is not None:
             pv = list(self.pvs.values())[0]
@@ -93,9 +96,15 @@ class Configure(ScopeConfigureBase):
             {"name": "PV", "type": "str", "value": pv},
             {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True}
         ]
+        i = len(children)
+        if self.show_start:
+            i -= 1
 
-        newchildren += children
-        return newchildren
+        for l in newchildren:
+            children.insert(i, l)
+            i+=1
+
+        return acquisition
 
     def assemble_config(self):
         # Assemble extra configuration information for plotting

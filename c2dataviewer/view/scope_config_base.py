@@ -36,8 +36,6 @@ class ScopeConfigureBase:
             {"name": "Buffer (Samples)", "type": "int", "value": buffer, "siPrefix": False, 'decimals': 20}
         ]
 
-        children = self.add_source_acquisition_props(children, section)        
-
         if self.show_start:
             children.append({"name": "Start", "type": "bool", "value": False})
 
