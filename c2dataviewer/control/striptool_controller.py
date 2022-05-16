@@ -90,7 +90,7 @@ class StripToolController(ScopeControllerBase):
         self.default_config(**kwargs)
         #default to showing 60 second of data
         if not self._win.graphicsWidget.max_length:
-            self.update_buffer(int(60000 / self.refresh))
+            self.update_buffer_samples(int(60000 / self.refresh))
 
         self._win.graphicsWidget.enable_sampling_mode(True)
         self._pvedit_dialog.set_completion_callback(self.pv_edit_callback)

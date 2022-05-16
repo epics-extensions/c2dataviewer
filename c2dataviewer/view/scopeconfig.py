@@ -91,8 +91,8 @@ class Configure(ScopeConfigureBase):
                     self.pvs = {pv: pv}
 
         newchildren = [
-            # EPICS7 PV name, which assumes pvAccess protocol
-            # Alias name to be supported later
+            {"name": "Buffer Unit", "type": "list", "values": ["Samples", "Objects"],
+             "value": 'Samples'},
             {"name": "PV", "type": "str", "value": pv},
             {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True}
         ]
@@ -106,6 +106,12 @@ class Configure(ScopeConfigureBase):
 
         return acquisition
 
+    def assemble_statistics(self):
+        stats = super().assemble_statistics()
+        children = stats['children']
+        children.append( {"name": "Avg Samples/Obj", "type": "float", "value": 0, "readonly":True, "decimals":20})
+        return stats
+    
     def assemble_config(self):
         # Assemble extra configuration information for plotting
         # which is ArrayId selection, and x axes

@@ -39,7 +39,7 @@ class ScopeControllerBase:
         self.status_timer = pyqtgraph.QtCore.QTimer()
         self.status_timer.timeout.connect(self.update_status)
         self.status_timer.start(1000)
-
+        
     def set_trigger_pv(self, pvname):
         if self._win.graphicsWidget.plotting_started:
             self.notify_warning("Stop plotting first before changing trigger PV")
@@ -93,7 +93,7 @@ class ScopeControllerBase:
 
         max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
         if max_length:
-            self._win.graphicsWidget.update_buffer(int(max_length))
+            self._win.graphicsWidget.update_buffer_samples(int(max_length))
             
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
 
@@ -110,10 +110,15 @@ class ScopeControllerBase:
         except:
             pass
         
-    def update_buffer(self, size):
+    def update_buffer_samples(self, size):
+        """
+        Sets number of samples in buffer
+        
+        :param size  size of buffer in number of samples
+        """
         self._win.graphicsWidget.update_buffer(size)
         self.parameters.child("Acquisition").child("Buffer (Samples)").setValue(self._win.graphicsWidget.max_length)
-
+            
     def parameter_change(self, params, changes):
         """
         
@@ -339,6 +344,6 @@ class ScopeControllerBase:
                 roundunit = 10**max(exp - precision, 0)
                 newsize = math.ceil(newsize / roundunit) * roundunit
 
-                self.update_buffer(newsize)
+                self.update_buffer_samples(newsize)
             
         

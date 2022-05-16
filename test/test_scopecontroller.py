@@ -75,7 +75,8 @@ class TestImageDisplay(unittest.TestCase):
         """
         #make sure that update_status runs without errors
         self.scope_controller.update_status()
-        
+
+
     def test_get_fdr(self):
         """
         Test if the PV structure is properly parsed and correct fields are
@@ -113,3 +114,15 @@ class TestImageDisplay(unittest.TestCase):
                              'aFloatArray', 'aStringArray', 'aStruct.aStruct_aDoubleArray'])
         self.assertListEqual(
             fdr_scalar, ['aString', 'aStruct.aStruct_aFloat', 'anInt'])
+
+    def test_buffer_size(self):
+        #pass in data
+        self.scope_controller.monitor_callback({ 'x' : [10]*100})
+        bufval = self.scope_controller.parameters.child("Acquisition").child("Buffer (Samples)").value()
+        self.assertEqual(bufval, 100)
+        
+        #set to object unit
+        self.scope_controller.set_buffer_unit('Objects')
+        bufval = self.scope_controller.parameters.child("Acquisition").child("Buffer (Objects)").value()
+        self.assertEqual(bufval, 1)
+        

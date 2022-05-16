@@ -769,8 +769,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                 self.trigger.add_to_trig_data(k, v)
             else:
                 # We are in free running mode. Only last max_length of the data can be stored.
-                self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-
+                arr = np.append(self.data.get(k, []), v)
+                self.data[k] = arr[-self.max_length:]
         if got_data:
             self.trigger.draw_data()
                 
