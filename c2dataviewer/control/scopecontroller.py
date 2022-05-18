@@ -16,6 +16,7 @@ from ..model import ConnectionState
 from .scope_controller_base import ScopeControllerBase
 from ..view.scope_display import PlotChannel as ScopePlotChannel
 from pyqtgraph.Qt import QtCore
+import math
 
 class ScopeController(ScopeControllerBase):
 
@@ -40,6 +41,8 @@ class ScopeController(ScopeControllerBase):
 
         super().__init__(widget, model, parameters, warning, channels=self.channels, **kwargs)
 
+        #auto-set buffer size to waveform length.  This will be
+        #disabled if buffer is set manually
         self.auto_buffer_size = self._win.graphicsWidget.max_length is None
         self.model.status_callback = self.connection_changed
         self.connection_timer = pyqtgraph.QtCore.QTimer()
@@ -51,6 +54,9 @@ class ScopeController(ScopeControllerBase):
 
         self.connection_timer_signal = FlagSignal()
         self.connection_timer_signal.sig.connect(self.__failed_connection_callback)
+        self.buffer_unit = 'Samples'
+        self.object_size = None
+        self.object_size_tally = np.array([])
         
     def __flatten_dict(dobj, kprefixs=[]):
         """
@@ -172,7 +178,30 @@ class ScopeController(ScopeControllerBase):
             self.connection_timer_signal.sig.emit(True)
 
         self.model.async_get(success_callback=success_callback)
-        
+
+    def set_arrayid(self, value):
+        """
+        Set current field name for array id
+            
+        :param value:
+        :return:
+        """
+        if value != self.current_arrayid:
+            self.current_arrayid = value
+            self._win.graphicsWidget.current_arrayid = value
+
+    def set_xaxes(self, value):
+        """
+        Set current field name for x axes
+            
+        :param value:
+        :return:
+        """
+        if value != self.current_xaxes:
+            self.current_xaxes = value
+            self._win.graphicsWidget.current_xaxes = value
+            self.new_buffer = True
+
     def parameter_change(self, params, changes):
         """
 
@@ -197,9 +226,12 @@ class ScopeController(ScopeControllerBase):
                             self.update_fdr()
                         else:
                             self.update_fdr(empty=True)
-                        if self.auto_buffer_size:
-                            self._win.graphicsWidget.max_length = None
-                            
+
+                        # Recalculate object size and readjust buffer size
+                        # if PV name changed
+                        self.auto_buffer_size = True
+                        self.object_size_tally = np.array([])
+                        self.object_size = None
                     except Exception as e:
                         self.notify_warning('Failed to update PV: ' + (str(e)))
                     
@@ -218,23 +250,114 @@ class ScopeController(ScopeControllerBase):
                         elif childName == 'Channel %s.Axis location' % (i + 1):
                             chan.axis_location = data
                     self._win.graphicsWidget.setup_plot(channels=self.channels)
-
+                elif childName == "Config.ArrayId":
+                    self.set_arrayid(data)
+                elif childName == "Config.X Axes":
+                    self.set_xaxes(data)
+                elif childName == "Acquisition.Buffer Unit":
+                    self.set_buffer_unit(data)
+                elif 'Acquisition.Buffer' in childName:
+                    self.auto_buffer_size = False
+                    self.__calc_buffer_size()
+                    
         super().parameter_change(params, changes)
         
+
+    def __calc_buffer_size(self):
+        #
+        # This function will adjust the number of samples to plot
+        # based on buffer size, buffer unit, and object size
+        # Called whenever one of these settings has changed
+        #
+        
+        if self.buffer_unit == "Objects":
+            if self.object_size:
+                nobj = self.parameters.child("Acquisition").child("Buffer (Objects)").value()
+                nsamples = nobj * self.object_size
+                self._win.graphicsWidget.update_buffer(nsamples)
+            
+    def update_buffer_samples(self, size):
+        """
+        Sets number of samples in buffer
+
+        :param size  number of samples
+        """
+        if self.buffer_unit == 'Samples':
+            super().update_buffer_samples(size)
+            return
+
+        if self.buffer_unit == 'Objects':
+            if self.object_size:
+                nobj = math.ceil(size / self.object_size)
+                self.parameters.child("Acquisition").child("Buffer (Objects)").setValue(nobj)
+                self.__calc_buffer_size()
+            else:
+                self._win.graphicsWidget.update_buffer(size)
+        else:
+            raise Exception('Unknown buffer unit %s' % (self.buffer_unit))
+
+    def set_buffer_unit(self, name):
+        """
+        Set units for buffer size.
+
+        :param name buffer unit.  
+        """
+        if self.buffer_unit == name:
+            return
+
+        param = self.parameters.child("Acquisition").child("Buffer (%s)" % (self.buffer_unit))
+        newname = "Buffer (%s)" % (name)
+        param.setName(newname)        
+        self.buffer_unit = name
+
+        #Update buffer size based on current number of samples
+        if self._win.graphicsWidget.max_length:
+            self.update_buffer_samples(self._win.graphicsWidget.max_length)
+        else:
+            if self.buffer_unit == "Objects":
+                nobj = self.parameters.child("Acquisition").child("Buffer (Objects)").value()
+                if nobj == 0:
+                    #default to 1 object
+                    self.parameters.child("Acquisition").child("Buffer (Objects)").setValue(1)
+
+                self.__calc_buffer_size()
+
+    def set_object_size(self, size):
+        """
+        Set number of samples per object
+
+        :param size number of samples per object
+        """
+        if size == self.object_size:
+            return
+        
+        self.object_size = size
+        self.__calc_buffer_size()
+        
     def monitor_callback(self, data):
+        # Calculate object size
+        objlen = 0
+        for k, v in ScopeController.__flatten_dict(dict(data)):
+            try:
+                objlen = max(len(v), objlen)
+            except:
+                pass
+
+        if not self.object_size and objlen > 0:
+            self.set_object_size(objlen)
+
+            #Default buffer size to number of samples in an object
+            #if buffer size was not explicitly set
+            if self.auto_buffer_size:
+                self.update_buffer_samples(self.object_size)
+
+        self.object_size_tally = np.append(self.object_size_tally, self.object_size)[-10:]
+        
         if not self._win.graphicsWidget.max_length:
-            for k, v in ScopeController.__flatten_dict(data.get()):
-                try:
-                    if len(v) > 1:
-                        self.update_buffer(len(v))
-                        break
-                except:
-                    pass
-            if not self._win.graphicsWidget.max_length:
-                return
+            return
             
         def generator():
-            yield from ScopeController.__flatten_dict(data.get())
+            yield from ScopeController.__flatten_dict(dict(data))
         self._win.graphicsWidget.data_process(generator)
 
     def start_plotting(self):
@@ -255,6 +378,7 @@ class ScopeController(ScopeControllerBase):
         except Exception as e:
             self.parameters.child("Acquisition").child("Start").setValue(0)
             self.notify_warning('Failed to start plotting: ' + str(e))
+            
     def stop_plotting(self):
         """
 
@@ -265,4 +389,10 @@ class ScopeController(ScopeControllerBase):
         # Stop data source
         self.model.stop()
 
-    
+    def update_status(self):
+        super().update_status()
+
+        if len(self.object_size_tally) > 0:
+            avg_obj_size = self.object_size_tally.mean()
+            self.parameters.child("Statistics").child('Avg Samples/Obj').setValue(avg_obj_size)
+            self.set_object_size(math.ceil(avg_obj_size))

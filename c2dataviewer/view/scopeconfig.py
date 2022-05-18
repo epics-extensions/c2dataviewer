@@ -73,7 +73,10 @@ class Configure(ScopeConfigureBase):
 
         return channel
 
-    def add_source_acquisition_props(self, children, section):
+    def assemble_acquisition(self, section=None):
+        acquisition = super().assemble_acquisition(section)
+        children = acquisition['children']
+        
         pv = None
         if self.pvs is not None:
             pv = list(self.pvs.values())[0]
@@ -88,14 +91,45 @@ class Configure(ScopeConfigureBase):
                     self.pvs = {pv: pv}
 
         newchildren = [
-            # EPICS7 PV name, which assumes pvAccess protocol
-            # Alias name to be supported later
+            {"name": "Buffer Unit", "type": "list", "values": ["Samples", "Objects"],
+             "value": 'Samples'},
             {"name": "PV", "type": "str", "value": pv},
             {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True}
         ]
+        i = len(children)
+        if self.show_start:
+            i -= 1
 
-        newchildren += children
-        return newchildren
+        for l in newchildren:
+            children.insert(i, l)
+            i+=1
+
+        return acquisition
+
+    def assemble_statistics(self):
+        stats = super().assemble_statistics()
+        children = stats['children']
+        children.append( {"name": "Avg Samples/Obj", "type": "float", "value": 0, "readonly":True, "decimals":20})
+        return stats
+    
+    def assemble_config(self):
+        # Assemble extra configuration information for plotting
+        # which is ArrayId selection, and x axes
+        id_value = ["None"]
+        if self.default_arrayid != "None":
+            id_value.append(self.default_arrayid)
+        axes = ["None"]
+        if self.default_xaxes != "None":
+            axes.append(self.default_xaxes)
+
+        cfg = {"name": "Config",
+               "type": "group",
+               "children": [
+                   {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
+                   {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
+               ]
+               }
+        return cfg
 
     def parse(self):
         """
