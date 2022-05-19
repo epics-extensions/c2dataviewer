@@ -1,3 +1,8 @@
+# Release 1.7.6 (05/19/2022)
+## Scope app
+- Add ability to change buffer size by number of objects instead of number of samples
+- Fix auto adjust buffer size to set to average object size
+
 # Release 1.7.5 (05/11/2022)
 - Add environment variable for turning on logging
 
