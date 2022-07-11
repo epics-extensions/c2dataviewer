@@ -7,8 +7,10 @@ c2dv --app scope --pv <PV>
 
 From the application UI, select the fields to plot under "Channels" options.  Click the "Start" checkbox to start plotting.
 
-## Mouse interactions
+## Zooming
 To zoom, scroll using the scroll wheel or trackpad.  To pan, left click and drag.  To see all mouse interactions, see [pyqtgraph's documentation](https://pyqtgraph.readthedocs.io/en/latest/mouse_interaction.html).
+
+If you're unable to scroll, you can also manually set a X/Y range.  First click the "Freeze" checkbox to stop redrawing.  Then right-click, select either X-axis or Y-axis, and set the Manual range.
 
 ## Triggering
 Scope application supports software triggering via external v3 PV. When trigger mode is configured and trigger occur,
