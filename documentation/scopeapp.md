@@ -7,6 +7,9 @@ c2dv --app scope --pv <PV>
 
 From the application UI, select the fields to plot under "Channels" options.  Click the "Start" checkbox to start plotting.
 
+## Mouse interactions
+To zoom, scroll using the scroll wheel or trackpad.  To pan, left click and drag.  To see all mouse interactions, see [pyqtgraph's documentation](https://pyqtgraph.readthedocs.io/en/latest/mouse_interaction.html).
+
 ## Triggering
 Scope application supports software triggering via external v3 PV. When trigger mode is configured and trigger occur,
 selected displayed channels will be updated for the trigger time. Number of samples displayed can be controlled via `Buffer` parameter.
