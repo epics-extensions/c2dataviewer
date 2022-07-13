@@ -1,3 +1,6 @@
+# Release 1.7.7 (07/13/2022)
+- Fixed buffer size auto adjustment
+
 # Release 1.7.6 (05/19/2022)
 ## Scope app
 - Add ability to change buffer size by number of objects instead of number of samples
