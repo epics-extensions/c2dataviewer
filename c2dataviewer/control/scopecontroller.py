@@ -351,7 +351,7 @@ class ScopeController(ScopeControllerBase):
             if self.auto_buffer_size:
                 self.update_buffer_samples(self.object_size)
 
-        self.object_size_tally = np.append(self.object_size_tally, self.object_size)[-10:]
+        self.object_size_tally = np.append(self.object_size_tally, objlen)[-10:]
         
         if not self._win.graphicsWidget.max_length:
             return
