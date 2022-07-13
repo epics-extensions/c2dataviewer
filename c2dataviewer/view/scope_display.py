@@ -357,6 +357,13 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
         if value != self.current_xaxes:
             self.current_xaxes = value
+            self.do_autoscale(auto_scale=True)
+            
+            if self.current_xaxes == "None":
+                self.plot.setLabel('bottom', None)
+            else:
+                self.plot.setLabel('bottom', self.current_xaxes)
+            
 
     def setup_plot(self, channels=None, single_axis=None):
         """
@@ -388,6 +395,11 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.do_autoscale()
         if self.fft or self.psd:
             self.plot.setLogMode(x=True, y=True)
+            
+        if self.current_xaxes == "None":
+            self.plot.setLabel('bottom', None)
+        else:
+            self.plot.setLabel('bottom', self.current_xaxes)
 
         # Generate plot items
         self.single_axis = single_axis
@@ -870,7 +882,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # time array
         time_array = None
 
-        if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == data_len:
+        if self.current_xaxes != "None" and len(self.data.get(self.current_xaxes,[])) == data_len:
             # TODO later to support: frequency field & sample period as time reference
             # TODO need to handle multiple waveform plotting with different data length
             # Currently, support time only

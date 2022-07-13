@@ -199,7 +199,7 @@ class ScopeController(ScopeControllerBase):
         """
         if value != self.current_xaxes:
             self.current_xaxes = value
-            self._win.graphicsWidget.current_xaxes = value
+            self._win.graphicsWidget.set_xaxes(value)
             self.new_buffer = True
 
     def parameter_change(self, params, changes):
