@@ -29,6 +29,10 @@ class Configure(ScopeConfigureBase):
         self.default_color = ['#FFFF00', '#FF00FF', '#55FF55', '#00FFFF', '#5555FF',
                               '#5500FF', '#FF5555', '#0000FF', '#FFAA00', '#000000']
         
+        self.default_arrayid = kwargs.get("arrayid", "None")
+        self.default_xaxes = kwargs.get("xaxes", "None")
+
+        
     def assemble_channel(self, section=None):
         """
         Assemble channel information for plotting
@@ -112,7 +116,7 @@ class Configure(ScopeConfigureBase):
         children.append( {"name": "Avg Samples/Obj", "type": "float", "value": 0, "readonly":True, "decimals":20})
         return stats
     
-    def assemble_config(self):
+    def assemble_config(self, section=None):
         # Assemble extra configuration information for plotting
         # which is ArrayId selection, and x axes
         id_value = ["None"]
@@ -122,11 +126,17 @@ class Configure(ScopeConfigureBase):
         if self.default_xaxes != "None":
             axes.append(self.default_xaxes)
 
+
+        self.default_major_tick = section.getint('MAJOR_TICKS', 0)
+        self.default_minor_tick = section.getint('MINOR_TICKS', 0)
+        
         cfg = {"name": "Config",
                "type": "group",
                "children": [
                    {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
                    {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
+                   {"name": "Major Ticks", "type": "int", "value": self.default_major_tick, 'decimals':20},
+                   {"name": "Minor Ticks", "type": "int", "value": self.default_minor_tick, 'decimals':20},
                ]
                }
         return cfg
@@ -157,6 +167,11 @@ class Configure(ScopeConfigureBase):
                 trigger = self.assemble_trigger(self.params["TRIGGER"])
             else:
                 trigger = self.assemble_trigger()
+            if "CONFIG" in sections:
+                cfg = self.assemble_config(self.params["CONFIG"])
+            else:
+                cfg = self.assemble_config()
+                                           
         except KeyError as e:
             if str(e) not in ["'SCOPE'"]:
                 logging.getLogger().warning('Key %s not found in config' %  (str(e)))
@@ -164,14 +179,8 @@ class Configure(ScopeConfigureBase):
             display = self.assemble_display()
             channel = self.assemble_channel()
             trigger = self.assemble_trigger()
+            cfg = self.assemble_config()
             
-        if acquisition is None or display is None or channel is None:
-            raise RuntimeError("No enough information for scope")
-
-        
-        cfg = self.assemble_config()
-
-        
         # line up in order
         paramcfg = [acquisition, trigger, display, cfg]
         for ch in channel:

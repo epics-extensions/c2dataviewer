@@ -278,6 +278,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # EPICS7 field name for Array ID
         self.current_arrayid = "None"
 
+        self.major_ticks = 0
+        self.minor_ticks = 0
+        
         self.fps = 0
         self.lastTime = ptime.time()
 
@@ -363,6 +366,34 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.plot.setLabel('bottom', self.current_xaxes)
             
 
+    def set_major_ticks(self, value):
+        self.major_ticks = value
+
+    def set_minor_ticks(self, value):
+        self.minor_ticks = value
+
+    def _setup_ticks(self):
+        if self.major_ticks <= 0 or self.current_xaxes != 'None':
+            self.plot.getAxis('bottom').setTicks(None)
+            return
+        
+        minVal = 0
+        maxVal = self.max_length
+
+        major_ticks = [ (i, str(i)) for i in range(0, maxVal + 1, int(self.major_ticks)) ]
+
+        minor_ticks = None
+        if self.minor_ticks > 0:
+            tickMod = self.major_ticks / self.minor_ticks
+            minor_ticks = [ (i, str(i) if (i/self.minor_ticks % tickMod) > 0 else '') for i in range(0, maxVal + 1, int(self.minor_ticks)) ]
+
+        ticks = [major_ticks]
+        if minor_ticks:
+            ticks.append(minor_ticks)
+            
+        self.plot.getAxis('bottom').setTicks(ticks)
+                                 
+            
     def setup_plot(self, channels=None, single_axis=None):
         """
         Setup plotting
@@ -1022,6 +1053,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.reset_xrange()
         elif self.new_buffer:
             self.reset_xrange()
+
+        self._setup_ticks()
             
         self.first_run = False
         self.new_plot = False

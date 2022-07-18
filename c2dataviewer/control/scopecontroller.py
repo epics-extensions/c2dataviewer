@@ -201,8 +201,13 @@ class ScopeController(ScopeControllerBase):
         if value != self.current_xaxes:
             self.current_xaxes = value
             self._win.graphicsWidget.set_xaxes(value)
-            self.new_buffer = True
 
+    def set_major_ticks(self, value):
+        self._win.graphicsWidget.set_major_ticks(value)
+
+    def set_minor_ticks(self, value):
+        self._win.graphicsWidget.set_minor_ticks(value)
+    
     def parameter_change(self, params, changes):
         """
 
@@ -255,6 +260,10 @@ class ScopeController(ScopeControllerBase):
                     self.set_arrayid(data)
                 elif childName == "Config.X Axes":
                     self.set_xaxes(data)
+                elif childName == "Config.Major Ticks":
+                    self.set_major_ticks(data)
+                elif childName == "Config.Minor Ticks":
+                    self.set_minor_ticks(data)
                 elif childName == "Acquisition.Buffer Unit":
                     self.set_buffer_unit(data)
                 elif 'Acquisition.Buffer' in childName:
