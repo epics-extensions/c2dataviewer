@@ -265,7 +265,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.data = {}
         self.first_run = True
         self.new_plot = True
-        self.is_max_length = False
         
         # last id number of array received
         self.lastArrayId = None
@@ -279,6 +278,9 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # EPICS7 field name for Array ID
         self.current_arrayid = "None"
 
+        self.major_ticks = 0
+        self.minor_ticks = 0
+        
         self.fps = 0
         self.lastTime = ptime.time()
 
@@ -333,10 +335,10 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         Set sampling mode.  If true, plot only the latest value at each refresh interval.
         Set this mode if plotting multiple data sources that have different data rates.
         """
-        self.sampling_mode = val
-        self.data.clear()
-        self.setup_plot()
-        self.is_max_length = False
+        if self.sampling_mode != val:
+            self.sampling_mode = val
+            self.data.clear()
+            self.setup_plot()
         
     def set_arrayid(self, value):
         """
@@ -355,9 +357,43 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :param value:
         :return:
         """
-        if value != self.current_xaxes:
-            self.current_xaxes = value
+        self.current_xaxes = value
+        self.new_plot = True
+            
+        if self.current_xaxes == "None":
+            self.plot.setLabel('bottom', '')
+        else:
+            self.plot.setLabel('bottom', self.current_xaxes)
+            
 
+    def set_major_ticks(self, value):
+        self.major_ticks = value
+
+    def set_minor_ticks(self, value):
+        self.minor_ticks = value
+
+    def _setup_ticks(self):
+        if self.major_ticks <= 0 or self.current_xaxes != 'None':
+            self.plot.getAxis('bottom').setTicks(None)
+            return
+        
+        minVal = 0
+        maxVal = self.max_length
+
+        major_ticks = [ (i, str(i)) for i in range(0, maxVal + 1, int(self.major_ticks)) ]
+
+        minor_ticks = None
+        if self.minor_ticks > 0:
+            tickMod = self.major_ticks / self.minor_ticks
+            minor_ticks = [ (i, str(i) if (i/self.minor_ticks % tickMod) > 0 else '') for i in range(0, maxVal + 1, int(self.minor_ticks)) ]
+
+        ticks = [major_ticks]
+        if minor_ticks:
+            ticks.append(minor_ticks)
+            
+        self.plot.getAxis('bottom').setTicks(ticks)
+                                 
+            
     def setup_plot(self, channels=None, single_axis=None):
         """
         Setup plotting
@@ -385,7 +421,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # Create plot item
         self.plot = pyqtgraph.PlotItem()
         self.plot.showGrid(x=True, y=True)
-        self.do_autoscale()
         if self.fft or self.psd:
             self.plot.setLogMode(x=True, y=True)
 
@@ -402,7 +437,10 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.plot.vb.sigResized.connect(self.update_views)
         self.update_views()
 
-        # Set for autoscale the first time
+        #apply settings to new plot
+        self.set_autoscale(self.auto_scale)
+        self.set_xaxes(self.current_xaxes)
+        
         self.new_plot = True
         self.data_size = 0
         
@@ -540,20 +578,8 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         :return:
         """
         self.auto_scale = flag
-        self.do_autoscale()
 
-
-    def do_autoscale(self, auto_scale=None):
-        """
-        Enable/disable auto range of the current plot based on the `self.auto_scale` setting.
-
-        :param auto_scale: (bool) Can used to overwrite the self.auto_scale. Keep non to use self.auto_scale.
-        :return:
-        """
-        if auto_scale is None:
-            auto_scale = self.auto_scale
-
-        if auto_scale:
+        if self.auto_scale:
             self.plot.enableAutoRange()
             for view in self.views:
                 view.enableAutoRange()
@@ -561,7 +587,33 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             self.plot.disableAutoRange()
             for view in self.views:
                 view.disableAutoRange()
+                    
 
+
+    def do_autoscale(self):
+        """
+        Auto-scale x/y range of the current plot
+        """
+        #Use autoRange instead enableAutoRange so that it isn't persistant.
+        #This way we can use this function for one time auto-scale and for
+        #persistant autoscales
+        self.plot.autoRange()
+        for view in self.views:
+            view.autoRange()
+
+                
+    def reset_xrange(self):
+        """
+        Set x range of the current plot to maximum buffer size
+        Not supported in X-axis is set, as don't know what the maximum value would be
+        """
+        xmin = 0;
+        xmax = self.max_length
+        if self.current_xaxes == 'None':
+            self.plot.setXRange(xmin, xmax)
+            for view in self.views:
+                view.setXRange(xmin, xmax)
+            
     def wait(self):
         """
 
@@ -584,7 +636,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         """
         self.max_length = value
         self.new_buffer = True
-        self.is_max_length = False
         
     def set_range(self, **kwargs):
         """
@@ -757,9 +808,6 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
             if self.data_size == 0:
                 type_size = v[0].dtype.itemsize
                 new_size += type_size * len(v)
-
-            if not self.is_max_length and len(self.data.get(k, [])) >= self.max_length:
-                self.is_max_length = True
                 
             got_data = True
 
@@ -870,7 +918,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         # time array
         time_array = None
 
-        if self.current_xaxes != "None" and len(self.data[self.current_xaxes]) == data_len:
+        if self.current_xaxes != "None" and len(self.data.get(self.current_xaxes,[])) == data_len:
             # TODO later to support: frequency field & sample period as time reference
             # TODO need to handle multiple waveform plotting with different data length
             # Currently, support time only
@@ -999,20 +1047,20 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
                     draw_trig_mark = False
                 count = count + 1
 
-        self.trigger.finish_drawing()
-
         # Axis scaling
-        if self.first_run or self.new_buffer or self.new_plot:
-            # Perform auto range for the first time
-            self.do_autoscale(auto_scale=True)
-            self.first_run = False
-            self.new_buffer = False
-            self.new_plot = False
-        elif not self.is_max_length:
-            self.do_autoscale(auto_scale=True)
+        if self.first_run or self.new_plot:
+            self.do_autoscale()
+            self.reset_xrange()
+        elif self.new_buffer:
+            self.reset_xrange()
+
+        self._setup_ticks()
             
-        # Then set it to the correct setting
-        self.do_autoscale()
+        self.first_run = False
+        self.new_plot = False
+        self.new_buffer = False        
+
+        self.trigger.finish_drawing()
 
         self.update_fps()
 

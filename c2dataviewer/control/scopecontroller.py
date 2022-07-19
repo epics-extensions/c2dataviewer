@@ -17,6 +17,7 @@ from .scope_controller_base import ScopeControllerBase
 from ..view.scope_display import PlotChannel as ScopePlotChannel
 from pyqtgraph.Qt import QtCore
 import math
+import statistics
 
 class ScopeController(ScopeControllerBase):
 
@@ -56,7 +57,7 @@ class ScopeController(ScopeControllerBase):
         self.connection_timer_signal.sig.connect(self.__failed_connection_callback)
         self.buffer_unit = 'Samples'
         self.object_size = None
-        self.object_size_tally = np.array([])
+        self.object_size_tally = []
         
     def __flatten_dict(dobj, kprefixs=[]):
         """
@@ -199,9 +200,14 @@ class ScopeController(ScopeControllerBase):
         """
         if value != self.current_xaxes:
             self.current_xaxes = value
-            self._win.graphicsWidget.current_xaxes = value
-            self.new_buffer = True
+            self._win.graphicsWidget.set_xaxes(value)
 
+    def set_major_ticks(self, value):
+        self._win.graphicsWidget.set_major_ticks(value)
+
+    def set_minor_ticks(self, value):
+        self._win.graphicsWidget.set_minor_ticks(value)
+    
     def parameter_change(self, params, changes):
         """
 
@@ -230,7 +236,7 @@ class ScopeController(ScopeControllerBase):
                         # Recalculate object size and readjust buffer size
                         # if PV name changed
                         self.auto_buffer_size = True
-                        self.object_size_tally = np.array([])
+                        self.object_size_tally = []
                         self.object_size = None
                     except Exception as e:
                         self.notify_warning('Failed to update PV: ' + (str(e)))
@@ -254,6 +260,10 @@ class ScopeController(ScopeControllerBase):
                     self.set_arrayid(data)
                 elif childName == "Config.X Axes":
                     self.set_xaxes(data)
+                elif childName == "Config.Major Ticks":
+                    self.set_major_ticks(data)
+                elif childName == "Config.Minor Ticks":
+                    self.set_minor_ticks(data)
                 elif childName == "Acquisition.Buffer Unit":
                     self.set_buffer_unit(data)
                 elif 'Acquisition.Buffer' in childName:
@@ -351,7 +361,8 @@ class ScopeController(ScopeControllerBase):
             if self.auto_buffer_size:
                 self.update_buffer_samples(self.object_size)
 
-        self.object_size_tally = np.append(self.object_size_tally, objlen)[-10:]
+        self.object_size_tally.append(objlen)
+        self.object_size_tally = self.object_size_tally[-5:]
         
         if not self._win.graphicsWidget.max_length:
             return
@@ -393,6 +404,6 @@ class ScopeController(ScopeControllerBase):
         super().update_status()
 
         if len(self.object_size_tally) > 0:
-            avg_obj_size = self.object_size_tally.mean()
+            avg_obj_size = statistics.mean(self.object_size_tally)
             self.parameters.child("Statistics").child('Avg Samples/Obj').setValue(avg_obj_size)
             self.set_object_size(math.ceil(avg_obj_size))

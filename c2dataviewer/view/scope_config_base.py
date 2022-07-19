@@ -1,8 +1,6 @@
 class ScopeConfigureBase:
     def __init__(self, params, **kwargs):
         self.params = params
-        self.default_arrayid = kwargs.get("arrayid", "None")
-        self.default_xaxes = kwargs.get("xaxes", "None")
         self.default_trigger = kwargs.get("trigger", None)
         self.show_start = kwargs.get("show_start", False)
 
