@@ -126,9 +126,8 @@ class Configure(ScopeConfigureBase):
         if self.default_xaxes != "None":
             axes.append(self.default_xaxes)
 
-
-        self.default_major_tick = section.getint('MAJOR_TICKS', 0)
-        self.default_minor_tick = section.getint('MINOR_TICKS', 0)
+        self.default_major_tick = section.getint('MAJOR_TICKS', 0) if section else 0
+        self.default_minor_tick = section.getint('MINOR_TICKS', 0) if section else 0
         
         cfg = {"name": "Config",
                "type": "group",
