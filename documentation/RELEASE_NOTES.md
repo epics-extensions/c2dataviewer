@@ -1,3 +1,7 @@
+# Release 1.8.0 (07/19/2022)
+- Add major/minor ticks to scope app
+- Fix scope app so user can manually set x/y range
+
 # Release 1.7.7 (07/13/2022)
 - Fixed buffer size auto adjustment
 
