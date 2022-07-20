@@ -128,6 +128,9 @@ def main():
     parser.add_argument('--alias', type=str,
                         help='EPICS PV alias names. Support multiple alias name which are comma separated.'
                              ' e.g. name1,name2,name3')
+    parser.add_argument('--fields', help='Comma-separate list of PV fields to display for scope application')
+    parser.add_argument('--connect-on-start', action='store_true',
+                        help='Connect PV on start up for scope application')
     parser.add_argument('--arrayid', type=str,
                         help='EPICS PV field name for ID for scope application, '
                              'which is used by scope to count losing arrays.'
@@ -207,7 +210,9 @@ def main():
     elif app == AppType.SCOPE:
         from c2dataviewer import scope
         scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.xaxes,
-              max=args.max, min=args.min, trigger=args.trigger)
+              max=args.max, min=args.min, trigger=args.trigger,
+              connect_on_start=args.connect_on_start,
+              fields=args.fields)
     elif app == AppType.STRIPTOOL:
         from c2dataviewer import striptool
         striptool(cfg, pv=pv_map)

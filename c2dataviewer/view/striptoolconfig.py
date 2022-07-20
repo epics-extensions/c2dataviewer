@@ -2,9 +2,7 @@ from .scope_config_base import ScopeConfigureBase
 
 class StripToolConfigure(ScopeConfigureBase):
     def __init__(self, params, **kwargs):
-        super().__init__(params,
-                         show_start=False,
-                         **kwargs)
+        super().__init__(params, **kwargs)
 
     def assemble_acquisition(self, section=None):
         acquisition = super().assemble_acquisition(section)

@@ -25,10 +25,6 @@ class ScopeControllerBase:
         self.arrays = np.array([])
         self.lastArrays = 0
 
-        self.default_arrayid = "None"
-        self.default_xaxes = "None"
-        self.current_arrayid = "None"
-        self.current_xaxes = "None"
         self.default_trigger = None
         self.trigger_is_monitor = False
         self.trigger_auto_scale = False
@@ -70,27 +66,9 @@ class ScopeControllerBase:
                                 
         except Exception as e:
             self.notify_warning("Channel {}://{} timed out. \n{}".format(proto, name, repr(e)))
-            
+
 
     def default_config(self, **kwargs):
-        """
-        Default configuration for array ID and x axes field names
-
-        :param kwargs:
-        :return:
-        """
-        self.default_arrayid = kwargs.get("arrayid", None)
-        if self.default_arrayid is None:
-            self.default_arrayid = "None"
-        else:
-            self._win.graphicsWidget.set_arrayid(self.default_arrayid)
-        self.default_xaxes = kwargs.get("xaxes", None)
-        if self.default_xaxes is None:
-            self.default_xaxes = "None"
-        else:
-            self._win.graphicsWidget.set_xaxes(self.default_xaxes)
-        self._win.graphicsWidget.set_range(**kwargs)
-
         max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
         if max_length:
             self._win.graphicsWidget.update_buffer_samples(int(max_length))
@@ -109,6 +87,7 @@ class ScopeControllerBase:
             self.trigger_auto_scale = self.parameters.child("Trigger").child("Autoscale Buffer").value()
         except:
             pass
+
         
     def update_buffer_samples(self, size):
         """

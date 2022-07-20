@@ -2,6 +2,8 @@
 
 from .scope_config_base import ScopeConfigureBase
 import logging
+import re
+
 """
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
@@ -22,7 +24,7 @@ class Configure(ScopeConfigureBase):
         :param params: parameters parsed from command line and configuration file
         :param pvs: pv name dictionary, format: {"alias": "PV:Name"}
         """
-        super().__init__(params, show_start=True, **kwargs)
+        super().__init__(params, **kwargs)
         self.pvs = kwargs.get("pv", None)
 
         self.counts = 4
@@ -40,21 +42,34 @@ class Configure(ScopeConfigureBase):
         :param section:
         :return:
         """
+        # get channel counts to display, 4 by default
         if section is None:
             self.counts = 4
         else:
-            # get channel counts to display, 4 by default
-            try:
-                self.counts = section.getint('COUNT', 4)
-                if self.counts > 10:
-                    # limit max channel to display
-                    self.counts = 10
-            except ValueError:
-                # TODO: add logging information
-                self.counts = 4
+            self.counts = section.getint('COUNT', 4)
 
         channel = []
+
+        #Read channel information.  Channel order is
+        #determined by order in config
+        fields = []
+        if section:
+            for k, v in section.items():
+                if bool(re.match('chan', k, re.I)):
+                    ch, param = k.lower().split('.')
+                    if param == 'field':
+                        fields.append(v)
+
+        if len(fields) > self.counts:
+            self.counts = len(fields)
+
+        if self.counts > 10:
+            # limit max channel to display
+            self.counts = 10
+            
         for i in range(self.counts):
+            default_field = fields[i] if len(fields) > i else 'None'
+            
             channel.append(
                 {"name": "Channel %s" % (i + 1),
                  "type": "group",
@@ -65,7 +80,7 @@ class Configure(ScopeConfigureBase):
                          "value": self.default_color[i],
                          "readonly": True
                      },
-                     {"name": "Field", "type": "list", "values": [], "value": "None"},
+                     {"name": "Field", "type": "list", "values": [], "value": default_field},
                      {"name": "DC offset", "type": "float", "value": 0.0},
                      {"name": "Axis location", "type": "list", "values": {
                          "Left" : "left",
@@ -80,7 +95,11 @@ class Configure(ScopeConfigureBase):
     def assemble_acquisition(self, section=None):
         acquisition = super().assemble_acquisition(section)
         children = acquisition['children']
-        
+
+        start = False
+        if section:
+            start = section.getboolean('ConnectOnStart', False)
+
         pv = None
         if self.pvs is not None:
             pv = list(self.pvs.values())[0]
@@ -98,16 +117,12 @@ class Configure(ScopeConfigureBase):
             {"name": "Buffer Unit", "type": "list", "values": ["Samples", "Objects"],
              "value": 'Samples'},
             {"name": "PV", "type": "str", "value": pv},
-            {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True}
+            {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True},
+            {"name": "Start", "type": "bool", "value": start}
         ]
-        i = len(children)
-        if self.show_start:
-            i -= 1
 
-        for l in newchildren:
-            children.insert(i, l)
-            i+=1
-
+        children.extend(newchildren)
+        
         return acquisition
 
     def assemble_statistics(self):
