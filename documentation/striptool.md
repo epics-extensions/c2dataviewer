@@ -12,6 +12,9 @@ By default striptool plots channel access PVs.  PVs can be specified from comman
 ## Configuration
 PVs can be specified by a configuration file. Below is an example:
 ```
+[DEFAULT]
+APP=STRIPTOOL
+
 [STRIPTOOL]
 DefaultProtocol = ca
 Chan1.PV = S:R:reg1
