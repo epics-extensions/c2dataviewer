@@ -1,3 +1,7 @@
+# Release 1.8.2 (07/22/2022)
+## Scope app
+- Add ability to set fields and connect on startup via command-line options and config
+
 # Release 1.8.1 (07/19/2022)
 
 - Fix config error
