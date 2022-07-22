@@ -48,7 +48,7 @@ ConnectOnStart=true
 Chan1.Field=x
 Chan2.Field=y
 ```
-``` 
+
 ### ACQUISITION
 | Setting | Description
 |---|---|
