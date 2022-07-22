@@ -31,7 +31,7 @@ When the trigger condition is meet, the waveform will draw/update.
 
 ## Configuration
 PVs can be specified by a configuration file. Below is an example:
-```
+```ini
 [DEFAULT]
 APP=SCOPE
 
