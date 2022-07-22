@@ -65,15 +65,10 @@ def scope(cfg, **kwargs):
 
     warning = WarningDialog(None)
 
-    if pvmap is not None:
-        model = DataReceiver(default=list(pvmap.values())[0])
-        controller = ScopeController(w, model, parameters, WARNING=warning)
-        controller.default_config(**kwargs)
-        controller.update_fdr()
-    else:
-        model = DataReceiver()
-        controller = ScopeController(w, model, parameters, WARNING=warning)
-        controller.default_config(**kwargs)
+    default_pv = list(pvmap.values())[0] if pvmap else None    
+    model = DataReceiver(default=default_pv)
+    controller = ScopeController(w, model, parameters, WARNING=warning)
+    controller.default_config(**kwargs)
 
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
 

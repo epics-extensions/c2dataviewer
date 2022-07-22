@@ -41,6 +41,11 @@ class ScopeController(ScopeControllerBase):
         warning = kwargs["WARNING"]
 
         super().__init__(widget, model, parameters, warning, channels=self.channels, **kwargs)
+        
+        self.default_arrayid = "None"
+        self.default_xaxes = "None"
+        self.current_arrayid = "None"
+        self.current_xaxes = "None"
 
         #auto-set buffer size to waveform length.  This will be
         #disabled if buffer is set manually
@@ -58,7 +63,43 @@ class ScopeController(ScopeControllerBase):
         self.buffer_unit = 'Samples'
         self.object_size = None
         self.object_size_tally = []
-        
+
+    def default_config(self, **kwargs):
+        """
+        Update configuration based on commmand-line arguments
+        Called in the top-level function and passes in the command-line arguments
+        for scope as key-word arguments.
+        Any options not set should be set in kwargs as None
+        """
+
+
+        start = self.parameters.child("Acquisition").child("Start").value()
+        if kwargs['connect_on_start']:
+            start = True
+            
+        super().default_config(**kwargs)
+
+        if kwargs['arrayid']:
+            self.set_arrayid(kwargs["arrayid"])
+        if kwargs['xaxes']:
+            self.set_xaxes(kwargs['xaxes'])
+            
+        self._win.graphicsWidget.set_range(**kwargs)
+
+        if kwargs['fields']:
+            fields = kwargs['fields'].split(',')
+            for i, f in enumerate(fields):
+                chan_name = "Channel %s" % (i + 1)
+                child = self.parameters.child(chan_name)
+                c = child.child("Field")
+                c.setValue(f)
+
+        #Updates channel information based on self.parameters
+        self.update_fdr()
+
+        if start:
+            self.start_plotting()            
+            
     def __flatten_dict(dobj, kprefixs=[]):
         """
         Genenerator that can traverse through nested dictionaries and return
@@ -129,22 +170,32 @@ class ScopeController(ScopeControllerBase):
 
         fdr.insert(0, "None")
         fdr_scalar.insert(0, "None")
-
+        
         # fill up the selectable pull down menu for array ID
         child = self.parameters.child("Config").child("ArrayId")
         child.setLimits(fdr_scalar)
+        if child.value() != 'None':
+            self.set_arrayid(child.value())
+        
         # fill up the selectable pull down menu for x axes
         child = self.parameters.child("Config").child("X Axes")
         child.setLimits(fdr)
-
+        if child.value() != 'None':
+            self.set_xaxes(child.value())
+                
         child = self.parameters.child("Trigger").child("Data Time Field")
         child.setLimits(fdr)
+        if child.value() != 'None':
+            self._win.graphicsWidget.trigger.data_time_field = data
         
         for idx in range(len(self.channels)):
-            child = self.parameters.child("Channel %s" % (idx + 1))
+            chan_name = "Channel %s" % (idx + 1)
+            child = self.parameters.child(chan_name)
             c = child.child("Field")
             c.setLimits(fdr)
-            c.setValue("None")
+            if child.value() != 'None':
+                self.set_channel_data(chan_name, 'Field', c.value())
+            
 
     def __failed_connection_callback(self, flag):
         """
@@ -207,7 +258,23 @@ class ScopeController(ScopeControllerBase):
 
     def set_minor_ticks(self, value):
         self._win.graphicsWidget.set_minor_ticks(value)
-    
+
+
+    def set_channel_data(self, channel_name, field, value):
+        # avoid changes caused by Statistic updating
+        for i, chan in enumerate(self.channels):
+            if channel_name != 'Channel %i' % (i + 1):
+                continue
+
+            if field == 'Field':
+                chan.pvname = value
+            elif field == 'DC offset':
+                chan.dc_offset = value
+            elif field == 'Axis location':
+                chan.axis_location
+            
+        self._win.graphicsWidget.setup_plot(channels=self.channels)
+        
     def parameter_change(self, params, changes):
         """
 
@@ -232,7 +299,7 @@ class ScopeController(ScopeControllerBase):
                             self.update_fdr()
                         else:
                             self.update_fdr(empty=True)
-
+                            
                         # Recalculate object size and readjust buffer size
                         # if PV name changed
                         self.auto_buffer_size = True
@@ -247,15 +314,8 @@ class ScopeController(ScopeControllerBase):
                     else:
                         self.stop_plotting()
                 elif "Channel" in childName:
-                    # avoid changes caused by Statistic updating
-                    for i, chan in enumerate(self.channels):
-                        if childName == 'Channel %s.Field' % (i + 1):
-                            chan.pvname = data
-                        elif childName == 'Channel %s.DC offset' % (i + 1):
-                            chan.dc_offset = data
-                        elif childName == 'Channel %s.Axis location' % (i + 1):
-                            chan.axis_location = data
-                    self._win.graphicsWidget.setup_plot(channels=self.channels)
+                    chan, field = childName.split('.')
+                    self.set_channel_data(chan, field, data)
                 elif childName == "Config.ArrayId":
                     self.set_arrayid(data)
                 elif childName == "Config.X Axes":
@@ -376,7 +436,7 @@ class ScopeController(ScopeControllerBase):
 
         :return:
         """
-        
+
         # stop a model first anyway to ensure it is clean
         self.model.stop()
         

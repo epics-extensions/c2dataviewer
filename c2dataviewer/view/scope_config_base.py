@@ -2,8 +2,6 @@ class ScopeConfigureBase:
     def __init__(self, params, **kwargs):
         self.params = params
         self.default_trigger = kwargs.get("trigger", None)
-        self.show_start = kwargs.get("show_start", False)
-
 
     def add_source_aquisition_props(self, children, section):
         """
@@ -33,9 +31,6 @@ class ScopeConfigureBase:
             {"name": "Freeze", "type": "bool", "value": False},
             {"name": "Buffer (Samples)", "type": "int", "value": buffer, "siPrefix": False, 'decimals': 20}
         ]
-
-        if self.show_start:
-            children.append({"name": "Start", "type": "bool", "value": False})
 
         acquisition = {"name": "Acquisition", "type":"group", "children": children}
         

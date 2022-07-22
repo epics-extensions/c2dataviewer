@@ -1,19 +1,16 @@
-# Generic Configuration Settings
-Configuration common for all c2dataviewer applications.  Default configuration for c2dataviewer is defined [here](../c2dataviewer/c2dv.cfg).
+# Configuration Settings
+Configuration for striptool and scope applications.  
 
 ## Sections
-
-### DEFAULT
-| Setting | Description |
-|---|---|
-|APP| set default application.  Possible values are `IMAGE`, `SCOPE`, and `STRIPTOOL`
 
 ### ACQUISITION
 | Setting | Description |
 |---|---|
-|BUFFER| Buffer size |
+|Buffer| Buffer size |
+
 
 ### DISPLAY
 | Setting | Description |
 |---|---|
-|REFRESH| Refresh time in milliseconds |
+|Refresh| Refresh time in milliseconds |
+

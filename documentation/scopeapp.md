@@ -10,7 +10,7 @@ From the application UI, select the fields to plot under "Channels" options.  Cl
 ## Zooming
 To zoom, scroll using the scroll wheel or trackpad.  To pan, left click and drag.  To see all mouse interactions, see [pyqtgraph's documentation](https://pyqtgraph.readthedocs.io/en/latest/mouse_interaction.html).
 
-If you're unable to scroll, you can also manually set a X/Y range.  First click the "Freeze" checkbox to stop redrawing.  Then right-click, select either X-axis or Y-axis, and set the Manual range.
+You can also configure the X/Y range, by right-click, select options from either the X-axis or Y-axis menus.
 
 ## Triggering
 Scope application supports software triggering via external v3 PV. When trigger mode is configured and trigger occur,
@@ -28,3 +28,44 @@ Configuring the trigger:
 6. Start the acquisition
 
 When the trigger condition is meet, the waveform will draw/update.
+
+## Configuration
+PVs can be specified by a configuration file. Below is an example:
+```
+[DEFAULT]
+APP=SCOPE
+
+[SCOPE]
+SECTION=ACQUISITION,CHANNELS
+
+
+[ACQUISITION]
+PV=TEST
+ConnectOnStart=true
+
+
+[CHANNELS]
+Chan1.Field=x
+Chan2.Field=y
+```
+``` 
+### ACQUISITION
+| Setting | Description
+|---|---|
+| PV | EPICS PV name.  By default uses PVAccess protocol.  Can specify protocol by starting name with [proto]://pvname, where [proto] is either 'ca' or 'pva' |
+| ConnectOnStart | Attempt to connect to PV on startup. Can set to 'true','false','1', or '0'.|
+
+
+### CHANNELS
+| Setting | Description
+|---|---|
+| Chan[ID].Field | PV field to plot.  Field have scalar array data. Can have up to 4 instances specified  (see example above). Can specify fields inside of nested structures with `struct1.struct2.field1` notation where `struct1`, `struct2` are the structure names, and `field1` is the field name |
+
+### CONFIG
+| Setting | Description |
+|---|---|
+|MajorTicks| Sample interval length for major ticks|
+|MinorTicks| Sample interval length for minor ticks||
+
+Go [here](configsettings.md) for more configuration settings
+
