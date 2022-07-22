@@ -2,10 +2,16 @@
 Scope application displays arbitrary information from a pvAccess channel as a time series graph. To start:
 
 ```bash
-c2dv --app scope --pv <PV>
+c2dv --app scope --pv=<PV>
 ```
 
-From the application UI, select the fields to plot under "Channels" options.  Click the "Start" checkbox to start plotting.
+From the application UI, select the fields to plot under "Channels" options.  Click the "Start" checkbox to start plotting. You can also set fields and connect on startup as follows:
+
+```bash
+c2dv --app scope --pv=<PV> --fields=<FIELD1>,<FIELD2>,..  --connect-on-start
+```
+
+See `c2dv -h` for all options.
 
 ## Zooming
 To zoom, scroll using the scroll wheel or trackpad.  To pan, left click and drag.  To see all mouse interactions, see [pyqtgraph's documentation](https://pyqtgraph.readthedocs.io/en/latest/mouse_interaction.html).
