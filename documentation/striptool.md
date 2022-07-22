@@ -11,7 +11,7 @@ By default striptool plots channel access PVs.  PVs can be specified from comman
 
 ## Configuration
 PVs can be specified by a configuration file. Below is an example:
-```
+```ini
 [DEFAULT]
 APP=STRIPTOOL
 
