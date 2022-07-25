@@ -36,7 +36,9 @@ Configuring the trigger:
 When the trigger condition is meet, the waveform will draw/update.
 
 ## Configuration
-PVs can be specified by a configuration file. Below is an example:
+PVs can be specified by a configuration file. 
+
+Example
 ```ini
 [DEFAULT]
 APP=SCOPE
@@ -44,16 +46,24 @@ APP=SCOPE
 [SCOPE]
 SECTION=ACQUISITION,CHANNELS
 
-
 [ACQUISITION]
 PV=MyPV:Data
 ConnectOnStart=true
-
 
 [CHANNELS]
 Chan1.Field=x
 Chan2.Field=y
 ```
+Scope configurations must start with:
+
+```ini
+[DEFAULT]
+APP=SCOPE
+
+[SCOPE]
+SECTION=<SECTION LIST>
+```
+Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section.
 
 ### ACQUISITION
 | Setting | Description
