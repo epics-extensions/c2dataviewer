@@ -52,24 +52,36 @@ class Configure(ScopeConfigureBase):
 
         #Read channel information.  Channel order is
         #determined by order in config
-        fields = []
+        chan_cfg_lookup = {}
+        
         if section:
             for k, v in section.items():
                 if bool(re.match('chan', k, re.I)):
                     ch, param = k.lower().split('.')
-                    if param == 'field':
-                        fields.append(v)
+                    chan_cfg_lookup[ch] = chan_cfg_lookup.get(ch, {})
+                    chan_cfg_lookup[ch][param] = v
 
-        if len(fields) > self.counts:
-            self.counts = len(fields)
+        chan_cfgs = list(chan_cfg_lookup.values())
+        
+        if len(chan_cfgs) > self.counts:
+            self.counts = len(chan_cfgs)
 
         if self.counts > 10:
             # limit max channel to display
             self.counts = 10
-            
+
+        
         for i in range(self.counts):
-            default_field = fields[i] if len(fields) > i else 'None'
+            default_cfg = {
+                'field' : 'None',
+                'dcoffset': 0.0
+            }
             
+            chcfg = chan_cfgs[i] if len(chan_cfgs) > i else default_cfg
+
+            field = chcfg.get('field', default_cfg['field'])
+            dcoffset = float(chcfg.get('dcoffset', default_cfg['dcoffset']))
+                                 
             channel.append(
                 {"name": "Channel %s" % (i + 1),
                  "type": "group",
@@ -80,8 +92,8 @@ class Configure(ScopeConfigureBase):
                          "value": self.default_color[i],
                          "readonly": True
                      },
-                     {"name": "Field", "type": "list", "values": [], "value": default_field},
-                     {"name": "DC offset", "type": "float", "value": 0.0},
+                     {"name": "Field", "type": "list", "values": [], "value": field},
+                     {"name": "DC offset", "type": "float", "value": dcoffset},
                      {"name": "Axis location", "type": "list", "values": {
                          "Left" : "left",
                          "Right" : "right",
@@ -93,7 +105,18 @@ class Configure(ScopeConfigureBase):
         return channel
 
     def assemble_acquisition(self, section=None):
-        acquisition = super().assemble_acquisition(section)
+        buffer_unit = 'samples'
+        try:
+            buffer_unit = section["BUFFERUNIT"]
+        except:
+            pass
+
+        if buffer_unit.lower() not in ["samples", "objects"]:
+            buffer_unit = 'samples'
+
+        buffer_unit = buffer_unit.title()
+
+        acquisition = super().assemble_acquisition(section, buffer_unit=buffer_unit)
         children = acquisition['children']
 
         start = False
@@ -115,7 +138,7 @@ class Configure(ScopeConfigureBase):
 
         newchildren = [
             {"name": "Buffer Unit", "type": "list", "values": ["Samples", "Objects"],
-             "value": 'Samples'},
+             "value": buffer_unit},
             {"name": "PV", "type": "str", "value": pv},
             {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True},
             {"name": "Start", "type": "bool", "value": start}
