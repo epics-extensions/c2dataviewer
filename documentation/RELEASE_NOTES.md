@@ -1,3 +1,7 @@
+# Release 1.8.3 (08/03/2022)
+
+- Add new configuration options
+
 # Release 1.8.2 (07/22/2022)
 ## Scope app
 - Add ability to set fields and connect on startup via command-line options and config
