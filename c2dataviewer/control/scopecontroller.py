@@ -76,8 +76,11 @@ class ScopeController(ScopeControllerBase):
         start = self.parameters.child("Acquisition").child("Start").value()
         if kwargs['connect_on_start']:
             start = True
-            
-        super().default_config(**kwargs)
+
+        buffer_unit = self.parameters.child("Acquisition").child("Buffer Unit").value()
+        self.buffer_unit = buffer_unit
+        
+        super().default_config(**kwargs, buffer_unit=buffer_unit)
 
         if kwargs['arrayid']:
             self.set_arrayid(kwargs["arrayid"])
@@ -94,8 +97,17 @@ class ScopeController(ScopeControllerBase):
                 c = child.child("Field")
                 c.setValue(f)
 
-        #Updates channel information based on self.parameters
+        
+        #Updates channel fields based on self.parameters
         self.update_fdr()
+
+        #Update other channel information
+        for idx in range(len(self.channels)):
+            chan_name = "Channel %s" % (idx + 1)
+            child = self.parameters.child(chan_name)
+            c = child.child("DC offset")
+            if c.value() != 0:
+                self.set_channel_data(chan_name, 'DC offset', c.value())
 
         if start:
             self.start_plotting()            
@@ -193,9 +205,8 @@ class ScopeController(ScopeControllerBase):
             child = self.parameters.child(chan_name)
             c = child.child("Field")
             c.setLimits(fdr)
-            if child.value() != 'None':
+            if c.value() != 'None':
                 self.set_channel_data(chan_name, 'Field', c.value())
-            
 
     def __failed_connection_callback(self, flag):
         """
@@ -271,7 +282,7 @@ class ScopeController(ScopeControllerBase):
             elif field == 'DC offset':
                 chan.dc_offset = value
             elif field == 'Axis location':
-                chan.axis_location
+                chan.axis_location = value
             
         self._win.graphicsWidget.setup_plot(channels=self.channels)
         

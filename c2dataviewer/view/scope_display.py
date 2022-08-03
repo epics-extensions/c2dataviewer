@@ -605,14 +605,20 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
     def reset_xrange(self):
         """
         Set x range of the current plot to maximum buffer size
-        Not supported in X-axis is set, as don't know what the maximum value would be
+        Not supported cases where the x values are not the buffer samples
         """
+
+        #
+        # Cases where x-values are not buffer samples
+        #
+        if self.current_xaxes != None or self.fft or self.psd or self.histogram:
+            return
+        
         xmin = 0;
         xmax = self.max_length
-        if self.current_xaxes == 'None':
-            self.plot.setXRange(xmin, xmax)
-            for view in self.views:
-                view.setXRange(xmin, xmax)
+        self.plot.setXRange(xmin, xmax)
+        for view in self.views:
+            view.setXRange(xmin, xmax)
             
     def wait(self):
         """

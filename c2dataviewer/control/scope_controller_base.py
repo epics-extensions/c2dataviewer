@@ -69,9 +69,11 @@ class ScopeControllerBase:
 
 
     def default_config(self, **kwargs):
-        max_length = self.parameters.child("Acquisition").child("Buffer (Samples)").value()
-        if max_length:
-            self._win.graphicsWidget.update_buffer_samples(int(max_length))
+        buffer_unit = kwargs.get('buffer_unit', 'Samples')
+            
+        max_length = self.parameters.child("Acquisition").child("Buffer (%s)" % buffer_unit).value()
+        if max_length and buffer_unit == 'Samples':
+            self.update_buffer_samples(int(max_length))
             
         self._win.graphicsWidget.set_binning(self.parameters.child("Display").child("Num Bins").value())
 

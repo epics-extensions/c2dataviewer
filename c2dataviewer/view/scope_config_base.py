@@ -10,26 +10,25 @@ class ScopeConfigureBase:
         """
         return children
 
-    def assemble_acquisition(self, section=None):
+    def assemble_acquisition(self, section=None, buffer_unit='Samples'):
         """
         Assemble acquisition information
 
         :param section:
         :return:
         """
-        
+
         children = []
-        buffer = None
+
+        buffer_size = None
+        try:
+            buffer_size = section["BUFFER"]
+        except:
+            pass
         
-        if section:
-            try:
-                buffer = section["BUFFER"]
-            except Exception:
-                pass
-            
         children += [
             {"name": "Freeze", "type": "bool", "value": False},
-            {"name": "Buffer (Samples)", "type": "int", "value": buffer, "siPrefix": False, 'decimals': 20}
+            {"name": "Buffer (%s)" % buffer_unit, "type": "int", "value": buffer_size, "siPrefix": False, 'decimals': 20}
         ]
 
         acquisition = {"name": "Acquisition", "type":"group", "children": children}
