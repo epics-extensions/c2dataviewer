@@ -1,3 +1,7 @@
+# Release 1.8.4 (08/05/2022)
+
+- Fixed unit test failure
+
 # Release 1.8.3 (08/03/2022)
 
 - Add new configuration options
