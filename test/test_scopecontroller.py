@@ -39,9 +39,6 @@ class TestImageDisplay(unittest.TestCase):
         :return:
         """
 
-        # Create Qt application
-        self.app = QtWidgets.QApplication(sys.argv)
-
         # Create ImageWindow and get the imageWidget instance
         self.window = ScopeWindow()
 
@@ -67,7 +64,7 @@ class TestImageDisplay(unittest.TestCase):
 
         :return:
         """
-        self.app.quit()
+        pass
 
     def test_update_status(self):
         """

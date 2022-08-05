@@ -21,9 +21,6 @@ class TestStriptoolController(unittest.TestCase):
 [STRIPTOOL]
 """
     def setUp(self):
-        # Create Qt application
-        self.app = QtWidgets.QApplication(sys.argv)
-
         # Create ImageWindow and get the imageWidget instance
         self.window = StripToolWindow()
 
