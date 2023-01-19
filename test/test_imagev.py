@@ -15,7 +15,7 @@ from pyqtgraph.Qt import QtCore
 from pyqtgraph.Qt import QtWidgets
 
 from c2dataviewer.imagev import ImageWindow
-
+from .helper import setup_qt_app
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -30,8 +30,8 @@ class TestImagev(unittest.TestCase):
         """
 
         # Create Qt application
-        self.app = QtWidgets.QApplication(sys.argv)
-
+        setup_qt_app()
+        
         # Build image window
         self.window = ImageWindow()
         self.window.resize(1200, 1200)
@@ -44,7 +44,6 @@ class TestImagev(unittest.TestCase):
 
         :return:
         """
-        self.app.quit()
 
     def test_widgetVisibility2WindowSize(self):
         """

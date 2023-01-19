@@ -20,8 +20,10 @@ from c2dataviewer.control.imagecontroller import ImageController
 from c2dataviewer.view.image_definitions import COLOR_MODE_MONO, COLOR_MODE_RGB2, transcode_image
 from c2dataviewer.view.image_profile_display import ImageProfileWidget
 from .helper import create_image
+from .helper import setup_qt_app
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
+
 
 class TestImageProfileWidget(unittest.TestCase):
 
@@ -35,8 +37,8 @@ class TestImageProfileWidget(unittest.TestCase):
         :return:
         """
         # Create Qt application
-        self.app = pg.Qt.QtWidgets.QApplication(sys.argv)
-
+        setup_qt_app()
+        
         # Create ImageWindow and het the imageWidget instance
         self.window = ImageWindow()
         self.imageWidget = self.window.imageWidget
@@ -63,7 +65,6 @@ class TestImageProfileWidget(unittest.TestCase):
 
         :return:
         """
-        self.app.quit()
 
     def test_calculate_profiles(self):
         """
