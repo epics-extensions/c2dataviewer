@@ -11,6 +11,7 @@ Helper functions for c2d unit tests.
 from datetime import datetime as dt
 import numpy as np
 import pvaccess as pva
+from pyqtgraph.Qt import QtWidgets
 
 from c2dataviewer.view.image_definitions import *
 from c2dataviewer.view.image_display import ImagePlotWidget
@@ -81,3 +82,13 @@ def create_image(id, image=None, data_type='ubyteValue', nx=None, ny=None, nz=No
     nda['value'] = {data_type : image}
 
     return nda
+
+app = None
+
+def setup_qt_app():
+    global app
+    
+    if not app:
+        app = QtWidgets.QApplication.instance()
+        if not app:
+            app  = QtWidgets.QApplication([])
