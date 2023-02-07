@@ -1,3 +1,7 @@
+# Release 1.6.5 (02/07/2023)
+
+- Fixed flaky tests and remove python version dependency
+
 # Release 1.8.4 (08/05/2022)
 
 - Fixed unit test failure
