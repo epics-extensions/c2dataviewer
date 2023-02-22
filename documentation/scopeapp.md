@@ -78,11 +78,17 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 | Chan[ID].Field | PV field to plot.  Field have scalar array data. Can have up to 4 instances specified  (see example above). Can specify fields inside of nested structures with `struct1.struct2.field1` notation where `struct1`, `struct2` are the structure names, and `field1` is the field name |
 | Chan[ID].DcOffset | Extra offset added on top of sample values. Will cause plot Y values to be shifted. |
 
+### DISPLAY
+| Setting | Description |
+|---|---|
+|Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
+
 ### CONFIG
 | Setting | Description |
 |---|---|
+|XAxes| PV field to use for X-axis values in X vs Y mode|
 |MajorTicks| Sample interval length for major ticks|
-|MinorTicks| Sample interval length for minor ticks||
+|MinorTicks| Sample interval length for minor ticks|
 
 Go [here](configsettings.md) for more configuration settings
 

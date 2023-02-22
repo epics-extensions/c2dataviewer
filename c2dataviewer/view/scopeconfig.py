@@ -161,6 +161,7 @@ class Configure(ScopeConfigureBase):
         if self.default_arrayid != "None":
             id_value.append(self.default_arrayid)
         axes = ["None"]
+        self.default_xaxes = section.get("XAXES", "None") if section else "None"
         if self.default_xaxes != "None":
             axes.append(self.default_xaxes)
 

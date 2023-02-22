@@ -64,6 +64,9 @@ class ScopeConfigureBase:
                 {"name": "Refresh", "type": "float", "value": 0.1, "siPrefix": True, "suffix": "s"},
             ]}
         else:
+            display_mode = section.get("MODE", "normal").lower().strip()
+            if display_mode not in ["normal", "fft", "psd", "diff", "xy"]:
+                display_mode = "normal"
 
             fft_filter = section.get("FFT_FILTER", None)
             if fft_filter is not None:
@@ -125,7 +128,7 @@ class ScopeConfigureBase:
                     "PSD": "psd",
                     "Diff": "diff",
                     "X vs Y": "xy",
-                }, "value": "Normal"},
+                }, "value": display_mode},
                 {"name": "FFT filter", "type": "list", "values": {
                     "None" : "none",
                     "Hamming" : "hamming"
