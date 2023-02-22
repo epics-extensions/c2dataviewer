@@ -1,4 +1,8 @@
-# Release 1.6.5 (02/07/2023)
+# Release 1.8.6 (02/22/2023)
+
+- Add new configuration options
+
+# Release 1.8.5 (02/07/2023)
 
 - Fixed flaky tests and remove python version dependency
 
