@@ -58,9 +58,9 @@ setup (
     'numpy',
     'psutil',
     'pvapy',
-    'pyqtgraph==0.10.0',
+    'pyqtgraph==0.12.4',
     'PyQt5',
-    'blosc',
+    'blosc'
     ],
     entry_points = {'console_scripts': ['c2dv=c2dataviewer.c2dv:main']},
 )

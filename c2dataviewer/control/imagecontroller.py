@@ -14,7 +14,7 @@ PVA object viewer utilities
 """
 import datetime
 from pyqtgraph import Qt
-import pyqtgraph.ptime as ptime
+import time
 from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
 from PyQt5 import QtWidgets
@@ -485,7 +485,7 @@ class ImageController:
         """
 
         # Get current time
-        now = ptime.time()
+        now = time.time()
 
         # Set required variabels on first call
         if self._last_time_stat_calculated is None:
@@ -566,7 +566,7 @@ class ImageController:
         """
         self._last_time_stat_calculated = None
         self._win.imageWidget.__last_array_id = None
-        self._start_time = ptime.time()
+        self._start_time = time.time()
         self.runtime = 0
         self._win.imageWidget.MB_received = 0.0
         self._win.imageWidget.frames_received = 0
@@ -721,8 +721,8 @@ class ImageController:
                                self.SLIDER_MAX_VAL / maxVal if maxVal != 0 else 0,)
 
         self._imageBlackSliderFactor = sliderFactor
-        self._win.imageBlackSlider.setMinimum(minVal * sliderFactor)
-        self._win.imageBlackSlider.setMaximum(maxVal * sliderFactor)
+        self._win.imageBlackSlider.setMinimum(int(minVal * sliderFactor))
+        self._win.imageBlackSlider.setMaximum(int(maxVal * sliderFactor))
 
         self._win.imageBlackSpinBox.setMinimum(minVal)
         self._win.imageBlackSpinBox.setMaximum(maxVal)
@@ -752,8 +752,8 @@ class ImageController:
                                self.SLIDER_MAX_VAL / maxVal if maxVal != 0 else 0,)
 
         self._imageWhiteSliderFactor = sliderFactor
-        self._win.imageWhiteSlider.setMinimum(minVal * sliderFactor)
-        self._win.imageWhiteSlider.setMaximum(maxVal * sliderFactor)
+        self._win.imageWhiteSlider.setMinimum(int(minVal * sliderFactor))
+        self._win.imageWhiteSlider.setMaximum(int(maxVal * sliderFactor))
 
         self._win.imageWhiteSpinBox.setMinimum(minVal)
         self._win.imageWhiteSpinBox.setMaximum(maxVal)
@@ -780,7 +780,7 @@ class ImageController:
         self._win.imageBlackSpinBox.blockSignals(False)
 
         self._win.imageBlackSlider.blockSignals(True)
-        self._win.imageBlackSlider.setValue(value * self._imageBlackSliderFactor)
+        self._win.imageBlackSlider.setValue(int(value * self._imageBlackSliderFactor))
         self._win.imageBlackSlider.blockSignals(False)
 
     def updateGuiWhite(self, value):
@@ -797,5 +797,5 @@ class ImageController:
 
         # Update the slider
         self._win.imageWhiteSlider.blockSignals(True)
-        self._win.imageWhiteSlider.setValue(value * self._imageWhiteSliderFactor)
+        self._win.imageWhiteSlider.setValue(int(value * self._imageWhiteSliderFactor))
         self._win.imageWhiteSlider.blockSignals(False)

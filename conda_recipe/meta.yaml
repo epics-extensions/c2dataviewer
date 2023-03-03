@@ -28,7 +28,7 @@ requirements:
     - epics-base  # [osx]
     # We are using fixed version until https://git.aps.anl.gov/C2/conda/data-viewer/-/issues/48
     # is resolved. Note that this is also hardcoded in tox.ini and setup_pip.py.
-    - pyqtgraph 0.10.0
+    - pyqtgraph 0.12.4
     - python-blosc
     - python
     

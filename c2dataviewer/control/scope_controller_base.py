@@ -194,7 +194,7 @@ class ScopeControllerBase:
         # Setup free run plotting
         if not self._win.graphicsWidget.trigger_mode():
             self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
-            self.timer.start(self.refresh)
+            self.timer.start(int(self.refresh))
         else:
             self.start_trigger()
 

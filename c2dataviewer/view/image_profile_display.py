@@ -13,7 +13,6 @@ Copyright 2021 UChicago Argonne LLC
 
 import numpy as np
 import pyqtgraph as pg
-
 from .image_definitions import COLOR_MODE_MONO
 
 
@@ -56,7 +55,7 @@ class ImageProfileWidget(object):
         self._plot_x_profile.widget().getPlotItem().hideAxis('bottom')
         self._plot_x_profile.widget().getPlotItem().hideAxis('left')
 
-        plot_x_size_policy = pg.Qt.QtGui.QSizePolicy(pg.Qt.QtGui.QSizePolicy.Fixed, pg.Qt.QtGui.QSizePolicy.Fixed)
+        plot_x_size_policy = pg.Qt.QtWidgets.QSizePolicy(pg.Qt.QtWidgets.QSizePolicy.Fixed, pg.Qt.QtWidgets.QSizePolicy.Fixed)
         plot_x_size_policy.setHeightForWidth(self._plot_x_profile.widget().sizePolicy().hasHeightForWidth())
         self._plot_x_profile.widget().setSizePolicy(plot_x_size_policy)
 
@@ -72,7 +71,7 @@ class ImageProfileWidget(object):
         self._plot_y_profile.widget().getPlotItem().hideAxis('bottom')
         self._plot_y_profile.widget().getPlotItem().hideAxis('left')
 
-        plot_y_size_policy = pg.Qt.QtGui.QSizePolicy(pg.Qt.QtGui.QSizePolicy.Fixed, pg.Qt.QtGui.QSizePolicy.Fixed)
+        plot_y_size_policy = pg.Qt.QtWidgets.QSizePolicy(pg.Qt.QtWidgets.QSizePolicy.Fixed, pg.Qt.QtWidgets.QSizePolicy.Fixed)
         plot_y_size_policy.setHeightForWidth(self._plot_y_profile.widget().sizePolicy().hasHeightForWidth())
         self._plot_y_profile.widget().setSizePolicy(plot_y_size_policy)
 

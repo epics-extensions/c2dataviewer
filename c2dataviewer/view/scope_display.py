@@ -15,10 +15,10 @@ PVA object viewer utilities for image display
 from datetime import datetime
 import numpy as np
 import pyqtgraph
-import pyqtgraph.ptime as ptime
 from pyqtgraph.Qt import QtCore
 import enum
 import logging
+import time
 
 class PlotChannel:
     def __init__(self, pvname, color):
@@ -245,10 +245,10 @@ class Trigger:
         except Exception:
             pass
     
-class PlotWidget(pyqtgraph.GraphicsWindow):
+class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
     def __init__(self, parent=None, **kargs):
-        pyqtgraph.GraphicsWindow.__init__(self, parent=parent)
+        pyqtgraph.GraphicsLayoutWidget.__init__(self, parent=parent)
         self.setParent(parent)
 
         self.param_changed = False
@@ -286,7 +286,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
         self.minor_ticks = 0
         
         self.fps = 0
-        self.lastTime = ptime.time()
+        self.lastTime = time.time()
 
         self._max = None
         self._min = None
@@ -1083,7 +1083,7 @@ class PlotWidget(pyqtgraph.GraphicsWindow):
 
         :return:
         """
-        now = ptime.time()
+        now = time.time()
         dt = now - self.lastTime
         self.lastTime = now
         if self.fps is None:
