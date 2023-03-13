@@ -13,6 +13,7 @@ from pyqtgraph import Qt
 import pyqtgraph.ptime as ptime
 from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
+from PyQt5 import QtWidgets
 
 from ..view.image_definitions import COLOR_MODE_MONO, COLOR_MODES
 from ..model import ConnectionState
@@ -23,6 +24,9 @@ class ImageController:
     SLIDER_MIN_VAL = -SLIDER_MAX_VAL
     SPINNER_MAX_VAL = 1.7976931348623157e+308
     SPINNER_MIN_VAL = -SPINNER_MAX_VAL
+
+    HIDE_CONTROL_TEXT = 'Hide Control Panel'
+    SHOW_CONTROL_TEXT = 'Show Control Panel'
 
     def __init__(self, widget, **kargs):
         """
@@ -164,7 +168,30 @@ class ImageController:
 
         self.frameRateChanged()
         self.camera_changed()
-        
+
+        self._imageContextMenu = QtWidgets.QMenu(self._win.imageWidget)
+        self._imageContextMenuAction = QtWidgets.QAction(self.HIDE_CONTROL_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageContextMenuAction)
+        self._win.imageWidget.customContextMenuRequested.connect(self.on_context_menu)
+        self._scrollAreaWidth = 0
+
+    def on_context_menu(self, point):
+        # show context menu
+        action = self._imageContextMenu.exec_(self._win.imageWidget.mapToGlobal(point))
+        if not action:
+            return
+        if action.text() == self.HIDE_CONTROL_TEXT:
+            action.setText(self.SHOW_CONTROL_TEXT)
+            self._win.scrollArea.hide()
+            self._scrollAreaWidth = self._win.scrollArea.parent().minimumWidth()
+            self._win.scrollArea.parent().setMinimumWidth(0)
+            self._win.scrollArea.parent().setMinimumHeight(0)
+        else:
+            action.setText(self.HIDE_CONTROL_TEXT)
+            self._win.scrollArea.show()
+            self._win.scrollArea.parent().setMinimumWidth(self._scrollAreaWidth)
+        self._win.imageWidget.adjustSize()
+
     def _callback_black_changed_slider(self):
         """
         This callback is called when user change the value on the "black" slider.
