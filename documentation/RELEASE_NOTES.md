@@ -1,6 +1,7 @@
 # Release 1.9.0 (03/DD/2023)
 
 - Add ability to hide control panel via right-click on the image panel
+- Add support for displaying compressed images (blosc compression)
 
 # Release 1.8.6 (02/22/2023)
 

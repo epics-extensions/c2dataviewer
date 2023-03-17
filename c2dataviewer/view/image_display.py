@@ -16,10 +16,61 @@ import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtGui
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
-from pvaccess import PvaException
+import blosc
+import pvaccess as pva
 
 from .image_definitions import *
 from .image_profile_display import ImageProfileWidget
+
+class ImageCompressionUtility:
+
+    NUMPY_DATA_TYPE_MAP = {
+        pva.UBYTE   : np.dtype('uint8'),
+        pva.BYTE    : np.dtype('int8'),
+        pva.USHORT  : np.dtype('uint16'),
+        pva.SHORT   : np.dtype('int16'),
+        pva.UINT    : np.dtype('uint32'),
+        pva.INT     : np.dtype('int32'),
+        pva.ULONG   : np.dtype('uint64'),
+        pva.LONG    : np.dtype('int64'),
+        pva.FLOAT   : np.dtype('float32'),
+        pva.DOUBLE  : np.dtype('float64')
+    }
+    
+    NTNDA_DATA_TYPE_MAP = {
+        pva.UBYTE   : 'ubyteValue',
+        pva.BYTE    : 'byteValue',
+        pva.USHORT  : 'ushortValue',
+        pva.SHORT   : 'shortValue',
+        pva.UINT    : 'uintValue',
+        pva.INT     : 'intValue',
+        pva.ULONG   : 'ulongValue',
+        pva.LONG    : 'longValue',
+        pva.FLOAT   : 'floatValue',
+        pva.DOUBLE  : 'doubleValue',
+    }
+
+    @classmethod
+    def get_ntnda_data_type(cls, pvaType):
+       return cls.NTNDA_DATA_TYPE_MAP.get(pvaType)
+
+    @classmethod
+    def get_decompressor(cls, codecName):
+        utilityMap = {
+            'blosc' : cls.blosc_decompress
+        }
+        decompressor = utilityMap.get(codecName)
+        if not decompressor:
+            raise RuntimeError(f'Unsupported compression: {codecName}')
+        return decompressor
+
+    @classmethod
+    def blosc_decompress(cls, inputArray, inputType, uncompressedSize):
+        oadt = cls.NUMPY_DATA_TYPE_MAP.get(inputType) 
+        oasz = uncompressedSize // oadt.itemsize
+        outputArray = np.empty(oasz, dtype=oadt)
+        nBytesWritten = blosc.decompress_ptr(bytearray(inputArray), outputArray.__array_interface__['data'][0])
+        return outputArray
 
 Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
@@ -594,7 +645,7 @@ class ImagePlotWidget(RawImageWidget):
         self._lastTimestamp = None
         try:
             self.datasource.update_device(value)
-        except PvaException as e:
+        except pva.PvaException as e:
             # TODO wrap PvaException from pvaPy in a better way for other interface
             # pvAccess connection error
             # release mutex lock
@@ -722,6 +773,14 @@ class ImagePlotWidget(RawImageWidget):
         # Lookup required infomartion for the current input type
         imgArray = data['value'][0][inputType]
         sz = imgArray.nbytes
+        codecName = data['codec']['name']
+        if codecName:
+            uncompressedSize = data['uncompressedSize']
+            uncompressedType = data['codec.parameters'][0]['value']
+            decompress = ImageCompressionUtility.get_decompressor(codecName)
+            imgArray = decompress(imgArray, uncompressedType, uncompressedSize)
+            inputType = ImageCompressionUtility.get_ntnda_data_type(uncompressedType)
+       
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']

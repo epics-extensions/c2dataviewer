@@ -437,6 +437,8 @@ class ImageController:
         lolimit = kargs.get('lowlimit', None)
         callback = kargs.get('callback', False)
 
+        if type(value) is list:
+            value = value[0]
         if roi_value is not None:
             fmt = f"{fmt} ({fmt})"
             if type(value) is tuple:
