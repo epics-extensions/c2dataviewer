@@ -69,7 +69,6 @@ def create_image(id, image=None, data_type='ubyteValue', nx=None, ny=None, nz=No
             dims.insert(1, pva.PvDimension(nz, 0, nz, 1, False))
         elif color_mode == COLOR_MODE_RGB3:
             dims.append(pva.PvDimension(nz, 0, nz, 1, False))
-    nda['codec'] = pva.PvCodec('pvapyc', pva.PvInt(14))
     nda['dimension'] = dims
     nda['descriptor'] = 'PvaPy Simulated Image'
     nda['compressedSize'] = nx*ny*(nz if nz is not None else 1)
