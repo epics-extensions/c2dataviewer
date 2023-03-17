@@ -49,6 +49,7 @@ setup (
     package_data = {'c2dataviewer': ['c2dv.cfg', '**/*.ui']},
     include_package_data = True,
     install_requires=[
+    'blosc',
     'numpy',
     'psutil',
     'pvapy',

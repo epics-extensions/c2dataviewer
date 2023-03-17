@@ -16,6 +16,7 @@ import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtGui
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
+import blosc
 import pvaccess as pva
 
 from .image_definitions import *
@@ -65,10 +66,6 @@ class ImageCompressionUtility:
 
     @classmethod
     def blosc_decompress(cls, inputArray, inputType, uncompressedSize):
-        try:
-            import blosc
-        except ImportError as ex:
-            raise RuntimeError(f'Missing blosc package for compression support.')
         oadt = cls.NUMPY_DATA_TYPE_MAP.get(inputType) 
         oasz = uncompressedSize // oadt.itemsize
         outputArray = np.empty(oasz, dtype=oadt)
