@@ -49,12 +49,12 @@ setup (
     package_data = {'c2dataviewer': ['c2dv.cfg', '**/*.ui']},
     include_package_data = True,
     install_requires=[
-    'blosc',
     'numpy',
     'psutil',
     'pvapy',
     'pyqtgraph==0.10.0',
     'PyQt5',
+    'python-blosc',
     ],
     entry_points = {'console_scripts': ['c2dv=c2dataviewer.c2dv:main']},
 )

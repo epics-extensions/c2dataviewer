@@ -22,7 +22,6 @@ requirements:
   build:
     - python {{ python }}
   run:
-    - blosc
     - numpy
     - psutil
     - pvapy
@@ -30,4 +29,5 @@ requirements:
     # We are using fixed version until https://git.aps.anl.gov/C2/conda/data-viewer/-/issues/48
     # is resolved. Note that this is also hardcoded in tox.ini and setup_pip.py.
     - pyqtgraph 0.10.0
+    - python-blosc
     - python
