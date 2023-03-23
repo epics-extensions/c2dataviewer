@@ -1,3 +1,7 @@
+# Release 1.9.1 (03/23/2023)
+
+- Fixed pip build
+
 # Release 1.9.0 (03/23/2023)
 
 - Add ability to hide control panel via right-click on the image panel
