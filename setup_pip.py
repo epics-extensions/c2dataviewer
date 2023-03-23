@@ -54,7 +54,7 @@ setup (
     'pvapy',
     'pyqtgraph==0.10.0',
     'PyQt5',
-    'python-blosc',
+    'blosc',
     ],
     entry_points = {'console_scripts': ['c2dv=c2dataviewer.c2dv:main']},
 )
