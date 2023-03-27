@@ -31,3 +31,9 @@ requirements:
     - pyqtgraph 0.10.0
     - python-blosc
     - python
+    
+about:
+  home: https://git.aps.anl.gov/C2/conda/data-viewer
+  license: APS
+  summary: APS C2 data viewer
+
