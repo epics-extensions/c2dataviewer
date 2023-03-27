@@ -62,6 +62,7 @@ pip-dependencies:
 
 .PHONY:pip-build
 pip-build:
+	rm -f dist/*
 	cp -f setup_pip.py setup.py
 	$(PYTHON) setup.py sdist bdist_wheel
 
@@ -71,7 +72,6 @@ pip-test:
 
 .PHONY:pip-upload
 pip-upload:
-	rm -f dist/*dirty*
 	$(PYTHON) -m twine upload dist/*
 
 .PHONY:pip-clean
