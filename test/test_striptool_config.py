@@ -1,3 +1,9 @@
+"""
+C2 DATA VIEWER is distributed subject to a Software License Agreement found
+in the file LICENSE that is included with this distribution.
+SPDX-License-Identifier: EPICS
+"""
+
 import unittest
 from configparser import ConfigParser
 from c2dataviewer.control.striptool_config import StriptoolConfig
