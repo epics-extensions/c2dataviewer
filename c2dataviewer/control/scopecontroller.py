@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 """
+C2 DATA VIEWER is distributed subject to a Software License Agreement found
+in the file LICENSE that is included with this distribution.
+SPDX-License-Identifier: EPICS
+
 Copyright 2018 UChicago Argonne LLC
  as operator of Argonne National Laboratory
 
