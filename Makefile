@@ -10,6 +10,7 @@ conda: conda-build
 
 .PHONY:conda-build
 conda-build:	
+	cp setup_conda.py setup.py
 	conda build . -c epics -c conda-forge
 
 .PHONY:conda-clean
