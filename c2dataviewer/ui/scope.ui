@@ -49,11 +49,20 @@
           </property>
          </widget>
          <widget class="ParameterTree" name="parameterPane">
+          <property name="enabled">
+           <bool>true</bool>
+          </property>
           <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+           <sizepolicy hsizetype="Fixed" vsizetype="Expanding">
             <horstretch>1</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
+          </property>
+          <property name="minimumSize">
+           <size>
+            <width>320</width>
+            <height>0</height>
+           </size>
           </property>
           <property name="autoExpandDelay">
            <number>0</number>
@@ -82,7 +91,7 @@
      <x>0</x>
      <y>0</y>
      <width>1392</width>
-     <height>22</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>
