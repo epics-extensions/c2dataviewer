@@ -13,8 +13,6 @@ build:
     - c2dv = c2dataviewer.c2dv:main
 
 test:
-  requires:
-    - pyqt
   source_files:
     - test
 
@@ -22,13 +20,13 @@ requirements:
   build:
     - python {{ python }}
   run:
+    - pyqt
     - psutil
     - pvapy
     # We are using fixed version until https://git.aps.anl.gov/C2/conda/data-viewer/-/issues/48
     # is resolved. Note that this is also hardcoded in tox.ini and setup_pip.py.
     - pyqtgraph=0.12.4
     - python-blosc
-    
 about:
   home: https://git.aps.anl.gov/C2/conda/data-viewer
   license: APS
