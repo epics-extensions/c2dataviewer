@@ -4,12 +4,12 @@
 
 To build a conda package:
 ```bash
-conda build . -c epics -c conda-forge
+make conda-build
 ```
 
 To install build package in a new environment:
 ```bash
-conda create -n c2dv.0001 local::c2dataviewer
+conda create -n c2dv.0001 local::c2dataviewer -c epics -c conda-forge
 ```
 
 To run app from new environment:
