@@ -473,6 +473,11 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         :names: (list -> strings) List of channels to bi displayed. "None" should be used to ignore that channel.
         :return: (None)
         """
+        # Workaround until pyqtgraph issue with multiple axis is resolved
+        # (see https://git.aps.anl.gov/C2/conda/data-viewer/-/issues/48)
+        # Pick up proper viewbox geometry from parent
+        self.ci.addItem(self.plot, row=2)
+
         # We do not use default axis
         self.plot.hideAxis('left')
 
