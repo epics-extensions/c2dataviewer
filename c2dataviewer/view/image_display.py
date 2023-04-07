@@ -18,7 +18,7 @@ import logging
 
 import numpy as np
 from pyqtgraph import QtCore
-from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
 import blosc
 import pvaccess as pva
@@ -131,7 +131,7 @@ class ImagePlotWidget(RawImageWidget):
         self.image_height_pixels = 0
 
         # Zoom parameters
-        self.__zoomSelectionIndicator = QtGui.QRubberBand(QtGui.QRubberBand.Rectangle, self)
+        self.__zoomSelectionIndicator = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
         self.__zoomDict = {
             "isZoom": False,
             'xoffset': 0,

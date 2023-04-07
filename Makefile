@@ -10,10 +10,12 @@ conda: conda-build
 
 .PHONY:conda-build
 conda-build:	
+	cp setup_conda.py setup.py
 	conda build . -c epics -c conda-forge
 
 .PHONY:conda-clean
 conda-clean:
+	rm -rf setup.py
 	conda build purge
 
 
@@ -29,13 +31,12 @@ pip-dependencies:
 .PHONY:pip-build
 pip-build:
 	rm -f dist/*
-	$(PYTHON) setup_pip.py sdist bdist_wheel
+	cp setup_pip.py setup.py
+	$(PYTHON) setup.py sdist bdist_wheel
 
 .PHONY:pip-test
 pip-test:
-	cp setup_pip.py setup.py
 	tox
-	rm setup.py
 
 .PHONY:pip-upload
 pip-upload:

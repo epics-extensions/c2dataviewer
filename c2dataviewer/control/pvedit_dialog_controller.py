@@ -6,7 +6,7 @@ SPDX-License-Identifier: EPICS
 
 import pyqtgraph
 import random
-from PyQt5 import QtGui
+from PyQt5 import QtWidgets
 from PyQt5 import QtCore
 from .pvconfig import PvConfig
 
@@ -30,8 +30,8 @@ class PvEditDialogController:
         self._model = model
         
         self._win.addPvButton.clicked.connect(self._on_addpv_click)
-        self._win.buttonBox.button(QtGui.QDialogButtonBox.Cancel).clicked.connect(self._on_cancel)
-        self._win.buttonBox.button(QtGui.QDialogButtonBox.Ok).clicked.connect(self._on_ok)
+        self._win.buttonBox.button(QtWidgets.QDialogButtonBox.Cancel).clicked.connect(self._on_cancel)
+        self._win.buttonBox.button(QtWidgets.QDialogButtonBox.Ok).clicked.connect(self._on_ok)
 
         self.callback = None
         self.protocol_list = None
@@ -78,11 +78,11 @@ class PvEditDialogController:
         self._win.pvTableWidget.setRowCount(rowcount + 1)
 
         #pvname edit
-        item = QtGui.QTableWidgetItem(pvname)
+        item = QtWidgets.QTableWidgetItem(pvname)
         self._win.pvTableWidget.setItem(rowcount, 0, item)
 
         #protocol drop-down
-        item = QtGui.QComboBox()
+        item = QtWidgets.QComboBox()
         item.addItems(self._get_protocol_list())
         item.setCurrentText(str(proto).lower())
         self._win.pvTableWidget.setCellWidget(rowcount, 1, item)
@@ -92,7 +92,7 @@ class PvEditDialogController:
         self._win.pvTableWidget.setCellWidget(rowcount, 2, item)
 
         #remove button
-        item = QtGui.QPushButton('Remove')
+        item = QtWidgets.QPushButton('Remove')
         def remove():
             row = self._win.pvTableWidget.indexAt(item.pos()).row();
             self._win.pvTableWidget.removeRow(row)
