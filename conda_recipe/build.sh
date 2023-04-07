@@ -1,2 +1,2 @@
 # Run python packaging
-python setup_conda.py install
+python setup.py install
