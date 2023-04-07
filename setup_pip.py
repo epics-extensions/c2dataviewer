@@ -38,13 +38,8 @@ def get_version():
 
     return VERSION
 
-
-long_description = """
-C2DataViewer is a Python based data viewer for next generation of APS control system (C2).
-It is developed with pyqtgraph, PyQt, and uses pvaPy as pvAccess Python binding.
-This is a viewer for pvData structured data objects as transported by pvAccess. Some use cases are a 'scope viewer',
-and Area Detector images from the AD pva plugin.
-"""
+with open('README.md', 'r', encoding='utf-8') as f:
+    long_description = f.read()
 
 with open('requirements.txt') as f:
     requirements = f.read().splitlines()
@@ -57,6 +52,8 @@ setup (
     description = "Python based data viewer for next generation of APS control system (C2)",
     long_description = long_description,
     long_description_content_type = "text/markdown",
+    url = "https://github.com/epics-extensions/c2dataviewer",
+    license = "EPICS",
     packages = find_packages(),
     package_data = {'c2dataviewer': ['c2dv.cfg', '**/*.ui']},
     include_package_data = True,
