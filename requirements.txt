@@ -1,0 +1,6 @@
+numpy
+psutil
+pvapy
+pyqtgraph==0.12.4
+PyQt5
+blosc
