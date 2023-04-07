@@ -1,3 +1,7 @@
+# Release 1.10.0 (04/07/2023)
+- Upgrade to pyqtgraph 0.12.4
+- Add license information to source- 
+
 # Release 1.9.1 (03/23/2023)
 
 - Fixed pip build
