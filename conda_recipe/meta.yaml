@@ -23,8 +23,9 @@ requirements:
     - pyqt
     - psutil
     - pvapy
-    # We are using fixed version until https://git.aps.anl.gov/C2/conda/data-viewer/-/issues/48
-    # is resolved. Note that this is also hardcoded in tox.ini and setup_pip.py.
+    # 0.13 removes support for PlotItem::rotate used in image_profile_display.py.
+    # Hardcode version until we find an alternative.
+    # Note that this is also hardcoded in requirements.txt
     - pyqtgraph=0.12.4
     - python-blosc
 about:
