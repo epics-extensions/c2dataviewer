@@ -67,7 +67,7 @@ class PollStrategy:
             pass
         
     def start(self):
-        self.timer.start(1000/self.ctx.rate)
+        self.timer.start(int(1000/self.ctx.rate))
 
     def stop(self):
         self.timer.stop()
