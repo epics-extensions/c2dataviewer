@@ -231,7 +231,9 @@ class Channel:
         """
         Notify that unable to connect to PV channel
         """
-        self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
+        #Only update status for the current PV that is running to prevent status overrides during error callbacks
+        if self.is_running():
+            self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
         
     def start(self, routine=None, rate=None, status_callback=None):
         """
@@ -392,12 +394,13 @@ class DataSource:
     def update_framerate(self, fps):
         self.fps = fps
         
-    def update_device(self, name, restart=False):
+    def update_device(self, name, restart=False, test_connection=True):
         """
         Update device, EPICS PV name, and test its connectivity
 
         :param name: device name
         :param restart: flag to restart or not
+        :param test_connection: flag to test channel connectivity or not
         :return:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
@@ -417,7 +420,8 @@ class DataSource:
             self.device = name
 
             # test channel connectivity
-            chan.get()
+            if test_connection:
+                chan.get()
 
             if restart:
                 self.start()
