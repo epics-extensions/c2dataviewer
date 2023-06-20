@@ -401,7 +401,10 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['isZoom'] = True
 
         if self.data:
-            self.display(self.data, zoomUpdate=True)
+            try:
+                self.display(self.data, zoomUpdate=True)
+            except Exception as e:
+                logging.getLogger().error('Error displaying data: ' + str(e))
 
     def set_freeze(self, flag):
         """
@@ -430,7 +433,10 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['height'] = self.y
 
         if self.data:
-            self.display(self.data, zoomUpdate=True)
+            try:
+                self.display(self.data, zoomUpdate=True)
+            except Exception as e:
+                logging.getLogger().error('Error displaying data: ' + str(e))
 
     def is_zoomed(self):
         """
@@ -648,7 +654,7 @@ class ImagePlotWidget(RawImageWidget):
         self._agc = False
         self._lastTimestamp = None
         try:
-            self.datasource.update_device(value)
+            self.datasource.update_device(value, test_connection=False)
         except pva.PvaException as e:
             # TODO wrap PvaException from pvaPy in a better way for other interface
             # pvAccess connection error
@@ -778,6 +784,11 @@ class ImagePlotWidget(RawImageWidget):
         imgArray = data['value'][0][inputType]
         sz = imgArray.nbytes
         codecName = data['codec']['name']
+
+        # Check if image size is zero
+        if data['uncompressedSize'] == 0:
+            raise RuntimeError('Image size cannot be zero')
+        
         if codecName:
             uncompressedSize = data['uncompressedSize']
             uncompressedType = data['codec.parameters'][0]['value']
