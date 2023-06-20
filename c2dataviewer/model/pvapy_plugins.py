@@ -231,7 +231,7 @@ class Channel:
         """
         Notify that unable to connect to PV channel
         """
-        # only update status for the current PV set in DataSource
+        #Only update status for the current PV that is running to prevent status overrides during error callbacks
         if self.is_running():
             self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
         
@@ -400,6 +400,7 @@ class DataSource:
 
         :param name: device name
         :param restart: flag to restart or not
+        :param test_connection: flag to test channel connectivity or not
         :return:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
