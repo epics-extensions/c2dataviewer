@@ -648,7 +648,7 @@ class ImagePlotWidget(RawImageWidget):
         self._agc = False
         self._lastTimestamp = None
         try:
-            self.datasource.update_device(value)
+            self.datasource.update_device(value, test_connection=False)
         except pva.PvaException as e:
             # TODO wrap PvaException from pvaPy in a better way for other interface
             # pvAccess connection error
