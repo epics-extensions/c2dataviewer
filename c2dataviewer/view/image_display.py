@@ -160,6 +160,7 @@ class ImagePlotWidget(RawImageWidget):
                       "FPSLimit": None}
 
         self._isInputValid = False
+        self._isSizeZero = False
         self._inputType = ""
         self.dead_pixels = [0]
         self._max = [0]
@@ -787,7 +788,10 @@ class ImagePlotWidget(RawImageWidget):
 
         # Check if image size is zero
         if imgArray.size == 0:
-            raise RuntimeError('Image size cannot be zero')
+            self._isSizeZero = True
+            raise RuntimeError('Image size cannot be zero.')
+        else:
+            self._isSizeZero = False
         
         if codecName:
             uncompressedSize = data['uncompressedSize']
