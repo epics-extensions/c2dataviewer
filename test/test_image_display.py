@@ -397,7 +397,7 @@ class TestImageDisplay(unittest.TestCase):
     
     def test_image_size_zero(self):
         #Generate RGB float image of size 0
-        image = create_image(1, nx=0, ny=0, color_mode=2)
+        image = create_image(1, nx=0, ny=0, color_mode=COLOR_MODE_RGB2)
         try:
             self.imageWidget.display(image)
         except RuntimeError as e:
