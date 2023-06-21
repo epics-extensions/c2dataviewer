@@ -401,7 +401,10 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['isZoom'] = True
 
         if self.data:
-            self.display(self.data, zoomUpdate=True)
+            try:
+                self.display(self.data, zoomUpdate=True)
+            except Exception as e:
+                logging.getLogger().error('Error displaying data: %s', str(e))
 
     def set_freeze(self, flag):
         """
@@ -430,7 +433,10 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['height'] = self.y
 
         if self.data:
-            self.display(self.data, zoomUpdate=True)
+            try:
+                self.display(self.data, zoomUpdate=True)
+            except Exception as e:
+                logging.getLogger().error('Error displaying data: %s', str(e))
 
     def is_zoomed(self):
         """
@@ -634,7 +640,7 @@ class ImagePlotWidget(RawImageWidget):
         try:
             self.display(self.data)
         except Exception as e:
-            logging.getLogger().error('Error displaying data: ' + str(e))
+            logging.getLogger().error('Error displaying data: %s', str(e))
         finally:
             self.signal()
 
@@ -778,6 +784,11 @@ class ImagePlotWidget(RawImageWidget):
         imgArray = data['value'][0][inputType]
         sz = imgArray.nbytes
         codecName = data['codec']['name']
+
+        # Check if image size is zero
+        if imgArray.size == 0:
+            raise RuntimeError('Image size cannot be zero.')
+        
         if codecName:
             uncompressedSize = data['uncompressedSize']
             uncompressedType = data['codec.parameters'][0]['value']

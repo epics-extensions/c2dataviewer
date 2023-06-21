@@ -394,3 +394,14 @@ class TestImageDisplay(unittest.TestCase):
             self.imageWidget.display(image)
         except RuntimeError as e:
             self.assertTrue(False, e)
+    
+    def test_image_size_zero(self):
+        #Generate RGB float image of size 0
+        image = create_image(1, nx=0, ny=0, nz=0, color_mode=COLOR_MODE_RGB2)
+        has_exception = False
+        try:
+            self.imageWidget.display(image)
+        except RuntimeError:
+            has_exception = True
+
+        self.assertTrue(has_exception)
