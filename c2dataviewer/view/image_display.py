@@ -404,7 +404,7 @@ class ImagePlotWidget(RawImageWidget):
             try:
                 self.display(self.data, zoomUpdate=True)
             except Exception as e:
-                logging.getLogger().error('Error displaying data: ' + str(e))
+                logging.getLogger().error('Error displaying data: %s', str(e))
 
     def set_freeze(self, flag):
         """
@@ -436,7 +436,7 @@ class ImagePlotWidget(RawImageWidget):
             try:
                 self.display(self.data, zoomUpdate=True)
             except Exception as e:
-                logging.getLogger().error('Error displaying data: ' + str(e))
+                logging.getLogger().error('Error displaying data: %s', str(e))
 
     def is_zoomed(self):
         """
@@ -640,7 +640,7 @@ class ImagePlotWidget(RawImageWidget):
         try:
             self.display(self.data)
         except Exception as e:
-            logging.getLogger().error('Error displaying data: ' + str(e))
+            logging.getLogger().error('Error displaying data: %s', str(e))
         finally:
             self.signal()
 
