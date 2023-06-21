@@ -786,7 +786,7 @@ class ImagePlotWidget(RawImageWidget):
         codecName = data['codec']['name']
 
         # Check if image size is zero
-        if data['uncompressedSize'] == 0:
+        if imgArray.size == 0:
             raise RuntimeError('Image size cannot be zero')
         
         if codecName:
