@@ -148,9 +148,13 @@ class MonitorStrategy:
         Starts the PV monitor
         """
         try:
-            self.ctx.channel.setConnectionCallback(self._connection_callback)
             self.ctx.channel.subscribe('monitorCallback', self._data_callback)
             self.ctx.channel.startMonitor('')
+            self.ctx.channel.setConnectionCallback(self._connection_callback)
+
+            # if PV is not connected, notify error
+            if self.ctx.state is not ConnectionState.CONNECTED:
+                self.ctx.notify_error()
         except PvaException as e:
             self.ctx.notify_error(str(e))
         
@@ -231,9 +235,7 @@ class Channel:
         """
         Notify that unable to connect to PV channel
         """
-        #Only update status for the current PV that is running to prevent status overrides during error callbacks
-        if self.is_running():
-            self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
+        self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
         
     def start(self, routine=None, rate=None, status_callback=None):
         """
@@ -394,13 +396,12 @@ class DataSource:
     def update_framerate(self, fps):
         self.fps = fps
         
-    def update_device(self, name, restart=False, test_connection=True):
+    def update_device(self, name, restart=False):
         """
         Update device, EPICS PV name, and test its connectivity
 
         :param name: device name
         :param restart: flag to restart or not
-        :param test_connection: flag to test channel connectivity or not
         :return:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
@@ -420,8 +421,7 @@ class DataSource:
             self.device = name
 
             # test channel connectivity
-            if test_connection:
-                chan.get()
+            chan.get()
 
             if restart:
                 self.start()
