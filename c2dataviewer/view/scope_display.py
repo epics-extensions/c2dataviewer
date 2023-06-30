@@ -1039,6 +1039,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         :return:
         """
+
         if self.first_data or not self.plotting_started:
             # TODO this is to help to over come race condition. To be done in a better way later
             # self.signal()
