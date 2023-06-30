@@ -18,6 +18,16 @@ class StripToolConfigure(ScopeConfigureBase):
 
         return acquisition
     
+    def assemble_display(self, section=None):
+        try:
+            autoscale = self.params["STRIPTOOL"]["AUTOSCALE"]
+        except KeyError:
+            autoscale = True
+
+        display = super().assemble_display(section, autoscale=autoscale)
+
+        return display
+    
     def parse(self):
         try:
             acquisition = self.assemble_acquisition(self.params["ACQUISITION"])

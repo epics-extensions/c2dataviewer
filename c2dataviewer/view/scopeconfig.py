@@ -108,6 +108,16 @@ class Configure(ScopeConfigureBase):
 
         return channel
 
+    def assemble_display(self, section=None):
+        try:
+            autoscale = self.params["SCOPE"]["AUTOSCALE"]
+        except KeyError:
+            autoscale = True
+        
+        display = super().assemble_display(section, autoscale=autoscale)
+
+        return display
+
     def assemble_acquisition(self, section=None):
         buffer_unit = 'samples'
         try:

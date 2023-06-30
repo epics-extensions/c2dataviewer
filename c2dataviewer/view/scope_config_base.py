@@ -42,7 +42,7 @@ class ScopeConfigureBase:
         return acquisition
 
     
-    def assemble_display(self, section=None):
+    def assemble_display(self, section=None, autoscale=None):
         """
         Assemble display information
 
@@ -88,7 +88,6 @@ class ScopeConfigureBase:
             except ValueError:
                 n_average = 1
 
-            autoscale = section.get("AUTOSCALE", None)
             if autoscale is not None:
                 if autoscale.upper().strip() in ["TRUE"]:
                     autoscale = True
