@@ -23,6 +23,7 @@ class ScopeControllerBase:
 
         self.timer = pyqtgraph.QtCore.QTimer()
         self.timer.timeout.connect(self._win.graphicsWidget.update_drawing)
+        self._win.graphicsWidget.set_autoscale(parameters.child('Display', 'Autoscale').value())
         self._win.graphicsWidget.set_model(self.model)
 
         self._warning = warning

@@ -99,7 +99,6 @@ class StripToolController(ScopeControllerBase):
             self.update_buffer_samples(int(60000 / self.refresh))
 
         self._win.graphicsWidget.enable_sampling_mode(True)
-        self._win.graphicsWidget.set_autoscale(parameters.child('Display', 'Autoscale').value())
         self._pvedit_dialog.set_completion_callback(self.pv_edit_callback)
         self._init_pvlist(st_config.pvs.values())
 
