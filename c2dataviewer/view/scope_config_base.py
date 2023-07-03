@@ -88,14 +88,10 @@ class ScopeConfigureBase:
             except ValueError:
                 n_average = 1
 
-            if autoscale is not None:
-                if str(autoscale).upper().strip() in ["TRUE"]:
-                    autoscale = True
-                else:
-                    autoscale = False
+            if str(autoscale).upper().strip() in ["TRUE"]:
+                autoscale = True
             else:
-                #unreacheable code
-                pass
+                autoscale = False
 
             single_axis = section.get("SINGLE_AXIS", None)
             if single_axis is not None:
