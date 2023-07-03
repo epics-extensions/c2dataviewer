@@ -109,11 +109,23 @@ class Configure(ScopeConfigureBase):
         return channel
 
     def assemble_display(self, section=None):
+        # If AUTOSCALE set in the app specific sections in the config file
         try:
-            autoscale = self.params["SCOPE"]["AUTOSCALE"]
+            autoscale = self.params["SCOPE"]["AUTOSCALE"] or None
         except KeyError:
-            autoscale = True
+            autoscale = None
+
+        if autoscale is None:
+            # Else if AUTOSCALE set in the DISPLAY specific section in the config file
+            try:
+                autoscale = self.params["DISPLAY"]["AUTOSCALE"] or None
+            except KeyError:
+                autoscale = None
         
+        # If AUTOSCALE not set anywhere in the config file, set default value
+        if autoscale is None:
+            autoscale = False
+
         display = super().assemble_display(section, autoscale=autoscale)
 
         return display

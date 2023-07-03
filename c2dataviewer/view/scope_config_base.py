@@ -63,7 +63,7 @@ class ScopeConfigureBase:
                     "Hamming" : "hamming"
                 }, "value": "None"},
                 {"name": "Exp moving avg", "type": "int", "value": 1, "limits" : (1, 1e+10)},
-                {"name": "Autoscale", "type": "bool", "value": False},
+                {"name": "Autoscale", "type": "bool", "value": autoscale},
                 {"name": "Single axis", "type": "bool", "value": True},
                 {"name": "Histogram", "type": "bool", "value": False},
                 {"name": "Num Bins", "type": "int", "value": 100},
@@ -89,13 +89,13 @@ class ScopeConfigureBase:
                 n_average = 1
 
             if autoscale is not None:
-                if autoscale.upper().strip() in ["TRUE"]:
+                if str(autoscale).upper().strip() in ["TRUE"]:
                     autoscale = True
                 else:
-                    # set auto scale value to None if a "None" string comes from configuration
                     autoscale = False
             else:
-                autoscale = False
+                #unreacheable code
+                pass
 
             single_axis = section.get("SINGLE_AXIS", None)
             if single_axis is not None:

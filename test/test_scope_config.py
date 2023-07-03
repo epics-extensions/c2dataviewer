@@ -6,48 +6,19 @@ SPDX-License-Identifier: EPICS
 
 import unittest
 from configparser import ConfigParser
-from c2dataviewer.control.striptool_config import StriptoolConfig
-from c2dataviewer.control.pvconfig import PvConfig
-from c2dataviewer.view import StripToolConfigure
+from c2dataviewer.view.scopeconfig import Configure
 
 
-class TestStriptoolConfig(unittest.TestCase):
-    def test_config(self):
-        raw = """
-[STRIPTOOL]
-DefaultProtocol = ca
-Chan1.PV = Foo:Bar
-Chan2.PV = pva://Bar:Baz
-Chan1.Color = #000000
-Chan2.Color = #0000FF
-"""
-        parser = ConfigParser()
-        parser.read_string(raw)
-        cfg = StriptoolConfig(parser)
-        expected = {
-            'Foo:Bar': PvConfig('Foo:Bar', '#000000', 'ca'),
-            'Bar:Baz': PvConfig('Bar:Baz', '#0000FF', 'pva')
-        }
-
-        self.assertEqual(len(cfg.pvs), len(expected))
-
-        for pv in cfg.pvs.values():
-            self.assertTrue(pv.pvname in expected)
-            e = expected[pv.pvname]
-            self.assertEqual(e.pvname, pv.pvname)
-            self.assertEqual(e.color, pv.color)
-            self.assertEqual(e.proto, pv.proto)
-            del expected[pv.pvname]
-
+class TestScopeConfig(unittest.TestCase):
     def test_autoscale(self):
         #Does autoscale setting in app specific section take precedence
         raw1 = """
-        [STRIPTOOL]
+        [SCOPE]
         DefaultProtocol = ca
-        AUTOSCALE=True
+        AUTOSCALE=False
 
         [DISPLAY]
-        AUTOSCALE=False
+        AUTOSCALE=True
         AVERAGE=1
         HISTOGRAM=False
         N_BIN=100
@@ -55,19 +26,19 @@ Chan2.Color = #0000FF
         """
         parser = ConfigParser()
         parser.read_string(raw1)
-        configure = StripToolConfigure(parser)
+        configure = Configure(parser)
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
 
-        self.assertTrue(display['children'][3]['value'])
+        self.assertFalse(display['children'][3]['value'])
 
         #When autoscale setting absent in app specific section, but present in DISPLAY
         raw2 = """
-        [STRIPTOOL]
+        [SCOPE]
         DefaultProtocol = ca
 
         [DISPLAY]
-        AUTOSCALE=False
+        AUTOSCALE=True
         AVERAGE=1
         HISTOGRAM=False
         N_BIN=100
@@ -75,16 +46,16 @@ Chan2.Color = #0000FF
         """
         parser = ConfigParser()
         parser.read_string(raw2)
-        configure = StripToolConfigure(parser)
+        configure = Configure(parser)
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
         
-        self.assertFalse(display['children'][3]['value'])
+        self.assertTrue(display['children'][3]['value'])
 
         #When autoscale setting absent in both app specific and in DISPLAY sections,
         #is default selected
         raw3 = """
-        [STRIPTOOL]
+        [SCOPE]
         DefaultProtocol = ca
 
         [DISPLAY]
@@ -95,8 +66,8 @@ Chan2.Color = #0000FF
         """
         parser = ConfigParser()
         parser.read_string(raw3)
-        configure = StripToolConfigure(parser)
+        configure = Configure(parser)
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
 
-        self.assertTrue(display['children'][3]['value'])
+        self.assertFalse(display['children'][3]['value'])
