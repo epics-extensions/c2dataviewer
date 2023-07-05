@@ -10,6 +10,12 @@ from c2dataviewer.view.scopeconfig import Configure
 
 
 class TestScopeConfig(unittest.TestCase):
+    def get_display_val(self, data, val):
+        for child in data['children']:
+            if child['name'] == val:
+                ret_val = child['value']
+                return ret_val
+            
     def test_autoscale(self):
         #Does autoscale setting in app specific section take precedence
         raw1 = """
@@ -30,7 +36,7 @@ class TestScopeConfig(unittest.TestCase):
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
 
-        self.assertFalse(display['children'][3]['value'])
+        self.assertFalse(self.get_display_val(data=display, val='Autoscale'))
 
         #When autoscale setting absent in app specific section, but present in DISPLAY
         raw2 = """
@@ -50,7 +56,7 @@ class TestScopeConfig(unittest.TestCase):
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
         
-        self.assertTrue(display['children'][3]['value'])
+        self.assertTrue(self.get_display_val(data=display, val='Autoscale'))
 
         #When autoscale setting absent in both app specific and in DISPLAY sections,
         #is default selected
@@ -70,4 +76,4 @@ class TestScopeConfig(unittest.TestCase):
         section = parser["DISPLAY"]
         display = configure.assemble_display(section=section)
 
-        self.assertFalse(display['children'][3]['value'])
+        self.assertFalse(self.get_display_val(data=display, val='Autoscale'))
