@@ -108,6 +108,11 @@ class Configure(ScopeConfigureBase):
 
         return channel
 
+    def assemble_display(self, section=None):
+        display = super().assemble_display(section=section, app_section_key="SCOPE", default_autoscale=False)
+
+        return display
+
     def assemble_acquisition(self, section=None):
         buffer_unit = 'samples'
         try:
