@@ -42,13 +42,34 @@ class ScopeConfigureBase:
         return acquisition
 
     
-    def assemble_display(self, section=None, autoscale=None):
+    def assemble_display(self, section=None, app_section_key=None, default_autoscale=None):
         """
         Assemble display information
 
         :param section:
         :return:
         """
+        # If AUTOSCALE set in the app specific sections in the config file
+        try:
+            autoscale = self.params[app_section_key]["AUTOSCALE"] or None
+        except KeyError:
+            autoscale = None
+
+        if autoscale is None:
+            # Else if AUTOSCALE set in the DISPLAY specific section in the config file
+            try:
+                autoscale = self.params["DISPLAY"]["AUTOSCALE"] or None
+            except KeyError:
+                autoscale = None
+        
+        # If AUTOSCALE not set anywhere in the config file, set default value
+        if autoscale is None:
+            autoscale = default_autoscale
+        elif str(autoscale).upper().strip() in ["TRUE"]:
+            autoscale = True
+        else:
+            autoscale = False
+
         if section is None:
             display = {"name": "Display", "type": "group", "children": [
                 {"name": "Mode", "type": "list", "values": {
@@ -87,11 +108,6 @@ class ScopeConfigureBase:
                 n_average = n_average if n_average > 0 else 1
             except ValueError:
                 n_average = 1
-
-            if str(autoscale).upper().strip() in ["TRUE"]:
-                autoscale = True
-            else:
-                autoscale = False
 
             single_axis = section.get("SINGLE_AXIS", None)
             if single_axis is not None:
