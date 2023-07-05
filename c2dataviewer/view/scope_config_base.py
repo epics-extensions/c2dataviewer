@@ -46,21 +46,17 @@ class ScopeConfigureBase:
         """
         Assemble display information
 
-        :param section:
+        :param section: DISPLAY section in config file
+        :param app_section_key: type of app
+        :param default_autoscale: default autoscale values for each app
         :return:
         """
         # If AUTOSCALE set in the app specific sections in the config file
-        try:
-            autoscale = self.params[app_section_key]["AUTOSCALE"] or None
-        except KeyError:
-            autoscale = None
+        autoscale = self.params.get(app_section_key, "AUTOSCALE", fallback=None)
 
         if autoscale is None:
             # Else if AUTOSCALE set in the DISPLAY specific section in the config file
-            try:
-                autoscale = self.params["DISPLAY"]["AUTOSCALE"] or None
-            except KeyError:
-                autoscale = None
+            autoscale = self.params.get("DISPLAY", "AUTOSCALE", fallback=None)
         
         # If AUTOSCALE not set anywhere in the config file, set default value
         if autoscale is None:
