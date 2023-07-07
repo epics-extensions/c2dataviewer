@@ -38,7 +38,7 @@
          <widget class="PlotWidget" name="graphicsWidget" native="true">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>8</horstretch>  <!-- Decreased horstretch value -->
+            <horstretch>8</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
