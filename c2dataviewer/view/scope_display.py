@@ -246,7 +246,7 @@ class Trigger:
             pass
     
 class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
-    connection_changed_signal = QtCore.Signal(str, str)
+
     def __init__(self, parent=None, **kargs):
         pyqtgraph.GraphicsLayoutWidget.__init__(self, parent=parent)
         self.setParent(parent)

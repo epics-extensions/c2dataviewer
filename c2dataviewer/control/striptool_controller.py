@@ -17,6 +17,7 @@ from ..view.scope_display import PlotChannel as ScopePlotChannel
 from pyqtgraph.parametertree import Parameter
 from .striptool_config import StriptoolConfig
 from .pvconfig import PvConfig
+from pyqtgraph.Qt import QtCore
 
 class PvScopeItem:
     def __init__(self, props, controller):
@@ -63,7 +64,7 @@ class PvScopeItem:
         if not self.connection.is_running():
             self.parent_controller._win.graphicsWidget.clear_sample_data(self.pvname)
             
-        self.parent_controller._win.graphicsWidget.connection_changed_signal.emit(self.pvname,
+        self.parent_controller.connection_changed_signal.sig.emit(self.pvname,
                                                     "%s/%s" % (str(self.proto), status))
         
     def monitor_callback(self, data):
@@ -93,7 +94,15 @@ class StripToolController(ScopeControllerBase):
         self._pvedit_dialog = PvEditDialogController(pvedit_widget, model,
                                                      default_proto=st_config.default_proto)
         self._win.editPvButton.clicked.connect(self._on_pvedit_click)
-        self._win.graphicsWidget.connection_changed_signal.connect(self.update_status_params)
+        
+        # Signal to update status when connection changes
+        class FlagSignal(QtCore.QObject):
+            sig = QtCore.pyqtSignal(str, str)
+            def __init__(self):
+                QtCore.QObject.__init__(self)
+        self.connection_changed_signal = FlagSignal()
+        self.connection_changed_signal.sig.connect(self.update_status_params)
+        
         self.default_config(**kwargs)
         #default to showing 60 second of data
         if not self._win.graphicsWidget.max_length:
