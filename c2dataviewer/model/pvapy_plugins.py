@@ -148,13 +148,9 @@ class MonitorStrategy:
         Starts the PV monitor
         """
         try:
+            self.ctx.channel.setConnectionCallback(self._connection_callback)
             self.ctx.channel.subscribe('monitorCallback', self._data_callback)
             self.ctx.channel.startMonitor('')
-            self.ctx.channel.setConnectionCallback(self._connection_callback)
-
-            # if PV is not connected, notify error
-            if self.ctx.state is not ConnectionState.CONNECTED:
-                self.ctx.notify_error()
         except PvaException as e:
             self.ctx.notify_error(str(e))
         
