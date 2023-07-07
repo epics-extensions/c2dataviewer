@@ -63,7 +63,7 @@ class PvScopeItem:
         if not self.connection.is_running():
             self.parent_controller._win.graphicsWidget.clear_sample_data(self.pvname)
             
-        self.parent_controller.update_channel_param(self.pvname, "Proto/status",
+        self.parent_controller._win.graphicsWidget.connection_changed_signal.emit(self.pvname,
                                                     "%s/%s" % (str(self.proto), status))
         
     def monitor_callback(self, data):
@@ -93,6 +93,7 @@ class StripToolController(ScopeControllerBase):
         self._pvedit_dialog = PvEditDialogController(pvedit_widget, model,
                                                      default_proto=st_config.default_proto)
         self._win.editPvButton.clicked.connect(self._on_pvedit_click)
+        self._win.graphicsWidget.connection_changed_signal.connect(self.update_status_params)
         self.default_config(**kwargs)
         #default to showing 60 second of data
         if not self._win.graphicsWidget.max_length:
@@ -156,7 +157,9 @@ class StripToolController(ScopeControllerBase):
         for si in self.pvdict.values():
             si.start()
             
-            
+    def update_status_params(self, pvname, status_str):
+        self.update_channel_param(pvname, "Proto/status", status_str)
+
     def _setup_plot(self):
         channels = [ si.channel for si in self.pvdict.values() ]
         self._win.graphicsWidget.setup_plot(channels)
