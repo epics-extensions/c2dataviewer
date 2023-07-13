@@ -1,3 +1,8 @@
+# Release 1.10.1 (07/13/2023)
+
+- Fixed bugs in striptool, scope, and image app
+- Support starting image app without a PV
+
 # Release 1.10.0 (04/07/2023)
 - Upgrade to pyqtgraph 0.12.4
 - Add license information to source- 
