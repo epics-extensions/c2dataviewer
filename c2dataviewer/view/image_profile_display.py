@@ -124,11 +124,11 @@ class ImageProfileWidget(object):
         x_profile, y_profile =  self._x_profile, self._y_profile
 
         # Setup correct dimensions for the plots
-        self._plot_x_profile.widget().setMinimumWidth(display_width)
-        self._plot_x_profile.widget().setMaximumWidth(display_width)
+        self._plot_x_profile.widget().setMinimumWidth(int(display_width))
+        self._plot_x_profile.widget().setMaximumWidth(int(display_width))
 
-        self._plot_y_profile.widget().setMinimumHeight(display_height)
-        self._plot_y_profile.widget().setMaximumHeight(display_height)
+        self._plot_y_profile.widget().setMinimumHeight(int(display_height))
+        self._plot_y_profile.widget().setMaximumHeight(int(display_height))
 
         self._grid.update()
 
