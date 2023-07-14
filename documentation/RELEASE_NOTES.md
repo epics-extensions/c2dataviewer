@@ -1,3 +1,6 @@
+# Release 1.10.2 (07/14/2023)
+- Fix image profile type error
+
 # Release 1.10.1 (07/13/2023)
 
 - Fixed bugs in striptool, scope, and image app
