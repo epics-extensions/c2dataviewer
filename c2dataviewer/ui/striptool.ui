@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1023</width>
-    <height>659</height>
+    <width>1250</width>
+    <height>700</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -38,7 +38,7 @@
          <widget class="PlotWidget" name="graphicsWidget" native="true">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>1</horstretch>
+            <horstretch>8</horstretch>
             <verstretch>0</verstretch>
            </sizepolicy>
           </property>
@@ -51,6 +51,12 @@
          <widget class="QTabWidget" name="verticalTabWidget">
           <property name="currentIndex">
            <number>0</number>
+          </property>
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>2</horstretch>  <!-- Increased horstretch value -->
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
           <widget class="QWidget" name="verticalTabWidgetPage1">
            <attribute name="title">

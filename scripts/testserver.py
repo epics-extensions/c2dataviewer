@@ -59,9 +59,16 @@ class Trigger:
 
     
 def run_striptool_pvserver(arg):
-    pvname = arg[1].pvprefix + str(arg[0])
-    maxdelay = 1 / arg[1].minrate
-    schema = {'value':pva.FLOAT}
+    pvid = arg[0]
+    args = arg[1]    
+    pvname = args.pvprefix + str(pvid)
+    maxdelay = 1 / args.minrate
+    make_struct = args.num_structs and pvid < args.num_structs
+    if make_struct:
+        print('creating %s as a struct PV' % pvname)
+        schema = { 'obj1' : {'x': pva.FLOAT, 'y': pva.FLOAT}, 'z': pva.FLOAT}
+    else:
+        schema = {'value':pva.FLOAT}
     server = pva.PvaServer(pvname, pva.PvObject(schema))
     delay = random.uniform(0.1, maxdelay)
     print('starting %s at %f Hz' % (pvname, 1/delay))
@@ -75,7 +82,13 @@ def run_striptool_pvserver(arg):
         
     while(True):
         value = gen.calc()
-        pv = pva.PvObject(schema, {'value':value})
+
+        if make_struct:
+            pvval = {'obj1': {'x': value, 'y': -value }, 'z': value + 10 }
+        else:
+            pvval = {'value': value}
+            
+        pv = pva.PvObject(schema, pvval)
         server.update(pv)
         time.sleep(delay)
 
@@ -123,6 +136,7 @@ if __name__ == "__main__":
     striptool.add_argument('numpvs',  help='number of pvs to generate', type=int)
     striptool.add_argument('--min-rate', dest='minrate', default=0.5, type=int)
     striptool.add_argument('--waveform-type', dest='wftype', default=WaveformType.RANDOM, type=WaveformType, choices=list(WaveformType))
+    striptool.add_argument('--add-struct', dest='num_structs', type=int, help='If set, number of pvs to be struct instead of scalar')
     scope = subparsers.add_parser('scope', help='Test server for scope app')
     scope.add_argument('pvname', help='structure pv to host')
     scope.add_argument('--trigger-pv', help='Adds a trigger PV.  PV values will range between -10 and 10', dest='triggerpv')

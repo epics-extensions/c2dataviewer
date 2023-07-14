@@ -92,19 +92,19 @@ def load_config(N=None):
 def pvmaps(pvs, alias=None):
     """
 
-    :param pvs:
-    :param alias:
+    :param pvs: EPICS PV name(s)
+    :param alias: EPICS PV alias name(s)
     :return:
     """
     pvmap = {}
     # labels = []
     if alias is not None:
-        ALIAS = alias.split(",")
+        alias = alias.split(",")
         for idx, pv in enumerate(pvs.split(",")):
             pv = pv.strip()
             if pv != "":
-                if idx < len(ALIAS) and ALIAS[idx].strip() != "":
-                    pvmap[ALIAS[idx].strip()] = pv.strip()
+                if idx < len(alias) and alias[idx].strip() != "":
+                    pvmap[alias[idx].strip()] = pv.strip()
                 else:
                     pvmap[pv.strip()] = pv.strip()
     else:
@@ -194,14 +194,15 @@ def main():
         if pv_map is None:
             # use pv information from configuration file
             try:
-                ALIAS = cfg[section]["ALIAS"]
-            except KeyError:
-                ALIAS = None
-            try:
-                pvnames = cfg[section]["PV"]
+                pvnames = cfg[section]["PV"] or None
             except KeyError:
                 pvnames = None
-            pv_map = pvmaps(pvnames, ALIAS)
+            try:
+                alias = cfg[section]["ALIAS"] or None
+            except KeyError:
+                alias = None
+            if pvnames is not None:
+                pv_map = pvmaps(pvnames, alias)
         try:
             scale = float(cfg[section]["SCALE"])
         except KeyError:
@@ -210,7 +211,7 @@ def main():
             noAGC = True if cfg[section]["AUTOGAIN"] == 'DISABLED' else False
         except KeyError:
             noAGC = False
-        imagev(pv_map, list(pv_map.keys()), scale, noAGC)
+        imagev(pv_map, scale, noAGC)
     elif app == AppType.SCOPE:
         from c2dataviewer import scope
         scope(cfg, pv=pv_map, arrayid=args.arrayid, xaxes=args.xaxes,

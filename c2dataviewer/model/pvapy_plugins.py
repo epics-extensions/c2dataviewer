@@ -22,6 +22,11 @@ import pvaccess as pva
 from pvaccess import PvaException
 
 def make_protocol(proto):
+    """
+    Returns the pvapy enum for the given protocol string
+    
+    proto:  "ca" or "pva"
+    """
     if isinstance(proto, pva.ProviderType):
         return proto
     
@@ -34,6 +39,13 @@ def make_protocol(proto):
         raise Error('Invalid protocol: ' + proto)
 
 def parse_pvname(pvname, default_proto):
+    """
+    Parses the pvname string provided from user.  Returns
+    (PV, protocol)
+
+    pvname:  string in format proto://PV or PV
+    default_proto:  Default protocol if one is not given
+    """
     proto = default_proto
     if "://" in pvname:
         proto, pvname = name.split('://')
@@ -42,24 +54,45 @@ def parse_pvname(pvname, default_proto):
     return pvname, proto
 
 class PollStrategy:
+    """
+    Implementation of strategy interface used in Channel
+    
+    Collects data from the PV Channel by periodically polling
+    the channel.
+    """
+    
     def __init__(self, context, timer):
+        """
+        context: the Channel object
+        timer: QT Timer object 
+        """
         self.ctx = context
         self.timer = timer
         self.timer.timeout.connect(self.poll)
         
-    def _data_callback(self, data):        
+    def _data_callback(self, data):
+        #
+        # Callback called with returned data from the PV channel
+        #
+        # data: data from PV channel
+        #
         self.ctx.data_callback_wrapper(data)
 
     def _err_callback(self, msg):
+        #
+        # Callback called if there was an error attempting to get data
+        # Notifies channel that error occured
+        #
+        # msg: error message
+        #
         self.ctx.notify_error(msg)
         
     def poll(self):
-        # try:
-        #     self.data = self.ctx.get()
-        # except PvaException as e:
-        #     self.stop()
-        # self._data_callback(self.data)
-
+        """
+        Asynchronously calls pvget on PV channel.  
+        Called by the timer object.
+        Returned data and any errors are passed in via callbacks
+        """
         try:
             self.ctx.channel.asyncGet(self._data_callback, self._err_callback, '')
         except pva.PvaException:
@@ -67,25 +100,53 @@ class PollStrategy:
             pass
         
     def start(self):
-        self.timer.start(1000/self.ctx.rate)
+        """
+        Starts timer to poll data. 
+        """
+        self.timer.start(int(1000/self.ctx.rate))
 
     def stop(self):
+        """
+        Stops polling
+        """
         self.timer.stop()
     
 class MonitorStrategy:
+    """
+    Implementation of strategy interface used in Channel
+
+    Uses pvmonitor to get data from PV channel
+    """
     def __init__(self, context):
+        """
+        context:  Channel object
+        """
         self.ctx = context
         
     def _data_callback(self, data):
+        #
+        # Data callback called by pvmonitor
+        #
+        # data:  data from PV channel
+        #
         self.ctx.data_callback_wrapper(data)
 
     def _connection_callback(self, is_connected):
+        #
+        # Callback called by pvmonitor when there is a connection change
+        # Changes the Channel state or notify error
+        #
+        #  is_connected:  True if connected to PV channel.  Otherwise False
+        #
         if is_connected:
             self.ctx.set_state(ConnectionState.CONNECTED)
         elif self.ctx.is_running():
             self.ctx.notify_error()            
         
     def start(self):
+        """
+        Starts the PV monitor
+        """
         try:
             self.ctx.channel.setConnectionCallback(self._connection_callback)
             self.ctx.channel.subscribe('monitorCallback', self._data_callback)
@@ -94,6 +155,9 @@ class MonitorStrategy:
             self.ctx.notify_error(str(e))
         
     def stop(self):
+        """
+        Stops the PV monitor
+        """
         try:
             self.ctx.channel.setConnectionCallback(None)
             self.ctx.channel.stopMonitor()
@@ -103,6 +167,9 @@ class MonitorStrategy:
 
 
 class ConnectionState(enum.Enum):
+    """
+    Connection State of the PV channel
+    """
     CONNECTED = 1
     CONNECTING = 2
     DISCONNECTING = 3
@@ -121,7 +188,17 @@ class ConnectionState(enum.Enum):
         return string_lookup[int(self.value)]
 
 class Channel:
-    def __init__(self, name, timer, provider=pva.PVA, status_callback=None):
+    """
+    PV Channel object.  Manages getting the PV data and monitoring channel connection
+    status
+    """
+    def __init__(self, name, timer=None, provider=pva.PVA, status_callback=None):
+        """
+        name : PV name
+        timer: Timer to use if polling data
+        provider: PV protocol
+        status_callback:  Callback called if connection state changed
+        """
         self.channel = pva.Channel(name, provider)
         self.provider = provider
         self.name = name
@@ -136,6 +213,11 @@ class Channel:
         self.state = ConnectionState.DISCONNECTED
 
     def data_callback_wrapper(self, data):
+        """
+        Data callback called when received data from the PV channel
+        
+        data: PV data
+        """
         if not self.is_running():
             return
         
@@ -146,9 +228,22 @@ class Channel:
             self.data = data.get()
 
     def notify_error(self, msg=None):
-        self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
+        """
+        Notify that unable to connect to PV channel
+        """
+        #Only update status for the current PV that is running to prevent status overrides during error callbacks
+        if self.is_running():
+            self.set_state(ConnectionState.FAILED_TO_CONNECT, msg)
         
     def start(self, routine=None, rate=None, status_callback=None):
+        """
+        Start monitoring data
+        
+        routine: PV data callback
+        rate: Rate to poll data.  If set, will poll to get data.  Otherwise
+             will use a PV monitor
+        status_callback: status callback.  Called whenever there is a state change.
+        """
         self.data_callback = routine
         self.rate = rate
         self.strategy = self.poll_strategy if self.rate else self.monitor_strategy
@@ -160,21 +255,36 @@ class Channel:
         self.strategy.start()
 
     def set_state(self, state, msg=None):
+        """
+        Set connection state.  
+
+        state: ConnectionState object
+        msg: (str) optional message
+        """
         if state != self.state:
             self.state = state
             if self.status_callback:
                 self.status_callback(str(state), msg)
                 
     def stop(self):
+        """
+        Stop monitoring data
+        """
         self.set_state(ConnectionState.DISCONNECTING)
         if self.strategy:
             self.strategy.stop()
         self.set_state(ConnectionState.DISCONNECTED)
 
     def is_running(self):
+        """
+        Returns True if Channel is running
+        """
         return self.state in [ConnectionState.CONNECTED, ConnectionState.CONNECTING]
     
     def get(self):
+        """
+        Get data from PV channel.  blocking call.  Returns data if successful.
+        """
         try:
             return self.channel.get('')
         except PvaException as e:
@@ -182,6 +292,12 @@ class Channel:
             raise
 
     def async_get(self, data_callback, error_callback):
+        """
+        Asynchronously get data from PV channel. Nonblocking call.
+        
+        data_callback: callback called when received data
+        error_callback: callback called if error occured
+        """
         try:
             self.channel.asyncGet(data_callback, error_callback, '')
         except pva.PvaException:
@@ -278,12 +394,13 @@ class DataSource:
     def update_framerate(self, fps):
         self.fps = fps
         
-    def update_device(self, name, restart=False):
+    def update_device(self, name, restart=False, test_connection=True):
         """
         Update device, EPICS PV name, and test its connectivity
 
         :param name: device name
         :param restart: flag to restart or not
+        :param test_connection: flag to test channel connectivity or not
         :return:
         :raise PvaException: raise pvaccess exception when channel cannot be connected.
         """
@@ -303,7 +420,8 @@ class DataSource:
             self.device = name
 
             # test channel connectivity
-            chan.get()
+            if test_connection:
+                chan.get()
 
             if restart:
                 self.start()

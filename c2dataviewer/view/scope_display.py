@@ -603,12 +603,17 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         """
         Auto-scale x/y range of the current plot
         """
-        #Use autoRange instead enableAutoRange so that it isn't persistant.
-        #This way we can use this function for one time auto-scale and for
-        #persistant autoscales
-        self.plot.autoRange()
-        for view in self.views:
-            view.autoRange()
+        #Use autoRange instead enableAutoRange when autoscale not set so that 
+        #it isn't persistant. This way we can use this function for one time 
+        #auto-scale and for persistant autoscales
+        if self.auto_scale:
+            self.plot.enableAutoRange()
+            for view in self.views:
+                view.enableAutoRange()
+        else:
+            self.plot.autoRange()
+            for view in self.views:
+                view.autoRange()
 
                 
     def reset_xrange(self):

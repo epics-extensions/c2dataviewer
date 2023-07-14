@@ -76,8 +76,7 @@ class WarningDialog(QtWidgets.QDialog, warning_class):
         super(WarningDialog, self).__init__(parent=parent)
         self.setupUi(self)
 
-
-def imagev(pv, label, scale=None, noAGC=True):
+def imagev(pv, scale=None, noAGC=True):
     """
     Main function for image display
 
@@ -95,8 +94,13 @@ def imagev(pv, label, scale=None, noAGC=True):
     else:
         print('QApplication instance already exists: %s' % str(app))
 
+    if pv is None:
+        label = None
+    else:
+        label = list(pv.keys())
+        
     w = ImageWindow(None)
-    data = DataReceiver(QtCore.QTimer, default=list(pv.values())[0])
+    data = DataReceiver(QtCore.QTimer, default=None)
     w.imageWidget.set_datasource(data)
 
     settings_dialog = ImageSettingsDialog(None)
@@ -112,6 +116,12 @@ def imagev(pv, label, scale=None, noAGC=True):
 
     if not noAGC:
         w.imageWidget.enable_auto_gain()
+
+    if (label == None):
+        msg = "No input channel specified, please add it manually in the Camera textbox."
+        warning.warningTextBrowse.setText(msg)
+        warning.show()
+        warning.warningConfirmButton.clicked.connect(warning.close)
 
     w.show()
     sys.exit(app.exec_())

@@ -43,17 +43,16 @@ class ImageController:
             raise RuntimeError("Widget is unknown")
 
         cameras = kargs.get("PV", None)
-        if cameras is None:
-            raise RuntimeError("EPICS PV for camera is unknown")
 
         self.datareceiver = kargs.get('data', None)
 
         self._win.pvPrefix.setEditable(True)
         self._win.pvPrefix.setInsertPolicy(Qt.QtWidgets.QComboBox.InsertAtBottom)
-        self._win.pvPrefix.addItems(cameras)
+        if cameras is not None:
+            self._win.pvPrefix.addItems(cameras)
         self._win.pvPrefix.currentIndexChanged.connect(self.camera_changed)
         self._win.imageWidget.connection_changed_signal.connect(self.connection_changed)
-
+        
         self._image_settings_dialog  = kargs.get("IMAGE_SETTINGS_DIALOG", None)
         self._warning = kargs.get("WARNING", None)
 
