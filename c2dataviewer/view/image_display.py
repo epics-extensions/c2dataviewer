@@ -397,10 +397,10 @@ class ImagePlotWidget(RawImageWidget):
         if self.color_mode == COLOR_MODE_MONO:
             # Get the monochromatic intensity value at the particular pixel and display in the correct format
             try:
-                self.intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y]
-                if self.intensity >= 999999:
-                    self.intensity = "{:e}".format(self.intensity)
-                self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nI: {self.intensity}")
+                intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y]
+                if intensity >= 999999:
+                    intensity = "{:e}".format(intensity)
+                self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nI: {intensity}")
                 # Set textbox size
                 if (self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width() > self.mouse_dialog.max_textbox_width):
                     self.mouse_dialog.max_textbox_width = self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width()
