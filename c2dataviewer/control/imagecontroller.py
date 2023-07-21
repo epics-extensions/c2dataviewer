@@ -31,6 +31,8 @@ class ImageController:
 
     HIDE_CONTROL_TEXT = 'Hide Control Panel'
     SHOW_CONTROL_TEXT = 'Show Control Panel'
+    HIDE_XY_INTENSITY_TEXT = 'Hide Coordinates and Intensity'
+    SHOW_XY_INTENSITY_TEXT = 'Show Coordinates and Intensity'
 
     def __init__(self, widget, **kargs):
         """
@@ -175,7 +177,11 @@ class ImageController:
         self._imageContextMenu = QtWidgets.QMenu(self._win.imageWidget)
         self._imageContextMenuAction = QtWidgets.QAction(self.HIDE_CONTROL_TEXT, self._win.imageWidget)
         self._imageContextMenu.addAction(self._imageContextMenuAction)
+
+        self._imageXY_IntensityDialogAction = QtWidgets.QAction(self.SHOW_XY_INTENSITY_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageXY_IntensityDialogAction)
         self._win.imageWidget.customContextMenuRequested.connect(self.on_context_menu)
+
         self._scrollAreaWidth = 0
 
     def on_context_menu(self, point):
@@ -189,10 +195,18 @@ class ImageController:
             self._scrollAreaWidth = self._win.scrollArea.parent().minimumWidth()
             self._win.scrollArea.parent().setMinimumWidth(0)
             self._win.scrollArea.parent().setMinimumHeight(0)
-        else:
+        elif action.text() == self.SHOW_CONTROL_TEXT:
             action.setText(self.HIDE_CONTROL_TEXT)
             self._win.scrollArea.show()
             self._win.scrollArea.parent().setMinimumWidth(self._scrollAreaWidth)
+        elif action.text() == self.SHOW_XY_INTENSITY_TEXT:
+            action.setText(self.HIDE_XY_INTENSITY_TEXT)
+            self._win.imageWidget.mouse_dialog.enable_mouse_dialog()
+            self._win.imageWidget.setMouseTracking(True)
+        elif action.text() == self.HIDE_XY_INTENSITY_TEXT:
+            action.setText(self.SHOW_XY_INTENSITY_TEXT)
+            self._win.imageWidget.mouse_dialog.disable_mouse_dialog()
+            self._win.imageWidget.setMouseTracking(False)
         self._win.imageWidget.adjustSize()
 
     def _callback_black_changed_slider(self):
