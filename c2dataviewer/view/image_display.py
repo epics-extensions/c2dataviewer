@@ -76,6 +76,43 @@ class ImageCompressionUtility:
         nBytesWritten = blosc.decompress_ptr(bytearray(inputArray), outputArray.__array_interface__['data'][0])
         return outputArray
 
+class MouseDialog:
+    def __init__(self, imageWidget):
+        # mouse dialog flags
+        self.is_mouse_clicked = False
+        self.mouse_dialog_enabled = False
+        self.mouse_dialog_launched = False
+        
+        self.max_textbox_width = 0
+
+        # pixel coordinates
+        self.pix_x = 0
+        self.pix_y = 0
+
+        # textbox coordinates inside the widget screen
+        self.x_coor = 0
+        self.y_coor = 0
+
+        # intensity coordinates
+        self.int_x = 0
+        self.int_y = 0
+
+        # initialize mouse dialog widgets
+        self.layout = QtWidgets.QVBoxLayout(imageWidget)
+        self.textbox = QtWidgets.QTextEdit(imageWidget)
+        self.textbox.setFixedSize(0,0)
+
+    def enable_mouse_dialog(self):
+        self.mouse_dialog_enabled = True
+        self.is_mouse_clicked = False
+
+    def disable_mouse_dialog(self):
+        self.mouse_dialog_enabled = False
+        self.mouse_dialog_launched = False
+        self.is_mouse_clicked = False
+        self.textbox.setFixedSize(0,0)
+    
+
 Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
 
@@ -199,6 +236,8 @@ class ImagePlotWidget(RawImageWidget):
         # Queue used to transfer the images from the process to the display thread
         self.draw_queue = queue.Queue(ImagePlotWidget.DEFAULT_DISPLAY_QUEUE_SIZE)
 
+        # mouse dialog box
+        self.mouse_dialog = MouseDialog(self)
 
     def resizeEvent(self, event):
         """
@@ -217,13 +256,16 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
+        # Flag to indicate click occured
+        self.mouse_dialog.is_mouse_clicked = True
+
         # Get location of the click
         click_position = event.pos()
         x_position = click_position.x()
         y_position = click_position.y()
 
         # Check if the press happened on the image
-        img_width, img_height = self.calc_img_size_on_screen()
+        img_width, img_height, _ = self.calc_img_size_on_screen()
         if (x_position > img_width or y_position > img_height):
             return
 
@@ -239,12 +281,13 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        if self.roi_origin is None:
-            return
+        if self.mouse_dialog.mouse_dialog_enabled:
+            self.updateMouseDialog(event)
 
         # Mouse is moving, while selecting roi. Redraw the selection rectangle.
-        self.__zoomSelectionIndicator.setGeometry(
-            QtCore.QRect(self.roi_origin, event.pos()).normalized())
+        if self.roi_origin is not None and self.mouse_dialog.is_mouse_clicked:
+            self.__zoomSelectionIndicator.setGeometry(
+                QtCore.QRect(self.roi_origin, event.pos()).normalized())
 
     def mouseReleaseEvent(self, event):
         """
@@ -253,6 +296,9 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
+        # Flag to indicate click over
+        self.mouse_dialog.is_mouse_clicked = False
+
         if self.roi_origin is None:
             return
 
@@ -290,6 +336,105 @@ class ImagePlotWidget(RawImageWidget):
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
+
+    def updateMouseDialog(self, event):
+        """
+        This method continuously displays and updates the dialog box beneath the mouse cursor.
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # Return if there is no image data
+        if self.__zoomDict['width'] == 0 and self.__zoomDict['height'] == 0:
+            return
+        
+        # Flag to indicate mouse dialog has been launched
+        self.mouse_dialog.mouse_dialog_launched = True
+        
+        # Get the current image size on screen
+        img_width, img_height, pixel_size = self.calc_img_size_on_screen()
+
+        # Get the current mouse position on the widget
+        mouse_position = event.pos()
+
+        # Get zoom parameters
+        xOffset, yOffset, width, height = self.get_zoom_region()
+
+        # Calculate pixel coordinates
+        self.mouse_dialog.pix_x = int(mouse_position.x()//pixel_size) + xOffset
+        self.mouse_dialog.pix_y = int(mouse_position.y()//pixel_size) + yOffset
+        if self.mouse_dialog.pix_x >= xOffset + width:
+            self.mouse_dialog.pix_x = xOffset + width - 1
+        if self.mouse_dialog.pix_y >= yOffset + height:
+            self.mouse_dialog.pix_y = yOffset + height - 1
+
+        # Update the textbox location inside the widget screen as the mouse moves
+        self.mouse_dialog.x_coor = mouse_position.x()+5
+        self.mouse_dialog.y_coor = mouse_position.y()+10
+        
+        # Calculate the intensity coordinates corrected for zoom
+        self.mouse_dialog.int_x = self.mouse_dialog.pix_x - xOffset
+        self.mouse_dialog.int_y = self.mouse_dialog.pix_y - yOffset
+
+        # Set the dialog box paramters
+        self.setup_mouse_textbox()
+
+        # Flip the textbox location when approaching image widget screen boundary
+        if (mouse_position.x() >= (width * pixel_size - self.mouse_dialog.max_textbox_width)):
+            self.mouse_dialog.x_coor = self.mouse_dialog.x_coor - self.mouse_dialog.max_textbox_width - 20
+        if (mouse_position.y() >= (height * pixel_size - 50)):
+            self.mouse_dialog.y_coor = self.mouse_dialog.y_coor - 55
+        
+        # Set layout
+        self.mouse_dialog.layout.setContentsMargins(self.mouse_dialog.x_coor, self.mouse_dialog.y_coor,int(img_width), int(img_height))
+        self.mouse_dialog.layout.addWidget(self.mouse_dialog.textbox)
+
+    def setup_mouse_textbox(self):
+        """
+        This method set the mouse textbox size and text within based on the image color and data type.
+
+        """
+        if self.color_mode == COLOR_MODE_MONO:
+            # Get the monochromatic intensity value at the particular pixel and display in the correct format
+            try:
+                self.intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y]
+                if self.intensity >= 999999:
+                    self.intensity = "{:e}".format(self.intensity)
+                self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nI: {self.intensity}")
+                # Set textbox size
+                if (self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width() > self.mouse_dialog.max_textbox_width):
+                    self.mouse_dialog.max_textbox_width = self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width()
+                self.mouse_dialog.textbox.setFixedSize(self.mouse_dialog.max_textbox_width+5, 45)
+            except Exception as e:
+                logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
+        else:
+            # Get the RGB intensity values at the particular pixel and display in the correct format
+            try:
+                r_intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y][0]
+                if r_intensity >= 999999:
+                    r_intensity = "{:e}".format(r_intensity)
+                g_intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y][1]
+                if g_intensity >= 999999:
+                    g_intensity = "{:e}".format(g_intensity)
+                b_intensity = self.last_displayed_image.image[self.mouse_dialog.int_x][self.mouse_dialog.int_y][2]
+                if b_intensity >= 999999:
+                    b_intensity = "{:e}".format(b_intensity)
+                
+                # Set textbook text and size
+                if self._inputType == 'ubyteValue' or self._inputType == 'byteValue' or self._inputType == 'ushortValue' or self._inputType == 'shortValue':
+                    self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nR: {r_intensity}, G: {g_intensity}, B: {b_intensity}")
+                    if (self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width() > self.mouse_dialog.max_textbox_width):
+                        self.mouse_dialog.max_textbox_width = self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width()
+                    self.mouse_dialog.textbox.setFixedSize(self.mouse_dialog.max_textbox_width+5, 45)
+                else:
+                    self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nR: {r_intensity}")
+                    if (self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width() > self.mouse_dialog.max_textbox_width):
+                        self.mouse_dialog.max_textbox_width = self.mouse_dialog.textbox.fontMetrics().boundingRect(self.mouse_dialog.textbox.toPlainText()).width()
+                    self.mouse_dialog.textbox.setText(f"({self.mouse_dialog.pix_x}, {self.mouse_dialog.pix_y})\nR: {r_intensity},\nG: {g_intensity},\nB: {b_intensity}")
+                    self.mouse_dialog.textbox.setFixedSize(self.mouse_dialog.max_textbox_width+5, 85)
+            except Exception as e:
+                logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
+
 
     def set_display_queue_size(self, new_size):
         """
@@ -484,7 +629,7 @@ class ImagePlotWidget(RawImageWidget):
         image_width = pixel_size * width
         image_height = pixel_size * height
 
-        return image_width, image_height
+        return image_width, image_height, pixel_size
 
     def wait(self):
         """
@@ -968,7 +1113,16 @@ class ImagePlotWidget(RawImageWidget):
         levels = [image.black, image.white]
         self.setImage(image.image, levels = levels)
         if self.image_profile_widget is not None:
-            self.image_profile_widget.plot(*self.calc_img_size_on_screen())
+            img_width, img_height, _ = self.calc_img_size_on_screen()
+            self.image_profile_widget.plot(img_width, img_height)
         if image.new:
             self.frames_displayed += 1
         self.last_displayed_image = image
+
+        # If the mouse dialog has been launched, update the intensity value with every image update
+        if (self.mouse_dialog.mouse_dialog_launched):
+            # Set the dialog box paramters
+            self.setup_mouse_textbox()
+
+            # Set layout
+            self.mouse_dialog.layout.addWidget(self.mouse_dialog.textbox)
