@@ -379,6 +379,7 @@ class ImagePlotWidget(RawImageWidget):
         # Set the dialog box paramters
         self.setup_mouse_textbox()
 
+        # if mouse cursor outside image window, hide mouse dialog
         if (mouse_position.y() >= (height * pixel_size)) or (mouse_position.x() >= (width * pixel_size)):
             self.mouse_dialog.textbox.setFixedSize(0, 0)
 
@@ -438,6 +439,7 @@ class ImagePlotWidget(RawImageWidget):
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
 
+        # if mouse cursor outside image window, hide mouse dialog
         if self.underMouse() is False:
             self.mouse_dialog.textbox.setFixedSize(0, 0)
 
