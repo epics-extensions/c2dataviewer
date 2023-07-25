@@ -379,6 +379,9 @@ class ImagePlotWidget(RawImageWidget):
         # Set the dialog box paramters
         self.setup_mouse_textbox()
 
+        if (mouse_position.y() >= (height * pixel_size)) or (mouse_position.x() >= (width * pixel_size)):
+            self.mouse_dialog.textbox.setFixedSize(0, 0)
+
         # Flip the textbox location when approaching image widget screen boundary
         if (mouse_position.x() >= (width * pixel_size - self.mouse_dialog.max_textbox_width)):
             self.mouse_dialog.x_coor = self.mouse_dialog.x_coor - self.mouse_dialog.max_textbox_width - 20
@@ -434,6 +437,9 @@ class ImagePlotWidget(RawImageWidget):
                     self.mouse_dialog.textbox.setFixedSize(self.mouse_dialog.max_textbox_width+5, 85)
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
+
+        if self.underMouse() is False:
+            self.mouse_dialog.textbox.setFixedSize(0, 0)
 
 
     def set_display_queue_size(self, new_size):
