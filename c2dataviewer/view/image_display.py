@@ -82,6 +82,7 @@ class MouseDialog:
         self.is_mouse_clicked = False
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
+        self.mouse_dialog_hide = False
         
         self.max_textbox_width = 0
 
@@ -106,12 +107,13 @@ class MouseDialog:
     def enable_mouse_dialog(self):
         self.mouse_dialog_enabled = True
         self.is_mouse_clicked = False
+        self.textbox.setHidden(False)
 
     def disable_mouse_dialog(self):
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
         self.is_mouse_clicked = False
-        self.textbox.setFixedSize(0,0)
+        self.textbox.setHidden(True)
     
 
 Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
@@ -377,12 +379,14 @@ class ImagePlotWidget(RawImageWidget):
         self.mouse_dialog.int_x = self.mouse_dialog.pix_x - xOffset
         self.mouse_dialog.int_y = self.mouse_dialog.pix_y - yOffset
 
-        # Set the dialog box paramters
-        self.setup_mouse_textbox()
-
         # if mouse cursor outside image window, hide mouse dialog
         if (mouse_position.y() >= (height * pixel_size)) or (mouse_position.x() >= (width * pixel_size)):
-            self.mouse_dialog.textbox.setFixedSize(0, 0)
+            self.mouse_dialog.mouse_dialog_hide = True
+        else:
+            self.mouse_dialog.mouse_dialog_hide = False
+
+        # Set the dialog box paramters
+        self.setup_mouse_textbox()
 
         # Flip the textbox location when approaching image widget screen boundary
         if (mouse_position.x() >= (width * pixel_size - self.mouse_dialog.max_textbox_width)):
@@ -399,6 +403,13 @@ class ImagePlotWidget(RawImageWidget):
         This method set the mouse textbox size and text within based on the image color and data type.
 
         """
+        # if mouse cursor outside image window, hide mouse dialog
+        if self.mouse_dialog.mouse_dialog_hide or self.underMouse() is False:
+            self.mouse_dialog.textbox.setHidden(True)
+            return
+        else:
+            self.mouse_dialog.textbox.setHidden(False)
+        
         if self.color_mode == COLOR_MODE_MONO:
             # Get the monochromatic intensity value at the particular pixel and display in the correct format
             try:
@@ -439,10 +450,6 @@ class ImagePlotWidget(RawImageWidget):
                     self.mouse_dialog.textbox.setFixedSize(self.mouse_dialog.max_textbox_width+5, 85)
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
-
-        # if mouse cursor outside image window, hide mouse dialog
-        if self.underMouse() is False:
-            self.mouse_dialog.textbox.setFixedSize(0, 0)
 
 
     def set_display_queue_size(self, new_size):
