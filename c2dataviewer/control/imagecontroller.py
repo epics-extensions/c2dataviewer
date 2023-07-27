@@ -195,10 +195,12 @@ class ImageController:
             self._scrollAreaWidth = self._win.scrollArea.parent().minimumWidth()
             self._win.scrollArea.parent().setMinimumWidth(0)
             self._win.scrollArea.parent().setMinimumHeight(0)
+            self._win.imageWidget.mouse_dialog.is_mouse_clicked = False
         elif action.text() == self.SHOW_CONTROL_TEXT:
             action.setText(self.HIDE_CONTROL_TEXT)
             self._win.scrollArea.show()
             self._win.scrollArea.parent().setMinimumWidth(self._scrollAreaWidth)
+            self._win.imageWidget.mouse_dialog.is_mouse_clicked = False
         elif action.text() == self.SHOW_XY_INTENSITY_TEXT:
             action.setText(self.HIDE_XY_INTENSITY_TEXT)
             self._win.imageWidget.mouse_dialog.enable_mouse_dialog()

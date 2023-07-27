@@ -100,6 +100,7 @@ class MouseDialog:
         # initialize mouse dialog widgets
         self.layout = QtWidgets.QVBoxLayout(imageWidget)
         self.textbox = QtWidgets.QTextEdit(imageWidget)
+        self.textbox.setCursorWidth(0)
         self.textbox.setFixedSize(0,0)
 
     def enable_mouse_dialog(self):
