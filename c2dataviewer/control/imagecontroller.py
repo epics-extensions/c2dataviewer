@@ -496,6 +496,9 @@ class ImageController:
 
         :return:
         """
+        # Handle mouse dialog when freeze enabled
+        if (self._win.imageWidget._freeze):
+            self._win.imageWidget.setup_mouse_textbox()
 
         # Get current time
         now = time.time()
