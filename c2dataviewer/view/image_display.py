@@ -252,30 +252,32 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.calc_img_size_on_screen()
 
-    def mousePressEvent(self, event):
+def mousePressEvent(self, event):
         """
         This method is event handler for the mouse click event and is called by the Qt framework.
 
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        # Flag to indicate click occured
-        self.mouse_dialog.is_mouse_clicked = True
+        # Only trigger if left mouse clicked
+        if event.button() == QtCore.Qt.LeftButton:
+            # Flag to indicate click occured
+            self.mouse_dialog.is_mouse_clicked = True
 
-        # Get location of the click
-        click_position = event.pos()
-        x_position = click_position.x()
-        y_position = click_position.y()
+            # Get location of the click
+            click_position = event.pos()
+            x_position = click_position.x()
+            y_position = click_position.y()
 
-        # Check if the press happened on the image
-        img_width, img_height, _ = self.calc_img_size_on_screen()
-        if (x_position > img_width or y_position > img_height):
-            return
+            # Check if the press happened on the image
+            img_width, img_height, _ = self.calc_img_size_on_screen()
+            if (x_position > img_width or y_position > img_height):
+                return
 
-        # Mouse buttom was pressed on the image. We start panning.
-        self.roi_origin = click_position
-        self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.roi_origin, QtCore.QSize()))
-        self.__zoomSelectionIndicator.show()
+            # Mouse buttom was pressed on the image. We start panning.
+            self.roi_origin = click_position
+            self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.roi_origin, QtCore.QSize()))
+            self.__zoomSelectionIndicator.show()
 
     def mouseMoveEvent(self, event):
         """
