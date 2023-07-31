@@ -259,7 +259,7 @@ def mousePressEvent(self, event):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        # Only trigger if left mouse clicked
+        # Only trigger if left mouse button clicked
         if event.button() == QtCore.Qt.LeftButton:
             # Flag to indicate click occured
             self.mouse_dialog.is_mouse_clicked = True
