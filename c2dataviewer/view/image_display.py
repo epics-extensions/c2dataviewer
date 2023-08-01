@@ -79,7 +79,6 @@ class ImageCompressionUtility:
 class MouseDialog:
     def __init__(self, imageWidget):
         # mouse dialog flags
-        self.is_mouse_clicked = False
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
         self.mouse_dialog_hide = False
@@ -106,13 +105,11 @@ class MouseDialog:
 
     def enable_mouse_dialog(self):
         self.mouse_dialog_enabled = True
-        self.is_mouse_clicked = False
         self.textbox.setHidden(False)
 
     def disable_mouse_dialog(self):
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
-        self.is_mouse_clicked = False
         self.textbox.setHidden(True)
     
 
@@ -261,9 +258,6 @@ class ImagePlotWidget(RawImageWidget):
         """
         # Only trigger if left mouse button clicked
         if event.button() == QtCore.Qt.LeftButton:
-            # Flag to indicate click occured
-            self.mouse_dialog.is_mouse_clicked = True
-
             # Get location of the click
             click_position = event.pos()
             x_position = click_position.x()
@@ -290,7 +284,7 @@ class ImagePlotWidget(RawImageWidget):
             self.updateMouseDialog(event)
 
         # Mouse is moving, while selecting roi. Redraw the selection rectangle.
-        if self.roi_origin is not None and self.mouse_dialog.is_mouse_clicked:
+        if self.roi_origin is not None:
             self.__zoomSelectionIndicator.setGeometry(
                 QtCore.QRect(self.roi_origin, event.pos()).normalized())
 
@@ -301,9 +295,6 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        # Flag to indicate click over
-        self.mouse_dialog.is_mouse_clicked = False
-
         if self.roi_origin is None:
             return
 
