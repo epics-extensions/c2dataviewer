@@ -191,13 +191,13 @@ class ImageController:
             return
         if action.text() == self.HIDE_CONTROL_TEXT:
             action.setText(self.SHOW_CONTROL_TEXT)
-            self._win.scrollArea.hide()
+            self._win.scrollArea.setHidden(True)
             self._scrollAreaWidth = self._win.scrollArea.parent().minimumWidth()
             self._win.scrollArea.parent().setMinimumWidth(0)
             self._win.scrollArea.parent().setMinimumHeight(0)
         elif action.text() == self.SHOW_CONTROL_TEXT:
             action.setText(self.HIDE_CONTROL_TEXT)
-            self._win.scrollArea.show()
+            self._win.scrollArea.setHidden(False)
             self._win.scrollArea.parent().setMinimumWidth(self._scrollAreaWidth)
         elif action.text() == self.SHOW_XY_INTENSITY_TEXT:
             action.setText(self.HIDE_XY_INTENSITY_TEXT)
@@ -496,6 +496,9 @@ class ImageController:
 
         :return:
         """
+        # Handle mouse dialog when freeze enabled
+        if (self._win.imageWidget._freeze):
+            self._win.imageWidget.setup_mouse_textbox()
 
         # Get current time
         now = time.time()
