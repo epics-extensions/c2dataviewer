@@ -252,7 +252,7 @@ class ImagePlotWidget(RawImageWidget):
         """
         self.calc_img_size_on_screen()
 
-def mousePressEvent(self, event):
+    def mousePressEvent(self, event):
         """
         This method is event handler for the mouse click event and is called by the Qt framework.
 
