@@ -14,6 +14,7 @@ PVA object viewer utilities
 """
 import datetime
 from pyqtgraph import Qt
+from pyqtgraph import QtCore
 import time
 from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
@@ -33,6 +34,7 @@ class ImageController:
     SHOW_CONTROL_TEXT = 'Show Control Panel'
     HIDE_XY_INTENSITY_TEXT = 'Hide Coordinates and Intensity'
     SHOW_XY_INTENSITY_TEXT = 'Show Coordinates and Intensity'
+    RESET_ZOOM_TEXT = 'Reset Zoom'
 
     def __init__(self, widget, **kargs):
         """
@@ -180,7 +182,10 @@ class ImageController:
 
         self._imageXY_IntensityDialogAction = QtWidgets.QAction(self.SHOW_XY_INTENSITY_TEXT, self._win.imageWidget)
         self._imageContextMenu.addAction(self._imageXY_IntensityDialogAction)
-        self._win.imageWidget.customContextMenuRequested.connect(self.on_context_menu)
+        self._imageResetZoomAction = QtWidgets.QAction(self.RESET_ZOOM_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageResetZoomAction)
+        
+        self._win.imageWidget.right_button_clicked_signal.connect(lambda point: self.on_context_menu(point))
 
         self._scrollAreaWidth = 0
 
@@ -207,6 +212,8 @@ class ImageController:
             action.setText(self.SHOW_XY_INTENSITY_TEXT)
             self._win.imageWidget.mouse_dialog.disable_mouse_dialog()
             self._win.imageWidget.setMouseTracking(False)
+        elif action.text() == self.RESET_ZOOM_TEXT:
+            self._win.imageWidget.reset_zoom()
         self._win.imageWidget.adjustSize()
 
     def _callback_black_changed_slider(self):
@@ -497,7 +504,7 @@ class ImageController:
         :return:
         """
         # Handle mouse dialog when freeze enabled
-        if (self._win.imageWidget._freeze):
+        if self._win.imageWidget._freeze and self._win.imageWidget.mouse_dialog.mouse_dialog_enabled:
             self._win.imageWidget.setup_mouse_textbox()
 
         # Get current time
