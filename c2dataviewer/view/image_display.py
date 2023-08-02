@@ -15,7 +15,7 @@ PVA object viewer utilities for image display
 from collections import namedtuple
 import queue
 import logging
-
+import math
 import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtWidgets
@@ -78,7 +78,7 @@ class ImageCompressionUtility:
 
 class MouseDialog:
     def __init__(self, imageWidget):
-        # mouse dialog flags
+        # mouse dialog flags        
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
         self.mouse_dialog_hide = False
@@ -123,6 +123,7 @@ class ImagePlotWidget(RawImageWidget):
 
     _set_image_signal = QtCore.pyqtSignal()
     connection_changed_signal = QtCore.Signal(str, str)
+    right_button_clicked_signal = QtCore.pyqtSignal(QtCore.QPoint)
     
     def __init__(self, parent=None, **kargs):
         RawImageWidget.__init__(self, parent=parent, scaled=True)
@@ -176,6 +177,8 @@ class ImagePlotWidget(RawImageWidget):
             'width': 0,
             'height': 0,
         }
+        self.right_button_pressed = False
+        self.is_image_panning = False
 
         # ROI
         self.roi_origin = None
@@ -256,22 +259,25 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
-        # Only trigger if left mouse button clicked
+        # Get location of the click
+        click_position = event.pos()
+        self.click_x = click_position.x()
+        self.click_y = click_position.y()
+        
+        # Only triggered is left mouse button clicked 
         if event.button() == QtCore.Qt.LeftButton:
-            # Get location of the click
-            click_position = event.pos()
-            x_position = click_position.x()
-            y_position = click_position.y()
-
             # Check if the press happened on the image
             img_width, img_height, _ = self.calc_img_size_on_screen()
-            if (x_position > img_width or y_position > img_height):
+            if (self.click_x > img_width or self.click_y > img_height):
                 return
 
             # Mouse buttom was pressed on the image. We start panning.
             self.roi_origin = click_position
             self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.roi_origin, QtCore.QSize()))
             self.__zoomSelectionIndicator.show()
+        elif event.button() == QtCore.Qt.RightButton:
+            # Flag to indicate click occured
+            self.right_button_pressed = True
 
     def mouseMoveEvent(self, event):
         """
@@ -282,6 +288,11 @@ class ImagePlotWidget(RawImageWidget):
         """
         if self.mouse_dialog.mouse_dialog_enabled:
             self.updateMouseDialog(event)
+
+        # panning zoomed image window
+        if self.is_zoomed() and self.right_button_pressed:
+            self.is_image_panning = True
+            self.pan_zoom_window(event)
 
         # Mouse is moving, while selecting roi. Redraw the selection rectangle.
         if self.roi_origin is not None:
@@ -295,6 +306,13 @@ class ImagePlotWidget(RawImageWidget):
         :param event: (QMouseEvent) Parameter holding event details.
         :return: (None)
         """
+        # Trigger context menu when not panning
+        if event.button() == QtCore.Qt.RightButton:
+            self.right_button_pressed = False
+            if not self.is_image_panning:
+                self.right_button_clicked_signal.emit(event.pos())
+            self.is_image_panning = False
+
         if self.roi_origin is None:
             return
 
@@ -332,6 +350,66 @@ class ImagePlotWidget(RawImageWidget):
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
+    
+    def wheelEvent(self, event):
+        """
+        This method checks the angleDelta to determine the direction of the scroll to then
+        set zoom region
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # Calculate the position of the mouse cursor relative to the widget
+        mouse_x = event.x()
+        mouse_y = event.y()
+
+        # Get current zoom parameters
+        xOffset, yOffset, width, height = self.get_zoom_region()
+
+        # Calculate the scale factor for zooming based on the mouse wheel delta
+        scale_factor = 0.95 if event.angleDelta().y() > 0 else 1/0.95
+
+        # Calculate the new width and height after zooming
+        new_width = width * scale_factor
+        new_height = height * scale_factor
+
+        # Limit the minimum and maximum size after zooming
+        min_size = 4
+        
+        # Zooming out/in
+        if (scale_factor > 1):
+            max_width_size = self.x
+            max_height_size = self.y
+            new_width = math.ceil(max(min(new_width, max_width_size), min_size))
+            new_height = math.ceil(max(min(new_height, max_height_size), min_size))
+        else:
+            max_width_size = width
+            max_height_size = height
+            new_width = int(max(min(new_width, max_width_size), min_size))
+            new_height = int(max(min(new_height, max_height_size), min_size))
+
+        # Calculate the relative position of the mouse cursor within the widget
+        relative_mouse_x = mouse_x / width
+        relative_mouse_y = mouse_y / height
+
+        # Calculate the new position of the mouse cursor after zooming
+        new_mouse_x = relative_mouse_x * new_width
+        new_mouse_y = relative_mouse_y * new_height
+
+        # Calculate the new position of the widget after zooming to keep the mouse cursor centered
+        new_x = int(xOffset + mouse_x - new_mouse_x)
+        new_y = int(yOffset + mouse_y - new_mouse_y)
+        if new_x < 0:
+            new_x = 0
+        elif new_x > self.x:
+            new_x = self.x
+        if new_y < 0:
+            new_y = 0
+        elif new_y > self.y:
+            new_y = self.y
+
+        # Set the new width, height, and position of the widget
+        self.set_zoom_region(new_x, new_y, new_width, new_height)
 
     def updateMouseDialog(self, event):
         """
@@ -559,6 +637,38 @@ class ImagePlotWidget(RawImageWidget):
                 self.display(self.data, zoomUpdate=True)
             except Exception as e:
                 logging.getLogger().error('Error displaying data: %s', str(e))
+    
+    def pan_zoom_window(self, event):
+        """
+        This method allows a user to move the zoom window around the image by dragging 
+        their mouse while holding down the right button
+
+        :param event: (QMouseEvent) Parameter holding event details.
+        :return: (None)
+        """
+        # Get the current image size on screen
+        _, _, pixel_size = self.calc_img_size_on_screen()
+
+        # Get the current mouse position on the widget
+        new_mouse_position = event.pos()
+
+        # Get zoom parameters
+        xOffset, yOffset, width, height = self.get_zoom_region()
+
+        # Calculate new offset coordinates for zoom window
+        new_x = int(new_mouse_position.x()//pixel_size) - int(self.click_x//pixel_size) + xOffset
+        new_y = int(new_mouse_position.y()//pixel_size) - int(self.click_y//pixel_size) + yOffset
+        if new_x < 0:
+            new_x = 0
+        elif new_x > self.x - width:
+            new_x = self.x - width
+        if new_y < 0:
+            new_y = 0
+        elif new_y > self.y - height:
+            new_y = self.y - height
+
+        # Set the new width, height, and position of the widget
+        self.set_zoom_region(new_x, new_y, width, height)
 
     def set_freeze(self, flag):
         """
