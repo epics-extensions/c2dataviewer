@@ -266,6 +266,10 @@ class ImagePlotWidget(RawImageWidget):
         
         # Only triggered is left mouse button clicked 
         if event.button() == QtCore.Qt.LeftButton:
+            # Return if there is no image data
+            if not self.x or not self.y:
+                return
+            
             # Check if the press happened on the image
             img_width, img_height, _ = self.calc_img_size_on_screen()
             if (self.click_x > img_width or self.click_y > img_height):
@@ -419,7 +423,7 @@ class ImagePlotWidget(RawImageWidget):
         :return: (None)
         """
         # Return if there is no image data
-        if self.__zoomDict['width'] == 0 and self.__zoomDict['height'] == 0:
+        if not self.x or not self.y:
             return
         
         # Flag to indicate mouse dialog has been launched
