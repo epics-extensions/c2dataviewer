@@ -64,8 +64,8 @@ class ImageController:
         self._inputTypeDefaultStyle = self._win.tbValidInput.styleSheet()
 
         # Image and zoom
-        self._win.lblXsize.setToolTip("Number of pixels image has in X direction. \nIf ROI is selected, numbers in parentheses \nshow the range of displayed pixels.")
-        self._win.lblYsize.setToolTip("Number of pixels image has in Y direction. \nIf ROI is selected, numbers in parentheses \nshow the range of displayed pixels.")
+        self._win.lblXsize.setToolTip("Number of pixels image has in X direction. \nIf ROI is selected, numbers in parentheses \nshow the size and range of displayed pixels.")
+        self._win.lblYsize.setToolTip("Number of pixels image has in Y direction. \nIf ROI is selected, numbers in parentheses \nshow the size and range of displayed pixels.")
         self._win.resetZoomButton.clicked.connect(lambda: self._callback_reset_zoom_button())
 
         # Black control
@@ -702,10 +702,10 @@ class ImageController:
 
         # Update image and zoom section
         self._win.lblXsize.setText(' '.join([str(self._win.imageWidget.x),
-                '' if not isZoomedImage else f"({xOffset}-{xOffset+width})"
+                '' if not isZoomedImage else f"({width}|{xOffset}-{xOffset+width})"
                                             ]))
         self._win.lblYsize.setText(' '.join([str(self._win.imageWidget.y),
-                '' if not isZoomedImage else f"({yOffset}-{yOffset+height})"
+                '' if not isZoomedImage else f"({height}|{yOffset}-{yOffset+height})"
                                             ]))
         zoomMsg = ""
         zoomMsgStyle = "color: black"
