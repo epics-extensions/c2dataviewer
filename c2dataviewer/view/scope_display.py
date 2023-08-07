@@ -21,7 +21,14 @@ import logging
 import time
 
 class PlotChannel:
+    """
+    Channel data to plot
+    """
+    
     def __init__(self, pvname, color):
+        """
+        pvname: (str) PV data name.  Either is the PV name or PV.field1.field2 format.  
+        """
         self.color = color
         self.pvname = pvname
         self.dc_offset = 0
@@ -246,7 +253,12 @@ class Trigger:
             pass
     
 class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
-
+    """
+    Main class for plotting multiple sets of data.  Key functions:
+    - setup_plot - sets up the channels to plot
+    - data_process - pass in data to plot
+    - update_drawing - plots data
+    """
     def __init__(self, parent=None, **kargs):
         pyqtgraph.GraphicsLayoutWidget.__init__(self, parent=parent)
         self.setParent(parent)
@@ -400,9 +412,9 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             
     def setup_plot(self, channels=None, single_axis=None):
         """
-        Setup plotting
+        Setup the channels to plot
 
-        :param names: list of EPICS7 field names
+        :param channels: list of PlotChannel objects
         :param single_axis: flag to share single axis, or have a axis for each figure. FFT and PSD support only single axis
         :return:
         """
@@ -781,7 +793,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         """
         Process raw data off the wire
 
-        :param data_generator: generator that yields pvaccess data from the wire as key/value pairs
+        :param data_generator: generator that yields pvaccess data from the wire as key/value pairs. 
         :return:
         """
         # Increment array count

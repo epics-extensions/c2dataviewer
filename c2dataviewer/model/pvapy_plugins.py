@@ -76,6 +76,8 @@ class PollStrategy:
         #
         # data: data from PV channel
         #
+        # Set state to CONNECTING when data returned
+        self.ctx.set_state(ConnectionState.CONNECTING)
         self.ctx.data_callback_wrapper(data)
 
     def _err_callback(self, msg):

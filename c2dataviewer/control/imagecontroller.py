@@ -14,6 +14,7 @@ PVA object viewer utilities
 """
 import datetime
 from pyqtgraph import Qt
+from pyqtgraph import QtCore
 import time
 from pyqtgraph.functions import mkPen
 from pyqtgraph import PlotWidget
@@ -31,6 +32,9 @@ class ImageController:
 
     HIDE_CONTROL_TEXT = 'Hide Control Panel'
     SHOW_CONTROL_TEXT = 'Show Control Panel'
+    HIDE_XY_INTENSITY_TEXT = 'Hide Coordinates and Intensity'
+    SHOW_XY_INTENSITY_TEXT = 'Show Coordinates and Intensity'
+    RESET_ZOOM_TEXT = 'Reset Zoom'
 
     def __init__(self, widget, **kargs):
         """
@@ -175,7 +179,14 @@ class ImageController:
         self._imageContextMenu = QtWidgets.QMenu(self._win.imageWidget)
         self._imageContextMenuAction = QtWidgets.QAction(self.HIDE_CONTROL_TEXT, self._win.imageWidget)
         self._imageContextMenu.addAction(self._imageContextMenuAction)
-        self._win.imageWidget.customContextMenuRequested.connect(self.on_context_menu)
+
+        self._imageXY_IntensityDialogAction = QtWidgets.QAction(self.SHOW_XY_INTENSITY_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageXY_IntensityDialogAction)
+        self._imageResetZoomAction = QtWidgets.QAction(self.RESET_ZOOM_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageResetZoomAction)
+        
+        self._win.imageWidget.right_button_clicked_signal.connect(lambda point: self.on_context_menu(point))
+
         self._scrollAreaWidth = 0
 
     def on_context_menu(self, point):
@@ -185,14 +196,24 @@ class ImageController:
             return
         if action.text() == self.HIDE_CONTROL_TEXT:
             action.setText(self.SHOW_CONTROL_TEXT)
-            self._win.scrollArea.hide()
+            self._win.scrollArea.setHidden(True)
             self._scrollAreaWidth = self._win.scrollArea.parent().minimumWidth()
             self._win.scrollArea.parent().setMinimumWidth(0)
             self._win.scrollArea.parent().setMinimumHeight(0)
-        else:
+        elif action.text() == self.SHOW_CONTROL_TEXT:
             action.setText(self.HIDE_CONTROL_TEXT)
-            self._win.scrollArea.show()
+            self._win.scrollArea.setHidden(False)
             self._win.scrollArea.parent().setMinimumWidth(self._scrollAreaWidth)
+        elif action.text() == self.SHOW_XY_INTENSITY_TEXT:
+            action.setText(self.HIDE_XY_INTENSITY_TEXT)
+            self._win.imageWidget.mouse_dialog.enable_mouse_dialog()
+            self._win.imageWidget.setMouseTracking(True)
+        elif action.text() == self.HIDE_XY_INTENSITY_TEXT:
+            action.setText(self.SHOW_XY_INTENSITY_TEXT)
+            self._win.imageWidget.mouse_dialog.disable_mouse_dialog()
+            self._win.imageWidget.setMouseTracking(False)
+        elif action.text() == self.RESET_ZOOM_TEXT:
+            self._win.imageWidget.reset_zoom()
         self._win.imageWidget.adjustSize()
 
     def _callback_black_changed_slider(self):
@@ -482,6 +503,9 @@ class ImageController:
 
         :return:
         """
+        # Handle mouse dialog when freeze enabled
+        if self._win.imageWidget._freeze and self._win.imageWidget.mouse_dialog.mouse_dialog_enabled:
+            self._win.imageWidget.setup_mouse_textbox()
 
         # Get current time
         now = time.time()

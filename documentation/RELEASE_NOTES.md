@@ -1,3 +1,9 @@
+# Release 1.11.0 (08/07/2023)
+
+- Added support for displaying x,y, intensity from mouse position
+- Added support for zooming and resetting zoom via mouse
+- Bug fixes in image app
+
 # Release 1.10.2 (07/14/2023)
 - Fix image profile type error
 
