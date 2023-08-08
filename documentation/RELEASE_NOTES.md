@@ -1,3 +1,6 @@
+# Release 1.11.1 (08/08/2023)
+- Show ROI size in control panel
+
 # Release 1.11.0 (08/07/2023)
 
 - Added support for displaying x,y, intensity from mouse position
