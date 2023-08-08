@@ -202,8 +202,8 @@ class TestImageDisplay(unittest.TestCase):
         self.ic.updateStatus()
 
         # Check the information on the gui
-        self.assertEqual("10 (4-9)", self.ic._win.lblXsize.text().strip())
-        self.assertEqual("10 (3-10)", self.ic._win.lblYsize.text().strip())
+        self.assertEqual("10 (5|4-9)", self.ic._win.lblXsize.text().strip())
+        self.assertEqual("10 (7|3-10)", self.ic._win.lblYsize.text().strip())
         self.assertEqual("0 (0)", self.ic._win.deadPixel.text().strip())
         self.assertEqual("255.0 (76.0)", self.ic._win.maxPixel.text().strip())
         self.assertEqual("0.0 (23.0)", self.ic._win.minPixel.text().strip())
