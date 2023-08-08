@@ -1,3 +1,6 @@
+# Release 1.11.2 (08/08/2023)
+- Fixed unit test
+
 # Release 1.11.1 (08/08/2023)
 - Show ROI size in control panel
 
