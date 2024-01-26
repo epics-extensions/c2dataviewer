@@ -28,6 +28,8 @@ requirements:
     # Note that this is also hardcoded in requirements.txt
     - pyqtgraph=0.12.4
     - python-blosc
+    - lz4
+    - bitshuffle
 about:
   home: https://git.aps.anl.gov/C2/conda/data-viewer
   license: APS

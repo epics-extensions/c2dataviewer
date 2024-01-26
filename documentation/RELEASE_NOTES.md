@@ -1,3 +1,7 @@
+# Release 1.11.3 (MM/DD/2024)
+
+- Add support for lz4 and bitshuffle/lz4 codecs
+
 # Release 1.11.2 (08/08/2023)
 - Fixed unit test
 
