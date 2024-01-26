@@ -4,3 +4,5 @@ pvapy
 pyqtgraph==0.12.4
 PyQt5
 blosc
+lz4
+bitshuffle
