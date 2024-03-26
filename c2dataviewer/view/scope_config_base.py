@@ -67,7 +67,9 @@ class ScopeConfigureBase:
             autoscale = False
 
         if section is None:
-            display = {"name": "Display", "type": "group", "children": [
+            display = {"name": "Display", "type": "group",
+                       "expanded": True,
+                       "children": [
                 {"name": "Mode", "type": "list", "values": {
                     "Normal": "normal",
                     "FFT": "fft",
@@ -134,7 +136,8 @@ class ScopeConfigureBase:
             except ValueError:
                 refresh = 1
 
-            display = {"name": "Display", "type": "group", "children": [
+            display = {"name": "Display", "type": "group", "expanded": True,
+                       "children": [
                 {"name": "Mode", "type": "list", "values": {
                     "Normal": "normal",
                     "FFT": "fft",
@@ -184,6 +187,7 @@ class ScopeConfigureBase:
         
         cfg ={"name": "Trigger",
               "type": "group",
+              "expanded": False,
               "children" : [
                   { "name" :  "Mode", "type": "list", "values": {
                     "Off" : "none",
@@ -203,9 +207,11 @@ class ScopeConfigureBase:
                   {"name": "Threshold", "type": "float", "value": 0.0},
               ]}
         return cfg
-        
+    
     def assemble_statistics(self):
-        statistics = {"name": "Statistics", "type": "group", "children": [
+        statistics = {"name": "Statistics", "type": "group",
+                      "expanded":False,
+                      "children": [
             {"name": "CPU", "type": "float", "value": 0, "readonly": True, "suffix": "%"},
             {"name": "Lost Arrays", "type": "int", "value": 0, "readonly": True},
             {"name": "Tot. Arrays", "type": "int", "value": 0, "readonly": True, "siPrefix": True},

@@ -251,6 +251,109 @@ class Trigger:
             self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.disconnect()
         except Exception:
             pass
+
+class MouseOver:
+        
+    def __init__(self, widget):
+        self.display_fields = []
+        self.widget = widget
+        self.textbox = None
+        self.vline = None
+        self.hline = None
+        self.enabled = False
+        
+    def setup_plot(self):
+        assert(self.widget.plot)
+        self.textbox = pyqtgraph.LabelItem(color='w')
+        self.textbox.setAttr('size', '12pt')
+        self.vline = pyqtgraph.InfiniteLine(angle=90, movable=False)
+        self.hline = pyqtgraph.InfiniteLine(angle=0, movable=False)
+
+        # self.widget.plot.addItem(self.vline, ignoreBounds=True)
+        # self.widget.plot.addItem(self.hline, ignoreBounds=True)
+        # self.textbox.setParentItem(self.widget.plot)
+        # self.textbox.anchor(parentPos=(0.9,0.9), itemPos=(1,1))
+
+        self.enable(self.enabled)
+        
+    def enable(self, flag):
+        self.enabled = flag
+        if flag:
+            self.widget.plot.addItem(self.vline, ignoreBounds=True)
+            self.widget.plot.addItem(self.hline, ignoreBounds=True)
+            self.textbox.setParentItem(self.widget.plot)
+            self.textbox.anchor(parentPos=(0.95,0.95), itemPos=(1,1))
+
+            self.textbox.show()
+            self.vline.show()
+            self.hline.show()
+        else:
+            self.widget.plot.removeItem(self.vline)
+            self.widget.plot.removeItem(self.hline)
+            self.textbox.setParentItem(None)
+
+            self.textbox.hide()
+            self.vline.hide()
+            self.hline.hide()
+            
+    def set_display_fields(self, fields):
+        self.display_fields = fields
+    
+    def on_mouse_move_event(self, event):
+        if not self.enabled:
+            return
+        pos = event.pos()
+                
+        if not self.widget.plot.sceneBoundingRect().contains(pos):
+            return
+
+        mousePoint = self.widget.plot.vb.mapSceneToView(pos)
+        index = int(mousePoint.x())
+
+        channel_data = {}
+        nsamples = 0
+
+        for ch in self.widget.channels:
+            if ch.pvname == 'None':
+                continue
+            if ch.pvname not in self.widget.data:
+                continue
+            
+            channel_data[ch.pvname] = [self.widget.data.get(ch.pvname), ch.color]
+            nsamples = max(nsamples, len(channel_data[ch.pvname][0]))
+
+        for f in self.display_fields:
+            if f in channel_data:
+                continue
+
+            channel_data[f] = [self.widget.data.get(f), '#FFFFFF']
+            try:
+                nsamples = max(nsamples, len(channel_data[f][0]))
+            except:
+                pass
+            
+        if len(channel_data) == 0:
+            return
+
+        if index >= 0 and index < nsamples:
+            text = []
+            xaxis = self.widget.current_xaxes
+            if xaxis == 'None':
+                text.append(f"x={index}")
+            else:
+                text.append(f"{xaxis}={self.widget.data.get(xaxis)}")
+                
+            for k,v in channel_data.items():
+                data = v[0]
+                color = v[1]
+                data_value = data[index] if data is not None and index <len(data) else 'N/A'
+                text.append(f"<span style='color: {color}'>{k}={data_value}</span>")
+                
+            text = "<br>".join(text)
+            self.textbox.setText(text)
+        self.vline.setPos(mousePoint.x())
+        self.hline.setPos(mousePoint.y())
+            
     
 class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
     """
@@ -323,6 +426,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         
         self.trigger = Trigger(self)
+        self.mouse_over = MouseOver(self)
         
         # Setup plot variables
         self.single_axis = True
@@ -380,8 +484,16 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             self.plot.setLabel('bottom', '')
         else:
             self.plot.setLabel('bottom', self.current_xaxes)
-            
 
+    def set_enable_mouseover(self, value):
+        self.mouse_over.enable(value)
+
+    def set_mouseover_fields(self, fields):
+        self.mouse_over.set_display_fields(fields)
+
+    def mouseMoveEvent(self, event):
+        self.mouse_over.on_mouse_move_event(event)
+        
     def set_major_ticks(self, value):
         self.major_ticks = value
 
@@ -459,6 +571,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         
         self.new_plot = True
         self.data_size = 0
+        self.mouse_over.setup_plot()
         
     def setup_plot_single_axis(self):
         """
@@ -788,7 +901,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         """
         if pvname in self.sample_data:
             self.sample_data[pvname] = 0
-                
+
     def data_process(self, data_generator):
         """
         Process raw data off the wire

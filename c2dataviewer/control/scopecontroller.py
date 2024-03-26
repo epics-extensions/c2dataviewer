@@ -67,7 +67,7 @@ class ScopeController(ScopeControllerBase):
         self.buffer_unit = 'Samples'
         self.object_size = None
         self.object_size_tally = []
-
+        
     def default_config(self, **kwargs):
         """
         Update configuration based on commmand-line arguments
@@ -104,7 +104,6 @@ class ScopeController(ScopeControllerBase):
                 c = child.child("Field")
                 c.setValue(f)
                 self.set_channel_data(chan_name, 'Field', c.value())
-
 
         #Update other channel information
         for idx in range(len(self.channels)):
@@ -145,6 +144,8 @@ class ScopeController(ScopeControllerBase):
         """
         fdr = []
         fdr_scalar = []
+        fdr_nonnumeric = []
+        
         pv = self.model.get()
         
         if pv is None:
@@ -156,8 +157,10 @@ class ScopeController(ScopeControllerBase):
             if type(v) == list and all(type(e) == pva.ScalarType for e in v):
                 # should epics v4 lib not have np, we "fix" it by converting list to np
                 v = np.array(v)
-                # Make type comparison compatible with PY2 & PY3
-                fdr.append(k)
+                if isinstance(v[0], str):
+                    fdr_nonnumeric.append(k)
+                else:
+                    fdr.append(k)
             elif type(v) == pva.ScalarType:
                 fdr_scalar.append(k)
             if type(v) != np.ndarray:
@@ -167,7 +170,7 @@ class ScopeController(ScopeControllerBase):
 
         fdr.sort()
         fdr_scalar.sort()
-        return fdr, fdr_scalar
+        return fdr, fdr_scalar, fdr_nonnumeric
 
     def update_fdr(self, empty=False):
         """
@@ -180,14 +183,15 @@ class ScopeController(ScopeControllerBase):
             fdr_scalar = []
         else:
             try:
-                fdr, fdr_scalar = self.get_fdr()
+                fdr, fdr_scalar, fdr_nonnumeric = self.get_fdr()
             except pva.PvaException as e:
                 self.notify_warning('Failed to get PV field description: ' + (str(e)))
                 return
 
+        fdr_all = fdr + fdr_nonnumeric
         fdr.insert(0, "None")
         fdr_scalar.insert(0, "None")
-        
+
         # fill up the selectable pull down menu for array ID
         child = self.parameters.child("Config").child("ArrayId")
         child.setLimits(fdr_scalar)
@@ -213,6 +217,9 @@ class ScopeController(ScopeControllerBase):
             if c.value() != 'None':
                 self.set_channel_data(chan_name, 'Field', c.value())
 
+        child = self.parameters.child('Config').child('Extra Display Fields')
+        child.setLimits(fdr_all)
+            
     def __failed_connection_callback(self, flag):
         """
         Called initially with flag=False if failed to connect to PV
@@ -345,7 +352,10 @@ class ScopeController(ScopeControllerBase):
                 elif 'Acquisition.Buffer' in childName:
                     self.auto_buffer_size = False
                     self.__calc_buffer_size()
-                    
+                elif "Config.Extra Display Field" in childName:
+                    self._win.graphicsWidget.set_mouseover_fields(data);
+                elif childName == "Display.Mouse Over":
+                    self._win.graphicsWidget.set_enable_mouseover(data)
         super().parameter_change(params, changes)
         
 
