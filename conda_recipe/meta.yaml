@@ -27,9 +27,11 @@ requirements:
     # Hardcode version until we find an alternative.
     # Note that this is also hardcoded in requirements.txt
     - pyqtgraph=0.12.4
-    - python-blosc
-    - lz4
-    - bitshuffle
+    # The following modules are required for viewing compressed images and
+    # must be installed separately.
+    #- python-blosc
+    #- lz4
+    #- bitshuffle
 about:
   home: https://git.aps.anl.gov/C2/conda/data-viewer
   license: APS

@@ -41,9 +41,6 @@ def get_version():
 with open('README.md', 'r', encoding='utf-8') as f:
     long_description = f.read()
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-    
 setup (
     name = "c2dataviewer",
     version = get_version(),
@@ -57,6 +54,17 @@ setup (
     packages = find_packages(),
     package_data = {'c2dataviewer': ['c2dv.cfg', '**/*.ui']},
     include_package_data = True,
-    install_requires=requirements,
+    install_requires=[
+        'psutil',
+        'pvapy',
+        'pyqtgraph==0.12.4',
+        'PyQt5',
+    ],
+    extras_require = {
+        'blosc-compression' :  ['blosc'],
+        'lz4-compression'   :  ['lz4'],
+        'bslz4-compression' :  ['bitshuffle'],
+        'all'               :  ['blosc', 'lz4', 'bitshuffle'],
+    },
     entry_points = {'console_scripts': ['c2dv=c2dataviewer.c2dv:main']},
 )
