@@ -93,6 +93,9 @@ class ScopeController(ScopeControllerBase):
             
         self._win.graphicsWidget.set_range(**kwargs)
 
+        #Updates channel fields based on self.parameters
+        self.update_fdr()
+
         if kwargs['fields']:
             fields = kwargs['fields'].split(',')
             for i, f in enumerate(fields):
@@ -101,9 +104,6 @@ class ScopeController(ScopeControllerBase):
                 c = child.child("Field")
                 c.setValue(f)
 
-        
-        #Updates channel fields based on self.parameters
-        self.update_fdr()
 
         #Update other channel information
         for idx in range(len(self.channels)):
