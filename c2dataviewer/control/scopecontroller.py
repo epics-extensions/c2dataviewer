@@ -103,6 +103,7 @@ class ScopeController(ScopeControllerBase):
                 child = self.parameters.child(chan_name)
                 c = child.child("Field")
                 c.setValue(f)
+                self.set_channel_data(chan_name, 'Field', c.value())
 
 
         #Update other channel information
