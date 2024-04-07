@@ -112,7 +112,10 @@ class ScopeController(ScopeControllerBase):
             c = child.child("DC offset")
             if c.value() != 0:
                 self.set_channel_data(chan_name, 'DC offset', c.value())
-
+                
+        child = self.parameters.child("Config").child("MO Disp Location")
+        self._win.graphicsWidget.set_mouseover_display_location(child.value())
+        
         if start:
             self.start_plotting()            
             
@@ -354,6 +357,8 @@ class ScopeController(ScopeControllerBase):
                     self.__calc_buffer_size()
                 elif "Config.Extra Display Field" in childName:
                     self._win.graphicsWidget.set_mouseover_fields(data);
+                elif "Config.MO Disp Location" in childName:
+                    self._win.graphicsWidget.set_mouseover_display_location(data);
                 elif childName == "Display.Mouse Over":
                     self._win.graphicsWidget.set_enable_mouseover(data)
         super().parameter_change(params, changes)

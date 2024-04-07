@@ -261,6 +261,7 @@ class MouseOver:
         self.vline = None
         self.hline = None
         self.enabled = False
+        self.display_location = None
         
     def setup_plot(self):
         assert(self.widget.plot)
@@ -282,8 +283,7 @@ class MouseOver:
             self.widget.plot.addItem(self.vline, ignoreBounds=True)
             self.widget.plot.addItem(self.hline, ignoreBounds=True)
             self.textbox.setParentItem(self.widget.plot)
-            self.textbox.anchor(parentPos=(0.95,0.95), itemPos=(1,1))
-
+            self._apply_display_location()
             self.textbox.show()
             self.vline.show()
             self.hline.show()
@@ -298,7 +298,22 @@ class MouseOver:
             
     def set_display_fields(self, fields):
         self.display_fields = fields
-    
+        
+    def _apply_display_location(self):
+        if self.enabled:
+            self.textbox.anchor(parentPos=(1,0.95), itemPos=(1,1))
+            match self.display_location:
+              case 'top-right': 
+                 self.textbox.anchor(parentPos=(1, 0.00), itemPos=(1,0))
+              case 'bottom-right':
+                 self.textbox.anchor(parentPos=(1, 0.95), itemPos=(1,1))
+              case 'bottom-left':
+                 self.textbox.anchor(parentPos=(0.05, 0.95), itemPos=(0,1))
+        
+    def set_display_location(self, loc):
+        self.display_location = loc
+        self._apply_display_location()
+
     def on_mouse_move_event(self, event):
         if not self.enabled:
             return
@@ -354,7 +369,6 @@ class MouseOver:
         self.vline.setPos(mousePoint.x())
         self.hline.setPos(mousePoint.y())
             
-    
 class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
     """
     Main class for plotting multiple sets of data.  Key functions:
@@ -491,6 +505,9 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
     def set_mouseover_fields(self, fields):
         self.mouse_over.set_display_fields(fields)
 
+    def set_mouseover_display_location(self, loc):
+        self.mouse_over.set_display_location(loc)
+        
     def mouseMoveEvent(self, event):
         self.mouse_over.on_mouse_move_event(event)
         
