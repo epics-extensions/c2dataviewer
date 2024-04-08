@@ -66,7 +66,6 @@ class Configure(ScopeConfigureBase):
                     chan_cfg_lookup[ch][param] = v
 
         chan_cfgs = list(chan_cfg_lookup.values())
-        
         if len(chan_cfgs) > self.counts:
             self.counts = len(chan_cfgs)
 
@@ -82,10 +81,9 @@ class Configure(ScopeConfigureBase):
             }
             
             chcfg = chan_cfgs[i] if len(chan_cfgs) > i else default_cfg
-
             field = chcfg.get('field', default_cfg['field'])
             dcoffset = float(chcfg.get('dcoffset', default_cfg['dcoffset']))
-                                 
+
             channel.append(
                 {"name": "Channel %s" % (i + 1),
                  "type": "group",
@@ -96,7 +94,7 @@ class Configure(ScopeConfigureBase):
                          "value": self.default_color[i],
                          "readonly": True
                      },
-                     {"name": "Field", "type": "list", "values": [], "value": field},
+                     {"name": "Field", "type": "list", "values": [field], "value": field},
                      {"name": "DC offset", "type": "float", "value": dcoffset},
                      {"name": "Axis location", "type": "list", "values": {
                          "Left" : "left",
@@ -237,7 +235,7 @@ class Configure(ScopeConfigureBase):
             channel = self.assemble_channel()
             trigger = self.assemble_trigger()
             cfg = self.assemble_config()
-            
+
         # line up in order
         paramcfg = [acquisition, trigger, display, cfg]
         for ch in channel:
