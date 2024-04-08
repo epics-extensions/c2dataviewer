@@ -110,7 +110,13 @@ class Configure(ScopeConfigureBase):
 
     def assemble_display(self, section=None):
         display = super().assemble_display(section=section, app_section_key="SCOPE", default_autoscale=False)
-
+        #FIXME: move this to base class once get mouseover support in striptool
+        children = display['children']
+        newchildren = [
+            { "name" : "Mouse Over", "type": "bool", "value": False }
+            ]
+        children.extend(newchildren)
+        
         return display
 
     def assemble_acquisition(self, section=None):
@@ -179,12 +185,16 @@ class Configure(ScopeConfigureBase):
         
         cfg = {"name": "Config",
                "type": "group",
+               "expanded": True,
                "children": [
                    {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
                    {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
                    {"name": "Major Ticks", "type": "int", "value": self.default_major_tick, 'decimals':20},
                    {"name": "Minor Ticks", "type": "int", "value": self.default_minor_tick, 'decimals':20},
-               ]
+                   {"name": "Extra Display Fields", "type": "checklist", "values":[], "expanded": False},
+                   {"name": "MO Disp Location", "type": "list", "values":['top-right', 'bottom-right', 'bottom-left'], "value" : "bottom-right"}
+                   
+                   ]
                }
         return cfg
 

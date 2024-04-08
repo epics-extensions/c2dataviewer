@@ -39,6 +39,7 @@ pip-test:
 	tox
 
 .PHONY:pip-upload
+
 pip-upload:
 	$(PYTHON) -m twine upload dist/*
 
