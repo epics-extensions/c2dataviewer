@@ -302,12 +302,11 @@ class MouseOver:
     def _apply_display_location(self):
         if self.enabled:
             self.textbox.anchor(parentPos=(1,0.95), itemPos=(1,1))
-            match self.display_location:
-              case 'top-right': 
+            if self.display_location == 'top-right':
                  self.textbox.anchor(parentPos=(1, 0.00), itemPos=(1,0))
-              case 'bottom-right':
+            elif self.display_location == 'bottom-right':
                  self.textbox.anchor(parentPos=(1, 0.95), itemPos=(1,1))
-              case 'bottom-left':
+            elif self.display_location == 'bottom-left':
                  self.textbox.anchor(parentPos=(0.05, 0.95), itemPos=(0,1))
         
     def set_display_location(self, loc):
