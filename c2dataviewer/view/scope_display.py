@@ -270,11 +270,6 @@ class MouseOver:
         self.vline = pyqtgraph.InfiniteLine(angle=90, movable=False)
         self.hline = pyqtgraph.InfiniteLine(angle=0, movable=False)
 
-        # self.widget.plot.addItem(self.vline, ignoreBounds=True)
-        # self.widget.plot.addItem(self.hline, ignoreBounds=True)
-        # self.textbox.setParentItem(self.widget.plot)
-        # self.textbox.anchor(parentPos=(0.9,0.9), itemPos=(1,1))
-
         self.enable(self.enabled)
         
     def enable(self, flag):
@@ -1194,9 +1189,17 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         self.wait()
 
         if self.sampling_mode:
+            max_samples = min(max([0] + [len(v) for v in self.data.values()]) + 1, self.max_length)
+            
             for k, v in self.sample_data.items():
-                self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-
+                data = np.append(self.data.get(k, []), v)[-self.max_length:]
+                #
+                # If started collecting PV data after other PVs, pad any data points before collection
+                # with zeros
+                #
+                if max_samples > len(data):
+                    data = np.pad(data, (max_samples - len(data), 0), 'constant', constant_values=0)
+                self.data[k] = data;
         # Iterate over the names (channels) selected on the GUI and draw a line for each
         count = 0
         draw_trig_mark = True
