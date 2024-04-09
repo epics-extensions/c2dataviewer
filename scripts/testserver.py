@@ -112,7 +112,7 @@ def run_scope(args):
         p.start()
         
     pvname = args.pvname
-    schema = { 'obj1' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'obj2' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'time': [pva.DOUBLE], 'objectTime': pva.DOUBLE}
+    schema = { 'obj1' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'obj2' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'time': [pva.DOUBLE], 'objectTime': pva.DOUBLE, 'names': [pva.STRING]}
     server = pva.PvaServer(pvname, pva.PvObject(schema))
     print('starting', pvname)
     delay = 0.5
@@ -124,8 +124,9 @@ def run_scope(args):
         times = [ i*sample_time_interval + objectTime for i in range(0, nsamples) ]
         x = [ random.uniform(-i, i) for i in range(0, nsamples) ]
         y = [ random.uniform(-i, i) for i in range(0, nsamples) ]
+        names = [ 'val'+str(i) for i in range(0, nsamples) ]
         pv = pva.PvObject(schema, {'obj1':{'x':x, 'y':y}, 'obj2': {'x':x, 'y':y},
-                                   'objectTime': objectTime, 'time' : times })
+                                   'objectTime': objectTime, 'time' : times, 'names': names})
         server.update(pv)
     
 if __name__ == "__main__":

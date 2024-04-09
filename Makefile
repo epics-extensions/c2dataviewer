@@ -2,6 +2,8 @@ TOP = .
 
 PYTHON = python3
 
+all: pip conda
+
 .PHONY:clean
 clean: conda-clean pip-clean
 

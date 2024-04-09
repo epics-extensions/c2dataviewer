@@ -2,8 +2,12 @@
 
 - Make compression dependencies optional for pip package
   and remove them from conda packages
+- scope app: add support to view field values on mouse over 
 
-# Release 1.11.3 (MM/DD/2024)
+# Release 1.11.4 
+- scope app: Fixed bug configuring fields at startup
+
+# Release 1.11.3 (01/24/2024)
 
 - Add support for lz4 and bitshuffle/lz4 codecs
 
