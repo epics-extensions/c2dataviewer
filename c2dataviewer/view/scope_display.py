@@ -248,7 +248,7 @@ class Trigger:
 
     def disconnect_to_callback(self):
         try:
-            self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.disconnect()
+            self.plot_trigger_signal_emitter.my_signal.disconnect()
         except Exception:
             pass
 
