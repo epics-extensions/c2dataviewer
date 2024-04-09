@@ -20,9 +20,21 @@ import numpy as np
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
-import blosc
-import lz4.block
-import bitshuffle
+# We attempt to import modules needed for compressed images
+# and ignore errors if they are not there
+try:
+    import blosc
+except ImportError:
+    pass
+try:
+    import lz4.block
+except ImportError:
+    pass
+try:
+    import bitshuffle
+except ImportError:
+    pass
+
 import pvaccess as pva
 
 from .image_definitions import *
@@ -84,6 +96,9 @@ class ImageCompressionUtility:
             oasz = uncompressedSize // oadt.itemsize
             outputArray = np.empty(oasz, dtype=oadt)
             nBytesWritten = blosc.decompress_ptr(bytearray(inputArray), outputArray.__array_interface__['data'][0])
+        except NameError as ex:
+            print(f'Required module for blosc_decompress is missing: {ex}')
+            raise
         except Exception as ex:
             print(f'Error in blosc_decompress: {ex}')
             raise
@@ -95,6 +110,9 @@ class ImageCompressionUtility:
             oadt = cls.NUMPY_DATA_TYPE_MAP.get(inputType)
             outputBytes = lz4.block.decompress(inputArray.tobytes()[cls.LZ4_PAYLOAD_START:], uncompressed_size=uncompressedSize)
             outputArray = np.frombuffer(outputBytes, dtype=oadt)
+        except NameError as ex:
+            print(f'Required module for lz4_decompress is missing: {ex}')
+            raise
         except Exception as ex:
             print(f'Error in lz4_decompress: {ex} {type(ex)}')
             raise
@@ -107,6 +125,9 @@ class ImageCompressionUtility:
             oasz = uncompressedSize // oadt.itemsize
             oash = (oasz,)
             outputArray = bitshuffle.decompress_lz4(inputArray[cls.BSLZ4_PAYLOAD_START:], oash, oadt, cls.BSLZ4_BLOCK_SIZE)
+        except NameError as ex:
+            print(f'Required module for bslz4_decompress is missing: {ex}')
+            raise
         except Exception as ex:
             print(f'Error in bslz4_decompress: {ex} {type(ex)}')
             raise

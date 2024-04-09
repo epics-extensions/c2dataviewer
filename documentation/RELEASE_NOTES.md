@@ -1,3 +1,8 @@
+# Release 1.12.0 (MM/DD/2024)
+
+- Make compression dependencies optional for pip package
+  and remove them from conda packages
+
 # Release 1.11.3 (MM/DD/2024)
 
 - Add support for lz4 and bitshuffle/lz4 codecs

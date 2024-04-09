@@ -1,8 +1,7 @@
-numpy
 psutil
 pvapy
 pyqtgraph==0.12.4
 PyQt5
-blosc
-lz4
-bitshuffle
+blosc[blosc-compression,all]
+lz4[lz4-compression,all]
+bitshuffle[bslz4-compression,all]
