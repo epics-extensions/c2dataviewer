@@ -266,6 +266,8 @@ class TestScopeDisplay(unittest.TestCase):
         val = 1
         self.pw.data_process(generator)
         self.pw.update_drawing()
+        #expect this value gets overridden
+        #since it's updated before data_process is called
         val = 2
         self.pw.data_process(generator)
         val = 3
@@ -275,6 +277,22 @@ class TestScopeDisplay(unittest.TestCase):
 
         expected = np.array([1,3,3])
         actual = self.pw.data['ch1']
+        self.assertTrue((actual == expected).all())
+        
+        #test introducing a new channel
+        
+        def generator2():
+            yield 'ch2', 4
+        self.pw.data_process(generator2)
+        self.pw.update_drawing()
+        expected = np.array([1,3,3,3])
+        actual = self.pw.data['ch1']
+        self.assertTrue((actual == expected).all())
+
+        #expect data from time before we added the channel
+        #to be zeros
+        expected = np.array([0,0,0,4])
+        actual = self.pw.data['ch2']
         self.assertTrue((actual == expected).all())
         
 
