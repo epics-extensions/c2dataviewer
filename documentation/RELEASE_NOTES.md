@@ -1,10 +1,10 @@
-# Release 1.12.0 (MM/DD/2024)
+# Release 1.12.0 (04/08/2024)
 
 - Make compression dependencies optional for pip package
   and remove them from conda packages
 - scope app: add support to view field values on mouse over 
 
-# Release 1.11.4 
+# Release 1.11.4 (04/08/2024)
 - scope app: Fixed bug configuring fields at startup
 
 # Release 1.11.3 (01/24/2024)
