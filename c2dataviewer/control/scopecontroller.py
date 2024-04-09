@@ -158,9 +158,7 @@ class ScopeController(ScopeControllerBase):
         pv_dictionary = {k:v for k,v in ScopeController.__flatten_dict(pv_structure)}
         for k, v in pv_dictionary.items():
             if type(v) == list and all(type(e) == pva.ScalarType for e in v):
-                # should epics v4 lib not have np, we "fix" it by converting list to np
-                v = np.array(v)
-                if isinstance(v[0], str):
+                if v[0] is pva.ScalarType.STRING:
                     fdr_nonnumeric.append(k)
                 else:
                     fdr.append(k)

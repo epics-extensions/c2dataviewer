@@ -109,13 +109,15 @@ class TestImageDisplay(unittest.TestCase):
             return pva.PvObject(test_struct)
         self.scope_controller.model.get = mock_get
 
-        fdr, fdr_scalar = self.scope_controller.get_fdr()
+        fdr, fdr_scalar, fdr_nonnumeric = self.scope_controller.get_fdr()
 
         self.assertListEqual(fdr, ['aBooleanArray', 'aDoubleArray',
-                             'aFloatArray', 'aStringArray', 'aStruct.aStruct_aDoubleArray'])
+                             'aFloatArray', 'aStruct.aStruct_aDoubleArray'])
         self.assertListEqual(
             fdr_scalar, ['aString', 'aStruct.aStruct_aFloat', 'anInt'])
 
+        self.assertListEqual(fdr_nonnumeric, ['aStringArray'])
+        
     def test_buffer_size(self):
         #pass in data
         self.scope_controller.monitor_callback({ 'x' : [10]*100})
