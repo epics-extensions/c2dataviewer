@@ -363,12 +363,6 @@ class ImageController:
         """
         self._win.imageWidget.set_freeze(self._win.freeze.isChecked())
 
-    def adjustLimits(self):
-        """
-
-        :return:
-        """
-        self._dlg.exec_()
 
     def _callback_adjust_image_settings(self):
         """
