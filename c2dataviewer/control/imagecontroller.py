@@ -35,6 +35,8 @@ class ImageController:
     HIDE_XY_INTENSITY_TEXT = 'Hide Coordinates and Intensity'
     SHOW_XY_INTENSITY_TEXT = 'Show Coordinates and Intensity'
     RESET_ZOOM_TEXT = 'Reset Zoom'
+    ENABLE_ROI_MODE_TEXT = 'Enable ROI Mode'
+    DISABLE_ROI_MODE_TEXT = 'Disable ROI Mode'
 
     def __init__(self, widget, **kargs):
         """
@@ -47,6 +49,9 @@ class ImageController:
             raise RuntimeError("Widget is unknown")
 
         cameras = kargs.get("PV", None)
+
+        self.profilesWidgetMutex = QtCore.QMutex()
+        self.profilesWidgetDisplayed = False
 
         self.datareceiver = kargs.get('data', None)
 
@@ -170,8 +175,10 @@ class ImageController:
 
         # Setup profiles
         self._win.imageWidget.setup_profiles(self._win.canvasGrid)
-        self._win.cbShowProfiles.stateChanged.connect(
-            lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
+        #self._win.cbShowProfiles.stateChanged.connect(
+        #    lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
+        self._win.cbShowProfiles.stateChanged.connect(self._callback_profiles_show_changed)
+        self._win.cbShowRulers.stateChanged.connect(self._callback_profiles_show_changed)
 
         self.frameRateChanged()
         self.camera_changed()
@@ -184,6 +191,8 @@ class ImageController:
         self._imageContextMenu.addAction(self._imageXY_IntensityDialogAction)
         self._imageResetZoomAction = QtWidgets.QAction(self.RESET_ZOOM_TEXT, self._win.imageWidget)
         self._imageContextMenu.addAction(self._imageResetZoomAction)
+        self._imageRoiModeAction = QtWidgets.QAction(self.ENABLE_ROI_MODE_TEXT, self._win.imageWidget)
+        self._imageContextMenu.addAction(self._imageRoiModeAction)
         
         self._win.imageWidget.right_button_clicked_signal.connect(lambda point: self.on_context_menu(point))
 
@@ -214,6 +223,12 @@ class ImageController:
             self._win.imageWidget.setMouseTracking(False)
         elif action.text() == self.RESET_ZOOM_TEXT:
             self._win.imageWidget.reset_zoom()
+        elif action.text() == self.ENABLE_ROI_MODE_TEXT:
+            action.setText(self.DISABLE_ROI_MODE_TEXT)
+            self._win.imageWidget.createZoomSelectionIndicator(roi_mode=True)
+        elif action.text() == self.DISABLE_ROI_MODE_TEXT:
+            action.setText(self.ENABLE_ROI_MODE_TEXT)
+            self._win.imageWidget.createZoomSelectionIndicator(roi_mode=False)
         self._win.imageWidget.adjustSize()
 
     def _callback_black_changed_slider(self):
@@ -286,28 +301,40 @@ class ImageController:
         """
         self._win.imageWidget.reset_zoom()
 
-    def _callback_profiles_show_changed(self, cb):
+    def _callback_profiles_show_changed(self):
         """
-        Callback used when the user on the GUI tick or un-tick the "Show the image profiles."
+        Callback used when the user on the GUI ticks or un-ticks the "Show
+        the image profiles" or the "Show image rulers" bottons.
 
-        :param cb: (QCheckBox) Checkbox object reference.
         :return:
         """
-        if cb.isChecked():
-            self._win.iocRate.blockSignals(True)
-            self._win.iocRate.removeItem(len(self._framerates)-1)
-            self._win.iocRate.blockSignals(False)
-            new_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(1)] # Get key for 1 Hz
-            self._win.iocRate.setCurrentText(new_freq_key)
-            self._win.imageWidget.image_profile_widget.show(True)
-        else:
-            self._win.imageWidget.image_profile_widget.show(False)
-            full_rate_key = list(self._framerates.keys())[-1]
-            self._win.iocRate.addItem(full_rate_key, self._framerates[full_rate_key])
+        self.profilesWidgetMutex.lock()
+        try:
+            profilesWidgetDisplayed = self._win.cbShowProfiles.isChecked() or self._win.cbShowRulers.isChecked()
+            self._win.imageWidget.image_profile_widget.showProfiles(self._win.cbShowProfiles.isChecked())
+            self._win.imageWidget.image_profile_widget.showRulers(self._win.cbShowRulers.isChecked())
+            self._win.imageWidget.rulersDisplayed(self._win.cbShowRulers.isChecked())
+            if profilesWidgetDisplayed == self.profilesWidgetDisplayed:
+                # If widget is shown already, we are done here
+                return
+            self.profilesWidgetDisplayed = profilesWidgetDisplayed
+            if profilesWidgetDisplayed:
+                self._win.iocRate.blockSignals(True)
+                self._win.iocRate.removeItem(len(self._framerates)-1)
+                self._win.iocRate.blockSignals(False)
+                new_freq_key = list(self._framerates.keys())[list(self._framerates.values()).index(1)] # Get key for 1 Hz
+                self._win.iocRate.setCurrentText(new_freq_key)
+                self._win.imageWidget.image_profile_widget.show(True)
+            else:
+                self._win.imageWidget.image_profile_widget.show(False)
+                full_rate_key = list(self._framerates.keys())[-1]
+                self._win.iocRate.addItem(full_rate_key, self._framerates[full_rate_key])
 
-        if self._win.freeze.isChecked() and cb.isChecked():
-            self._win.imageWidget.calculate_profiles(self._win.imageWidget.last_displayed_image)
-            self._win.imageWidget._set_image_signal.emit()
+            if self._win.freeze.isChecked() and cb.isChecked():
+                self._win.imageWidget.calculate_profiles(self._win.imageWidget.last_displayed_image)
+                self._win.imageWidget._set_image_signal.emit()
+        finally:
+            self.profilesWidgetMutex.unlock()
 
     def auto_levels_cal(self):
         """

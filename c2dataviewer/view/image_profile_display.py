@@ -45,7 +45,13 @@ class ImageProfileWidget(object):
         self._data_mutex = pg.Qt.QtCore.QMutex()
 
         # Status of the profiles UI
+        self._display_widget = False
         self._display_profiles = False
+        self._display_rulers = False
+
+        # Image dimensions
+        self._nx = 0
+        self._ny = 0
 
         # Save the reference to the image widget
         self._image_widget = self._grid.itemAtPosition(1, 1)
@@ -54,6 +60,9 @@ class ImageProfileWidget(object):
         self._plot_x_profile = self._grid.itemAtPosition(0, 1)
         self._plot_x_profile.widget().getPlotItem().hideAxis('bottom')
         self._plot_x_profile.widget().getPlotItem().hideAxis('left')
+        self._max_x_profile_height = self._plot_x_profile.widget().maximumHeight()
+        self._x_axis_min = 0
+        self._x_axis_max = 0
 
         plot_x_size_policy = pg.Qt.QtWidgets.QSizePolicy(pg.Qt.QtWidgets.QSizePolicy.Fixed, pg.Qt.QtWidgets.QSizePolicy.Fixed)
         plot_x_size_policy.setHeightForWidth(self._plot_x_profile.widget().sizePolicy().hasHeightForWidth())
@@ -70,6 +79,9 @@ class ImageProfileWidget(object):
         self._plot_y_profile = self._grid.itemAtPosition(1, 0)
         self._plot_y_profile.widget().getPlotItem().hideAxis('bottom')
         self._plot_y_profile.widget().getPlotItem().hideAxis('left')
+        self._max_y_profile_width = self._plot_y_profile.widget().maximumWidth()
+        self._y_axis_min = 0
+        self._y_axis_max = 0
 
         plot_y_size_policy = pg.Qt.QtWidgets.QSizePolicy(pg.Qt.QtWidgets.QSizePolicy.Fixed, pg.Qt.QtWidgets.QSizePolicy.Fixed)
         plot_y_size_policy.setHeightForWidth(self._plot_y_profile.widget().sizePolicy().hasHeightForWidth())
@@ -92,7 +104,6 @@ class ImageProfileWidget(object):
         self._grid.removeItem(self._image_widget)
         self._grid.addItem(self._image_widget, 0, 0)
 
-
     def set_image_data(self, data, color_mode):
         """
         Make an internal copy of the data image.
@@ -102,11 +113,18 @@ class ImageProfileWidget(object):
         :return: None
         """
         self._data_mutex.lock()
-        self._data = np.copy(data)
-        self._data_color_mode = color_mode
-        self._data_mutex.unlock()
-        self._x_profile, self._y_profile = self._calculate_profiles()
-
+        try:
+            shape = data.shape
+            if len(shape):
+                self._nx = shape[0]
+                self._ny = shape[1]
+            self._data_color_mode = color_mode
+            if not self._display_profiles:
+                return
+            self._data = np.copy(data)
+            self._x_profile, self._y_profile = self._calculate_profiles()
+        finally:
+            self._data_mutex.unlock()
 
     def plot(self, display_width, display_height):
         """
@@ -117,20 +135,38 @@ class ImageProfileWidget(object):
         :return: None
         """
         # Return if profiles are not shown
+        if not self._display_widget:
+            return
+
+        # Setup correct dimensions for the plots
+        self._plot_x_profile.widget().setMinimumWidth(int(display_width))
+        self._plot_x_profile.widget().setMaximumWidth(int(display_width))
+        self._plot_x_profile.widget().setMaximumHeight(self._max_x_profile_height)
+
+        self._plot_y_profile.widget().setMinimumHeight(int(display_height))
+        self._plot_y_profile.widget().setMaximumHeight(int(display_height))
+        self._plot_x_profile.widget().setMaximumWidth(self._max_y_profile_width)
+
+        if self._x_axis_max:
+            self._plot_x_profile.widget().getPlotItem().getAxis('bottom').setRange(self._x_axis_min,self._x_axis_max)
+        else:
+            self._plot_x_profile.widget().getPlotItem().getAxis('bottom').setRange(0, self._nx)
+        if self._y_axis_max:
+            self._plot_y_profile.widget().getPlotItem().getAxis('right').setRange(self._y_axis_max,self._y_axis_min)
+        else:
+            self._plot_y_profile.widget().getPlotItem().getAxis('right').setRange(self._ny, 0)
+
+        if not self._display_profiles:
+            self._plot_x_profile.widget().setMaximumHeight(0)
+            self._plot_y_profile.widget().setMaximumWidth(0)
+
+        self._grid.update()
+
         if not self._display_profiles:
             return
 
         # Calculate profiles
         x_profile, y_profile =  self._x_profile, self._y_profile
-
-        # Setup correct dimensions for the plots
-        self._plot_x_profile.widget().setMinimumWidth(int(display_width))
-        self._plot_x_profile.widget().setMaximumWidth(int(display_width))
-
-        self._plot_y_profile.widget().setMinimumHeight(int(display_height))
-        self._plot_y_profile.widget().setMaximumHeight(int(display_height))
-
-        self._grid.update()
 
         # Draw X profile curves
         self._data_mutex.lock()
@@ -178,22 +214,75 @@ class ImageProfileWidget(object):
                     curve.hide()
         self._data_mutex.unlock()
 
-    def show(self, flag):
+    def setXAxisRange(self, xmin=0, xmax=0):
         """
-        Hide or show the profiles. This method should be called from the UI thread.
+        Set range for x axis.
 
-        :param flag: (bool) True to show the profiles, False otherwise.
+        :param xmin: (float) x axis min value
+        :param xmax: (float) x axis max value
         :return:
         """
-        if flag:
+        self._x_axis_min = xmin
+        self._x_axis_max = xmax
+
+    def setYAxisRange(self, ymin=0, ymax=0):
+        """
+        Set range for y axis.
+
+        :param ymin: (float) y axis min value
+        :param ymax: (float) y axis max value
+        :return:
+        """
+        self._y_axis_min = ymin
+        self._y_axis_max = ymax
+
+    def showProfiles(self, displayProfiles=None):
+        """
+        Display profiles. This method should be called from the UI thread.
+
+        :param displayProfiles: (bool) True to show the profiles, False otherwise.
+        :return:
+        """
+        if displayProfiles is not None:
+            self._display_profiles = displayProfiles
+
+        if not self._display_profiles:
+            for curve in self._profile_x_curves.values():
+                curve.hide()
+            for curve in self._profile_y_curves.values():
+                curve.hide()
+
+    def showRulers(self, displayRulers=None):
+        """
+        Display rulers. This method should be called from the UI thread.
+
+        :param displayRulers: (bool) True to show the rulers, False otherwise.
+        :return:
+        """
+        if displayRulers is not None:
+            self._display_rulers = displayRulers
+        if self._display_rulers:
+            self._plot_x_profile.widget().getPlotItem().showAxis('bottom')
+            self._plot_y_profile.widget().getPlotItem().showAxis('right')
+        else:
+            self._plot_x_profile.widget().getPlotItem().hideAxis('bottom')
+            self._plot_y_profile.widget().getPlotItem().hideAxis('right')
+
+    def show(self, displayWidget):
+        """
+        Hide or show the widget. This method should be called from the UI thread.
+
+        :param displayWidget: (bool) True to show the widget, False otherwise.
+        :return:
+        """
+        if displayWidget:
             self._grid.removeItem(self._image_widget)
             self._grid.addItem(self._image_widget, 1, 1)
             self._grid.addItem(self._plot_x_profile, 0, 1, 1, 1, pg.Qt.QtCore.Qt.AlignLeft | pg.Qt.QtCore.Qt.AlignBottom)
             self._grid.addItem(self._plot_y_profile, 1, 0, 1, 1, pg.Qt.QtCore.Qt.AlignRight | pg.Qt.QtCore.Qt.AlignTop)
             self._plot_x_profile.widget().show()
             self._plot_y_profile.widget().show()
-            self._display_profiles = True
-
+            self._display_widget = True
         else:
             self._grid.removeItem(self._image_widget)
             self._grid.removeItem(self._plot_x_profile)
@@ -201,7 +290,7 @@ class ImageProfileWidget(object):
             self._grid.addItem(self._image_widget, 1, 1)
             self._plot_x_profile.widget().hide()
             self._plot_y_profile.widget().hide()
-            self._display_profiles = False
+            self._display_widget = False
 
         self._grid.update()
 
@@ -216,7 +305,6 @@ class ImageProfileWidget(object):
         :return: (numpy array, numpy array) X and Y profiles of the image.
         """
         # Calculate the profiles
-        self._data_mutex.lock()
         x_profile = y_profile = None
         if self._data_color_mode == COLOR_MODE_MONO:
             x_profile = self._data.mean(axis=1)
@@ -227,6 +315,5 @@ class ImageProfileWidget(object):
             for i in range(3):
                 x_profile.append(self._data[:,:,i].mean(axis=1))
                 y_profile.append(self._data[:,:,i].mean(axis=0))
-        self._data_mutex.unlock()
 
         return x_profile, y_profile
