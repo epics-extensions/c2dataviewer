@@ -262,6 +262,7 @@ class MouseOver:
         self.hline = None
         self.enabled = False
         self.display_location = None
+        self.mouse_index = None
         
     def setup_plot(self):
         assert(self.widget.plot)
@@ -313,17 +314,11 @@ class MouseOver:
         self.display_location = loc
         self._apply_display_location()
 
-    def on_mouse_move_event(self, event):
-        if not self.enabled:
-            return
-        pos = event.pos()
-                
-        if not self.widget.plot.sceneBoundingRect().contains(pos):
+    def update_textbox(self):
+        if self.mouse_index is None or not self.enabled:
             return
 
-        mousePoint = self.widget.plot.vb.mapSceneToView(pos)
-        index = int(mousePoint.x())
-
+        index = self.mouse_index
         channel_data = {}
         nsamples = 0
 
@@ -365,6 +360,20 @@ class MouseOver:
                 
             text = "<br>".join(text)
             self.textbox.setText(text)
+        
+    def on_mouse_move_event(self, event):
+        if not self.enabled:
+            return
+        pos = event.pos()
+                
+        if not self.widget.plot.sceneBoundingRect().contains(pos):
+            return
+
+        mousePoint = self.widget.plot.vb.mapSceneToView(pos)
+        self.mouse_index = int(mousePoint.x())
+
+        self.update_textbox()
+        
         self.vline.setPos(mousePoint.x())
         self.hline.setPos(mousePoint.y())
             
@@ -1223,6 +1232,8 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         self.trigger.finish_drawing()
 
+        self.mouse_over.update_textbox()
+        
         self.update_fps()
 
         # Release the ownership on the self.data
