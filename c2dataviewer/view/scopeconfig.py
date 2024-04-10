@@ -66,7 +66,6 @@ class Configure(ScopeConfigureBase):
                     chan_cfg_lookup[ch][param] = v
 
         chan_cfgs = list(chan_cfg_lookup.values())
-        
         if len(chan_cfgs) > self.counts:
             self.counts = len(chan_cfgs)
 
@@ -82,10 +81,9 @@ class Configure(ScopeConfigureBase):
             }
             
             chcfg = chan_cfgs[i] if len(chan_cfgs) > i else default_cfg
-
             field = chcfg.get('field', default_cfg['field'])
             dcoffset = float(chcfg.get('dcoffset', default_cfg['dcoffset']))
-                                 
+
             channel.append(
                 {"name": "Channel %s" % (i + 1),
                  "type": "group",
@@ -96,7 +94,7 @@ class Configure(ScopeConfigureBase):
                          "value": self.default_color[i],
                          "readonly": True
                      },
-                     {"name": "Field", "type": "list", "values": [], "value": field},
+                     {"name": "Field", "type": "list", "values": [field], "value": field},
                      {"name": "DC offset", "type": "float", "value": dcoffset},
                      {"name": "Axis location", "type": "list", "values": {
                          "Left" : "left",
@@ -110,7 +108,13 @@ class Configure(ScopeConfigureBase):
 
     def assemble_display(self, section=None):
         display = super().assemble_display(section=section, app_section_key="SCOPE", default_autoscale=False)
-
+        #FIXME: move this to base class once get mouseover support in striptool
+        children = display['children']
+        newchildren = [
+            { "name" : "Mouse Over", "type": "bool", "value": False }
+            ]
+        children.extend(newchildren)
+        
         return display
 
     def assemble_acquisition(self, section=None):
@@ -179,12 +183,16 @@ class Configure(ScopeConfigureBase):
         
         cfg = {"name": "Config",
                "type": "group",
+               "expanded": True,
                "children": [
                    {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
                    {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
                    {"name": "Major Ticks", "type": "int", "value": self.default_major_tick, 'decimals':20},
                    {"name": "Minor Ticks", "type": "int", "value": self.default_minor_tick, 'decimals':20},
-               ]
+                   {"name": "Extra Display Fields", "type": "checklist", "values":[], "expanded": False},
+                   {"name": "MO Disp Location", "type": "list", "values":['top-right', 'bottom-right', 'bottom-left'], "value" : "bottom-right"}
+                   
+                   ]
                }
         return cfg
 
@@ -227,7 +235,7 @@ class Configure(ScopeConfigureBase):
             channel = self.assemble_channel()
             trigger = self.assemble_trigger()
             cfg = self.assemble_config()
-            
+
         # line up in order
         paramcfg = [acquisition, trigger, display, cfg]
         for ch in channel:

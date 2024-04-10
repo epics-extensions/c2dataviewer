@@ -2,6 +2,8 @@ TOP = .
 
 PYTHON = python3
 
+all: pip conda
+
 .PHONY:clean
 clean: conda-clean pip-clean
 
@@ -39,6 +41,7 @@ pip-test:
 	tox
 
 .PHONY:pip-upload
+
 pip-upload:
 	$(PYTHON) -m twine upload dist/*
 
