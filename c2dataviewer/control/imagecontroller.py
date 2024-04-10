@@ -690,7 +690,7 @@ class ImageController:
                         fmt='%.0f / %.2f',
                         lolimit=self._win.imageWidget._pref['FPSLimit'])
         self.statistics_update(self._win.nFrames,
-                        (self._win.imageWidget.frames_received, self._win.imageWidget.frames_displayed),
+                        (self._win.imageWidget.frames_displayed, self._win.imageWidget.frames_received),
                         fmt='%d / %d')
         self.statistics_update(self._win.nMissedFramesCurrAvg,
                             (self.frames_missed_current, self.frames_missed_average),

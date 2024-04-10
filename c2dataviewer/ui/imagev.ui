@@ -665,7 +665,7 @@
               <item row="6" column="0" colspan="2">
                <widget class="QLabel" name="label_67">
                 <property name="text">
-                 <string>Received / displayed frames:</string>
+                 <string>Displayed / received frames:</string>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

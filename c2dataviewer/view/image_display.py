@@ -1138,7 +1138,11 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         # Count received frames
+        current_array_id = data['uniqueId']
         if not zoomUpdate:
+            if self.__last_array_id == current_array_id:
+                # Frame has been seen already
+                return
             self.frames_received += 1
 
         # Check if the queue is full
@@ -1299,7 +1303,6 @@ class ImagePlotWidget(RawImageWidget):
         self.calculate_profiles(img)
 
         # Missed frames
-        current_array_id = data['uniqueId']
         if self.__last_array_id is not None and zoomUpdate == False:
             self.frames_missed += current_array_id - self.__last_array_id - 1
         self.__last_array_id = current_array_id
