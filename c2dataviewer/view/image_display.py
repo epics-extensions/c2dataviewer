@@ -17,6 +17,7 @@ import queue
 import logging
 import math
 import numpy as np
+import pyqtgraph as pg
 from pyqtgraph import QtCore
 from pyqtgraph.Qt import QtWidgets
 from pyqtgraph.widgets.RawImageWidget import RawImageWidget
@@ -39,6 +40,7 @@ import pvaccess as pva
 
 from .image_definitions import *
 from .image_profile_display import ImageProfileWidget
+from .ui_components import TransparentRubberBand, RoiMidLines
 
 class ImageCompressionUtility:
 
@@ -168,7 +170,6 @@ class MouseDialog:
         self.mouse_dialog_enabled = False
         self.mouse_dialog_launched = False
         self.textbox.setHidden(True)
-    
 
 Image = namedtuple("Image", ['id', 'new', 'image', 'black', 'white'])
 class ImagePlotWidget(RawImageWidget):
@@ -183,7 +184,7 @@ class ImagePlotWidget(RawImageWidget):
     right_button_clicked_signal = QtCore.pyqtSignal(QtCore.QPoint)
     
     def __init__(self, parent=None, **kargs):
-        RawImageWidget.__init__(self, parent=parent, scaled=True)
+        RawImageWidget.__init__(self, parent, scaled=True)
 
         self._set_image_signal.connect(self._set_image_signal_callback)
 
@@ -225,8 +226,13 @@ class ImagePlotWidget(RawImageWidget):
         self.image_width_pixels = 0
         self.image_height_pixels = 0
 
-        # Zoom parameters
-        self.__zoomSelectionIndicator = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
+        # Zoom/ROI widgets
+        self.roi_mode = False
+        self.rulers_displayed = False
+        self.roi_origin = None
+        self.roi_mid_lines = None
+        self.__zoomSelectionIndicator = None
+        self.createZoomSelectionIndicator()
         self.__zoomDict = {
             "isZoom": False,
             'xoffset': 0,
@@ -236,9 +242,6 @@ class ImagePlotWidget(RawImageWidget):
         }
         self.right_button_pressed = False
         self.is_image_panning = False
-
-        # ROI
-        self.roi_origin = None
 
         # Limit control to avoid overflow network for best performance
         self._pref = {"Max": 0,
@@ -299,6 +302,33 @@ class ImagePlotWidget(RawImageWidget):
         # mouse dialog box
         self.mouse_dialog = MouseDialog(self)
 
+    def rulersDisplayed(self, rulers_displayed):
+        """
+        Flag to keep track if rulers are displayed or not.
+
+        :param rulers_displayed: (boolean) flag value
+        :return:
+        """
+        self.rulers_displayed = rulers_displayed
+
+    def createZoomSelectionIndicator(self, roi_mode=False):
+        """
+        Create zoom selection indicator based on the ROI mode.
+
+        :param roi_mode: (boolean) Object holding information about the event.
+        :return:
+        """
+        if self.__zoomSelectionIndicator:
+            self.__zoomSelectionIndicator.hide()
+        if self.roi_mid_lines:
+            self.roi_mid_lines.hide()
+            self.roi_mid_lines = None
+        self.roi_mode = roi_mode
+        if not roi_mode:
+            self.__zoomSelectionIndicator = QtWidgets.QRubberBand(QtWidgets.QRubberBand.Rectangle, self)
+        else:
+            self.__zoomSelectionIndicator = TransparentRubberBand(QtWidgets.QRubberBand.Rectangle, self)
+
     def resizeEvent(self, event):
         """
         This method is called by the Qt when the widget change size. We use this to recalculate the
@@ -336,6 +366,9 @@ class ImagePlotWidget(RawImageWidget):
             self.roi_origin = click_position
             self.__zoomSelectionIndicator.setGeometry(QtCore.QRect(self.roi_origin, QtCore.QSize()))
             self.__zoomSelectionIndicator.show()
+            if self.roi_mode and self.roi_mid_lines:
+                self.roi_mid_lines.hide()
+                self.roi_mid_lines = None
         elif event.button() == QtCore.Qt.RightButton:
             # Flag to indicate click occured
             self.right_button_pressed = True
@@ -377,10 +410,6 @@ class ImagePlotWidget(RawImageWidget):
         if self.roi_origin is None:
             return
 
-        # We made the roi selection
-        # Hide selection rectangle
-        self.__zoomSelectionIndicator.hide()
-
         # Get information about the widget dimensions
         panEnd = QtCore.QPoint(event.pos())
         imageGeometry = self.geometry().getRect()
@@ -408,6 +437,27 @@ class ImagePlotWidget(RawImageWidget):
             ymax = widget_hight
 
         self.roi_origin = None
+
+        if self.roi_mode:
+            if self.rulers_displayed:
+                # Draw mid lines from ROI rectangle towards rulers
+                xleft = xmin
+                yleft = (ymin+ymax)/2.0
+                xtop = (xmin+xmax)/2.0
+                ytop = ymin
+                self.roi_mid_lines = RoiMidLines(xleft, yleft, xtop, ytop, self)
+
+                # Use image geometry for the ROI lines
+                w = self.width()
+                h = self.height()
+                rectangle = QtCore.QRect(0, 0, w, h)
+                self.roi_mid_lines.setGeometry(rectangle)
+                self.roi_mid_lines.show()
+            return
+
+        # We made the roi selection
+        # Hide selection rectangle
+        self.__zoomSelectionIndicator.hide()
 
         # Calculate zoomed image parameters
         self.__calculateZoomParameters(xmin, xmax, ymin, ymax)
@@ -644,6 +694,11 @@ class ImagePlotWidget(RawImageWidget):
         yOffset += int(yminMouse / pixelSize)
         height = int((ymaxMouse - yminMouse) / pixelSize)
 
+        # Reset profile coordinates
+        if self.image_profile_widget:
+            self.image_profile_widget.setXAxisRange(xOffset,xOffset+width)
+            self.image_profile_widget.setYAxisRange(yOffset,yOffset+height)
+
         # Write to dict
         self.set_zoom_region(xOffset, yOffset, width, height)
 
@@ -756,6 +811,9 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['yoffset'] = 0
         self.__zoomDict['width'] = self.x
         self.__zoomDict['height'] = self.y
+        if self.image_profile_widget:
+            self.image_profile_widget.setXAxisRange()
+            self.image_profile_widget.setYAxisRange()
 
         if self.data:
             try:
@@ -1082,7 +1140,11 @@ class ImagePlotWidget(RawImageWidget):
         :return:
         """
         # Count received frames
+        current_array_id = data['uniqueId']
         if not zoomUpdate:
+            if self.__last_array_id == current_array_id:
+                # Frame has been seen already
+                return
             self.frames_received += 1
 
         # Check if the queue is full
@@ -1243,7 +1305,6 @@ class ImagePlotWidget(RawImageWidget):
         self.calculate_profiles(img)
 
         # Missed frames
-        current_array_id = data['uniqueId']
         if self.__last_array_id is not None and zoomUpdate == False:
             self.frames_missed += current_array_id - self.__last_array_id - 1
         self.__last_array_id = current_array_id
