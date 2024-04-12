@@ -11,6 +11,13 @@ To restore the full image *Reset zoom* should be pressed from the control panel 
 ## Image Panning
 Once a user has zoomed in on a section of the image, they can pan the zoom window to diplay different sections of the image within those zoom parameters by dragging their mouse while holding down the right button (or holding down 2 fingers for laptops without a right button).
 
+## ROI Mode
+The ROI mode allows user to select a ROI rectangle, which stays displayed
+on top of the image, along with the mid-lines drawn from the rectangle
+towards the image rules (if those are displayed). To enable the ROI mode
+right click on the image window and select the *Enable ROI Mode* from the
+menu.
+
 ## Control Panel
 Users can hide and restore control panel by right-clicking on the image panel.
 
@@ -20,3 +27,6 @@ Users can enable a mouse dialog to display the pixel coordinates and respective 
 ## Compressed Images
 At the moment the following compression algorithms are supported:
 - blosc (requires 'blosc' module)
+- bslz4 (requires 'bitshuffle' module)
+- lz4 (requires 'lz4' module)
+
