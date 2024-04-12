@@ -248,7 +248,7 @@ class Trigger:
 
     def disconnect_to_callback(self):
         try:
-            self._win.graphicsWidget.plot_trigger_signal_emitter.my_signal.disconnect()
+            self.plot_trigger_signal_emitter.my_signal.disconnect()
         except Exception:
             pass
 
@@ -262,6 +262,7 @@ class MouseOver:
         self.hline = None
         self.enabled = False
         self.display_location = None
+        self.mouse_index = None
         
     def setup_plot(self):
         assert(self.widget.plot)
@@ -269,11 +270,6 @@ class MouseOver:
         self.textbox.setAttr('size', '12pt')
         self.vline = pyqtgraph.InfiniteLine(angle=90, movable=False)
         self.hline = pyqtgraph.InfiniteLine(angle=0, movable=False)
-
-        # self.widget.plot.addItem(self.vline, ignoreBounds=True)
-        # self.widget.plot.addItem(self.hline, ignoreBounds=True)
-        # self.textbox.setParentItem(self.widget.plot)
-        # self.textbox.anchor(parentPos=(0.9,0.9), itemPos=(1,1))
 
         self.enable(self.enabled)
         
@@ -313,17 +309,11 @@ class MouseOver:
         self.display_location = loc
         self._apply_display_location()
 
-    def on_mouse_move_event(self, event):
-        if not self.enabled:
-            return
-        pos = event.pos()
-                
-        if not self.widget.plot.sceneBoundingRect().contains(pos):
+    def update_textbox(self):
+        if self.mouse_index is None or not self.enabled:
             return
 
-        mousePoint = self.widget.plot.vb.mapSceneToView(pos)
-        index = int(mousePoint.x())
-
+        index = self.mouse_index
         channel_data = {}
         nsamples = 0
 
@@ -365,6 +355,20 @@ class MouseOver:
                 
             text = "<br>".join(text)
             self.textbox.setText(text)
+        
+    def on_mouse_move_event(self, event):
+        if not self.enabled:
+            return
+        pos = event.pos()
+                
+        if not self.widget.plot.sceneBoundingRect().contains(pos):
+            return
+
+        mousePoint = self.widget.plot.vb.mapSceneToView(pos)
+        self.mouse_index = int(mousePoint.x())
+
+        self.update_textbox()
+        
         self.vline.setPos(mousePoint.x())
         self.hline.setPos(mousePoint.y())
             
@@ -1194,9 +1198,17 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         self.wait()
 
         if self.sampling_mode:
+            max_samples = min(max([0] + [len(v) for v in self.data.values()]) + 1, self.max_length)
+            
             for k, v in self.sample_data.items():
-                self.data[k] = np.append(self.data.get(k, []), v)[-self.max_length:]
-
+                data = np.append(self.data.get(k, []), v)[-self.max_length:]
+                #
+                # If started collecting PV data after other PVs, pad any data points before collection
+                # with zeros
+                #
+                if max_samples > len(data):
+                    data = np.pad(data, (max_samples - len(data), 0), 'constant', constant_values=0)
+                self.data[k] = data;
         # Iterate over the names (channels) selected on the GUI and draw a line for each
         count = 0
         draw_trig_mark = True
@@ -1223,6 +1235,8 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         self.trigger.finish_drawing()
 
+        self.mouse_over.update_textbox()
+        
         self.update_fps()
 
         # Release the ownership on the self.data
