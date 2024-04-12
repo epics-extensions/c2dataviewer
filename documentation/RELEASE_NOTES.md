@@ -1,4 +1,4 @@
-# Release 1.X.Y (MM/DD/2024)
+# Release 1.12.1 (04/12/2024)
 
 - Add ability to display image rulers
 - Add roi-mode (permanent rectangle on top of image)
@@ -6,6 +6,8 @@
   than IOC rate
 - Fix performance issue caused by profile calculation even when profiles
   are not displayed
+- Update mouseover textbox when plot updates
+- Insert new PV channel data from most current time in striptool
 
 # Release 1.12.0 (04/08/2024)
 
