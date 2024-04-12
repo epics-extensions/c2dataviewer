@@ -93,6 +93,7 @@ class TestImageProfileWidget(unittest.TestCase):
         # Test with the mono image
         data = create_image(1, arrayValue, data_type='ubyteValue', nx=10, ny=10, color_mode=COLOR_MODE_MONO)
         data = transcode_image(data['value'][0]['ubyteValue'], COLOR_MODE_MONO, 10, 10, None)
+        self.w._display_profiles = True
         self.w.set_image_data(data, COLOR_MODE_MONO)
         x_profile, y_profile = self.w._calculate_profiles()
 

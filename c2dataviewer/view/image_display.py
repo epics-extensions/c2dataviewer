@@ -695,8 +695,9 @@ class ImagePlotWidget(RawImageWidget):
         height = int((ymaxMouse - yminMouse) / pixelSize)
 
         # Reset profile coordinates
-        self.image_profile_widget.setXAxisRange(xOffset,xOffset+width)
-        self.image_profile_widget.setYAxisRange(yOffset,yOffset+height)
+        if self.image_profile_widget:
+            self.image_profile_widget.setXAxisRange(xOffset,xOffset+width)
+            self.image_profile_widget.setYAxisRange(yOffset,yOffset+height)
 
         # Write to dict
         self.set_zoom_region(xOffset, yOffset, width, height)
@@ -810,8 +811,9 @@ class ImagePlotWidget(RawImageWidget):
         self.__zoomDict['yoffset'] = 0
         self.__zoomDict['width'] = self.x
         self.__zoomDict['height'] = self.y
-        self.image_profile_widget.setXAxisRange()
-        self.image_profile_widget.setYAxisRange()
+        if self.image_profile_widget:
+            self.image_profile_widget.setXAxisRange()
+            self.image_profile_widget.setYAxisRange()
 
         if self.data:
             try:
