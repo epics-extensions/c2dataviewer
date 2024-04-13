@@ -152,7 +152,7 @@ class ScopeController(ScopeControllerBase):
         pv = self.model.get()
         
         if pv is None:
-            return fdr, fdr_scalar
+            return fdr, fdr_scalar, fdr_nonnumeric
 
         pv_structure = pv.getStructureDict()
         pv_dictionary = {k:v for k,v in ScopeController.__flatten_dict(pv_structure)}
