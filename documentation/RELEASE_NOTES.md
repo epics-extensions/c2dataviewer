@@ -1,3 +1,6 @@
+# Release 1.12.2
+- Fix startup error for scope application
+
 # Release 1.12.1 (04/12/2024)
 
 - Add ability to display image rulers
