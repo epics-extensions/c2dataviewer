@@ -152,7 +152,7 @@ class ScopeController(ScopeControllerBase):
         pv = self.model.get()
         
         if pv is None:
-            return fdr, fdr_scalar
+            return fdr, fdr_scalar, fdr_nonnumeric
 
         pv_structure = pv.getStructureDict()
         pv_dictionary = {k:v for k,v in ScopeController.__flatten_dict(pv_structure)}
@@ -208,7 +208,7 @@ class ScopeController(ScopeControllerBase):
         child = self.parameters.child("Trigger").child("Data Time Field")
         child.setLimits(fdr)
         if child.value() != 'None':
-            self._win.graphicsWidget.trigger.data_time_field = data
+            self._win.graphicsWidget.trigger.data_time_field = child.value()
         
         for idx in range(len(self.channels)):
             chan_name = "Channel %s" % (idx + 1)

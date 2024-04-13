@@ -36,7 +36,7 @@ def make_protocol(proto):
     elif proto == 'pva':
         return pva.ProviderType.PVA
     else:
-        raise Error('Invalid protocol: ' + proto)
+        raise Exception('Invalid protocol: ' + proto)
 
 def parse_pvname(pvname, default_proto):
     """
@@ -48,7 +48,7 @@ def parse_pvname(pvname, default_proto):
     """
     proto = default_proto
     if "://" in pvname:
-        proto, pvname = name.split('://')
+        proto, pvname = pvname.split('://')
         proto = make_protocol(proto.lower().strip())
 
     return pvname, proto
