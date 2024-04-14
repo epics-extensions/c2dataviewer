@@ -13,13 +13,16 @@ build:
     - c2dv = c2dataviewer.c2dv:main
 
 test:
+  run:
+    - python
   source_files:
     - test
 
 requirements:
   build:
-    - python {{ python }}
+    - python 
   run:
+    - python
     - pyqt
     - psutil
     - pvapy

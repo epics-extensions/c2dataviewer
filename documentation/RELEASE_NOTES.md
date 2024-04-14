@@ -1,3 +1,6 @@
+# Release 1.12.3
+- Fix buffer size configuration bug
+
 # Release 1.12.2
 - Fix startup error for scope application
 
