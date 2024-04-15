@@ -86,7 +86,6 @@ class ScopeController(ScopeControllerBase):
         
         super().default_config(**kwargs, buffer_unit=buffer_unit)
         self.auto_buffer_size = not self.parameters.child("Acquisition").child("Buffer (%s)" % buffer_unit).value()
-        print('auto buffer size', self.auto_buffer_size)
         
         if kwargs['arrayid']:
             self.set_arrayid(kwargs["arrayid"])
