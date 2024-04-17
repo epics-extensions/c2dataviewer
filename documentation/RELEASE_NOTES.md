@@ -1,3 +1,12 @@
+# Release 1.12.4
+- Fix payload start for LZ4 and BSLZ4 compression codecs
+
+# Release 1.12.3
+- Fix buffer size configuration bug
+
+# Release 1.12.2
+- Fix startup error for scope application
+
 # Release 1.12.1 (04/12/2024)
 
 - Add ability to display image rulers

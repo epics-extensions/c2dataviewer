@@ -53,7 +53,7 @@ class ScopeController(ScopeControllerBase):
 
         #auto-set buffer size to waveform length.  This will be
         #disabled if buffer is set manually
-        self.auto_buffer_size = self._win.graphicsWidget.max_length is None
+        self.auto_buffer_size = True
         self.model.status_callback = self.connection_changed
         self.connection_timer = pyqtgraph.QtCore.QTimer()
         self.connection_timer.timeout.connect(self.__check_connection)
@@ -85,7 +85,8 @@ class ScopeController(ScopeControllerBase):
         self.buffer_unit = buffer_unit
         
         super().default_config(**kwargs, buffer_unit=buffer_unit)
-
+        self.auto_buffer_size = not self.parameters.child("Acquisition").child("Buffer (%s)" % buffer_unit).value()
+        
         if kwargs['arrayid']:
             self.set_arrayid(kwargs["arrayid"])
         if kwargs['xaxes']:
@@ -152,7 +153,7 @@ class ScopeController(ScopeControllerBase):
         pv = self.model.get()
         
         if pv is None:
-            return fdr, fdr_scalar
+            return fdr, fdr_scalar, fdr_nonnumeric
 
         pv_structure = pv.getStructureDict()
         pv_dictionary = {k:v for k,v in ScopeController.__flatten_dict(pv_structure)}
