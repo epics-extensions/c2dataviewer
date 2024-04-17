@@ -1,3 +1,6 @@
+# Release 1.12.4
+- Fix payload start for LZ4 and BSLZ4 compression codecs
+
 # Release 1.12.3
 - Fix buffer size configuration bug
 
