@@ -1306,7 +1306,10 @@ class ImagePlotWidget(RawImageWidget):
 
         # Missed frames
         if self.__last_array_id is not None and zoomUpdate == False:
-            self.frames_missed += current_array_id - self.__last_array_id - 1
+            # Make sure IOC did not restart and reset counter
+            frames_missed = current_array_id - self.__last_array_id - 1
+            if frames_missed > 0:
+                self.frames_missed += frames_missed
         self.__last_array_id = current_array_id
 
         image = Image(current_array_id,

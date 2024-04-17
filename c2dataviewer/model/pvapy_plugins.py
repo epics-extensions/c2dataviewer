@@ -114,6 +114,9 @@ class PollStrategy:
         self.timer.stop()
     
 class MonitorStrategy:
+
+    SERVER_QUEUE_SIZE = 10 # this should help reduce missed frames
+
     """
     Implementation of strategy interface used in Channel
 
@@ -151,8 +154,8 @@ class MonitorStrategy:
         """
         try:
             self.ctx.channel.setConnectionCallback(self._connection_callback)
-            self.ctx.channel.subscribe('monitorCallback', self._data_callback)
-            self.ctx.channel.startMonitor('')
+            request = f'record[queueSize={self.SERVER_QUEUE_SIZE}]field()'
+            self.ctx.channel.monitor(self._data_callback, request)
         except PvaException as e:
             self.ctx.notify_error(str(e))
         
