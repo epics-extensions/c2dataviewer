@@ -115,8 +115,6 @@ class PollStrategy:
     
 class MonitorStrategy:
 
-    SERVER_QUEUE_SIZE = 10 # this should help reduce missed frames
-
     """
     Implementation of strategy interface used in Channel
 
@@ -154,7 +152,9 @@ class MonitorStrategy:
         """
         try:
             self.ctx.channel.setConnectionCallback(self._connection_callback)
-            request = f'record[queueSize={self.SERVER_QUEUE_SIZE}]field()'
+            request = 'field()'
+            if self.ctx.data_source.server_queue_size:
+                request = f'record[queueSize={self.ctx.data_source.server_queue_size}]field()'
             self.ctx.channel.monitor(self._data_callback, request)
         except PvaException as e:
             self.ctx.notify_error(str(e))
@@ -197,7 +197,7 @@ class Channel:
     PV Channel object.  Manages getting the PV data and monitoring channel connection
     status
     """
-    def __init__(self, name, timer=None, provider=pva.PVA, status_callback=None):
+    def __init__(self, name, data_source, timer=None, provider=pva.PVA, status_callback=None):
         """
         name : PV name
         timer: Timer to use if polling data
@@ -205,6 +205,7 @@ class Channel:
         status_callback:  Callback called if connection state changed
         """
         self.channel = pva.Channel(name, provider)
+        self.data_source = data_source
         self.provider = provider
         self.name = name
         self.rate = None
@@ -321,6 +322,7 @@ class DataSource:
         self.channel = None
         self.channel_cache = {}
         self.fps = None
+        self.server_queue_size = 0
         self.timer_factory = timer_factory if timer_factory else lambda: None
             
         self.data_callback = None
@@ -346,7 +348,7 @@ class DataSource:
         if name in self.channel_cache and self.channel_cache[name].provider == provider:
             return self.channel_cache[name]
         else:
-            chan = Channel(name, self.timer_factory(), provider=provider)
+            chan = Channel(name, self, self.timer_factory(), provider=provider)
             self.channel_cache[name] = chan
             return chan
     
@@ -361,7 +363,7 @@ class DataSource:
         name, proto = parse_pvname(name, pva.ProviderType.PVA)
         self.device = name
         
-        self.channel = Channel(self.device, self.timer_factory(), proto)
+        self.channel = Channel(self.device, self, self.timer_factory(), proto)
         self.channel_cache[name] = self.channel
             
     def get(self):
@@ -399,6 +401,9 @@ class DataSource:
     def update_framerate(self, fps):
         self.fps = fps
         
+    def update_server_queue_size(self, sqs):
+        self.server_queue_size = sqs
+
     def update_device(self, name, restart=False, test_connection=True):
         """
         Update device, EPICS PV name, and test its connectivity
@@ -418,7 +423,7 @@ class DataSource:
                 chan = self.channel_cache[name]
             else:
                 name, proto = parse_pvname(name, pva.ProviderType.PVA)
-                chan = Channel(name, self.timer_factory(), provider=proto, status_callback=self.status_callback)
+                chan = Channel(name, self, self.timer_factory(), provider=proto, status_callback=self.status_callback)
                 self.channel_cache[name] = chan
                 
             self.channel = chan

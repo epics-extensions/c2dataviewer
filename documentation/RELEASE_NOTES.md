@@ -1,3 +1,7 @@
+# Release 1.X.Y
+- Add ability to set server queue size for image viewer, which can reduce
+  number of dropped frames at higher image rates
+
 # Release 1.12.3
 - Fix buffer size configuration bug
 

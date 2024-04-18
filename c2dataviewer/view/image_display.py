@@ -257,7 +257,9 @@ class ImagePlotWidget(RawImageWidget):
                       "EnableNetLimit": False,
                       "NetLimit": 100,
                       "FPS": 0,
-                      "FPSLimit": None}
+                      "FPSLimit": None,
+                      "EnableServerQueue": False,
+                      "ServerQueueSize": 10}
 
         self._isInputValid = False
         self._inputType = ""
@@ -1009,8 +1011,11 @@ class ImagePlotWidget(RawImageWidget):
         self.stop()
         if value == -1:
             value = None
-            
         self.datasource.update_framerate(value)
+        if self._pref['EnableServerQueue']:
+            self.datasource.update_server_queue_size(self._pref['ServerQueueSize'])
+        else:
+            self.datasource.update_server_queue_size(0)
         self.start()
         self.signal()
         
