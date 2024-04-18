@@ -500,6 +500,8 @@ class ImagePlotWidget(RawImageWidget):
             new_height = int(max(min(new_height, max_height_size), min_size))
 
         # Calculate the relative position of the mouse cursor within the widget
+        if not width or not height:
+            return
         relative_mouse_x = mouse_x / width
         relative_mouse_y = mouse_y / height
 
