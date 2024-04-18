@@ -1,6 +1,9 @@
-# Release 1.X.Y
+# Release 1.X.Y (04/DD/2024)
 - Add ability to set server queue size for image viewer, which can reduce
   number of dropped frames at higher image rates
+
+# Release 1.12.4
+- Fix payload start for LZ4 and BSLZ4 compression codecs
 
 # Release 1.12.3
 - Fix buffer size configuration bug

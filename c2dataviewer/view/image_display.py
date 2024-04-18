@@ -45,8 +45,8 @@ from .ui_components import TransparentRubberBand, RoiMidLines
 class ImageCompressionUtility:
 
     # Compressed payload parameters for images compressed using AD codecs
-    LZ4_PAYLOAD_START = 16
-    BSLZ4_PAYLOAD_START = 12
+    LZ4_PAYLOAD_START = 0
+    BSLZ4_PAYLOAD_START = 0
     BSLZ4_BLOCK_SIZE = 0
 
     NUMPY_DATA_TYPE_MAP = {
