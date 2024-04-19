@@ -200,6 +200,7 @@ class Channel:
     def __init__(self, name, data_source, timer=None, provider=pva.PVA, status_callback=None):
         """
         name : PV name
+        data_source: data source class that owns this object
         timer: Timer to use if polling data
         provider: PV protocol
         status_callback:  Callback called if connection state changed
