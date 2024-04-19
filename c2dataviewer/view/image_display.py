@@ -257,7 +257,9 @@ class ImagePlotWidget(RawImageWidget):
                       "EnableNetLimit": False,
                       "NetLimit": 100,
                       "FPS": 0,
-                      "FPSLimit": None}
+                      "FPSLimit": None,
+                      "EnableServerQueue": False,
+                      "ServerQueueSize": 10}
 
         self._isInputValid = False
         self._inputType = ""
@@ -500,6 +502,8 @@ class ImagePlotWidget(RawImageWidget):
             new_height = int(max(min(new_height, max_height_size), min_size))
 
         # Calculate the relative position of the mouse cursor within the widget
+        if not width or not height:
+            return
         relative_mouse_x = mouse_x / width
         relative_mouse_y = mouse_y / height
 
@@ -1007,8 +1011,11 @@ class ImagePlotWidget(RawImageWidget):
         self.stop()
         if value == -1:
             value = None
-            
         self.datasource.update_framerate(value)
+        if self._pref['EnableServerQueue']:
+            self.datasource.update_server_queue_size(self._pref['ServerQueueSize'])
+        else:
+            self.datasource.update_server_queue_size(0)
         self.start()
         self.signal()
         
@@ -1306,7 +1313,10 @@ class ImagePlotWidget(RawImageWidget):
 
         # Missed frames
         if self.__last_array_id is not None and zoomUpdate == False:
-            self.frames_missed += current_array_id - self.__last_array_id - 1
+            # Make sure IOC did not restart and reset counter
+            frames_missed = current_array_id - self.__last_array_id - 1
+            if frames_missed > 0:
+                self.frames_missed += frames_missed
         self.__last_array_id = current_array_id
 
         image = Image(current_array_id,
