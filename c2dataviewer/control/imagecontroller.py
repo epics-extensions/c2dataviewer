@@ -94,7 +94,12 @@ class ImageController:
         self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
 
         # Moving average
-        self._win.sbMovingAverageFrames.setMinimum(1)
+        self._win.cbEnableMovingAverage.setChecked(False)
+        self._win.sbMovingAverageFrames.hide()
+        self._win.lblMovingAverageFrames.hide()
+        self._win.lblProfilesSpacer.hide()
+        self._win.sbMovingAverageFrames.setMinimum(2)
+        self._win.sbMovingAverageFrames.setValue(10)
         self._win.sbMovingAverageFrames.setMaximum(10000)
         self._win.sbMovingAverageFrames.setToolTip("Number of frames to be used for calculating moving image average. ")
 
@@ -351,9 +356,17 @@ class ImageController:
 
         :return:
         """
-        movingAverageEnabled = self._win.cbEnableMovingAverage.isChecked()
-        nMovingAverageFrames = self._win.sbMovingAverageFrames.value()
-        self._win.imageWidget.enable_moving_average(movingAverageEnabled, nMovingAverageFrames)
+        moving_average_enabled = self._win.cbEnableMovingAverage.isChecked()
+        n_moving_average_frames = self._win.sbMovingAverageFrames.value()
+        self._win.imageWidget.enable_moving_average(moving_average_enabled, n_moving_average_frames)
+        if moving_average_enabled:
+            self._win.sbMovingAverageFrames.show()
+            self._win.lblMovingAverageFrames.show()
+            self._win.lblProfilesSpacer.show()
+        else:
+            self._win.sbMovingAverageFrames.hide()
+            self._win.lblMovingAverageFrames.hide()
+            self._win.lblProfilesSpacer.hide()
 
     def auto_levels_cal(self):
         """
