@@ -219,6 +219,11 @@ class ImagePlotWidget(RawImageWidget):
         # Image profiles
         self.image_profile_widget = None
 
+        # Moving average
+        self.imageList = []
+        self.movingAverageEnabled = False
+        self.nMovingAverageFrames = 0
+
         # Last displayed image
         self.last_displayed_image = None
 
@@ -637,6 +642,16 @@ class ImagePlotWidget(RawImageWidget):
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
 
+
+    def enable_moving_average(self, movingAverageEnabled, nMovingAverageFrames):
+        """
+        Setup moving average parameters
+
+        :param movingAverageEnabled: (bool) Enable or disable moving average
+        :param nMovingAverageFrames: (int) Number of frames to use for average
+        """
+        self.movingAverageEnabled = movingAverageEnabled
+        self.nMovingAverageFrames = nMovingAverageFrames
 
     def set_display_queue_size(self, new_size):
         """
@@ -1189,7 +1204,22 @@ class ImagePlotWidget(RawImageWidget):
             decompress = ImageCompressionUtility.get_decompressor(codecName)
             imgArray = decompress(imgArray, uncompressedType, uncompressedSize)
             inputType = ImageCompressionUtility.get_ntnda_data_type(uncompressedType)
-       
+
+        # Calculate average image if needed
+        movingAverageEnabled = self.movingAverageEnabled
+        nMovingAverageFrames = self.nMovingAverageFrames
+        if movingAverageEnabled and nMovingAverageFrames > 1:
+            dtype = imgArray.dtype
+            image = imgArray.astype(np.float64)
+            self.imageList.insert(0,image)
+            nImages = min(len(self.imageList),nMovingAverageFrames)
+            self.imageList = self.imageList[:nImages]
+            averageImage = sum(self.imageList)/nImages
+            averageImage = averageImage.astype(dtype)
+            imgArray = averageImage
+        else:
+           self.imageList = []
+
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']

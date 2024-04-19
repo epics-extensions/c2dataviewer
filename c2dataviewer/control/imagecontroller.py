@@ -93,6 +93,11 @@ class ImageController:
         self._win.imageAutoAdjust.clicked.connect(lambda: self.auto_levels_cal())
         self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
 
+        # Moving average
+        self._win.sbMovingAverageFrames.setMinimum(1)
+        self._win.sbMovingAverageFrames.setMaximum(10000)
+        self._win.sbMovingAverageFrames.setToolTip("Number of frames to be used for calculating moving image average. ")
+
         # Set limits on the dialog widgets
         self._image_settings_dialog.blackMin.setMinimum(self.SPINNER_MIN_VAL)
         self._image_settings_dialog.blackMin.setMaximum(self.SPINNER_MAX_VAL)
@@ -178,10 +183,10 @@ class ImageController:
 
         # Setup profiles
         self._win.imageWidget.setup_profiles(self._win.canvasGrid)
-        #self._win.cbShowProfiles.stateChanged.connect(
-        #    lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
         self._win.cbShowProfiles.stateChanged.connect(self._callback_profiles_show_changed)
         self._win.cbShowRulers.stateChanged.connect(self._callback_profiles_show_changed)
+        self._win.cbEnableMovingAverage.stateChanged.connect(self._callback_enable_moving_average_changed)
+        self._win.sbMovingAverageFrames.textChanged.connect(self._callback_enable_moving_average_changed)
 
         self.frameRateChanged()
         self.camera_changed()
@@ -307,7 +312,7 @@ class ImageController:
     def _callback_profiles_show_changed(self):
         """
         Callback used when the user on the GUI ticks or un-ticks the "Show
-        the image profiles" or the "Show image rulers" bottons.
+        the image profiles" or the "Show image rulers" buttons.
 
         :return:
         """
@@ -338,6 +343,17 @@ class ImageController:
                 self._win.imageWidget._set_image_signal.emit()
         finally:
             self.profilesWidgetMutex.unlock()
+
+    def _callback_enable_moving_average_changed(self):
+        """
+        Callback used when the user on the GUI ticks or un-ticks the
+        "Enable Moving Average" button.
+
+        :return:
+        """
+        movingAverageEnabled = self._win.cbEnableMovingAverage.isChecked()
+        nMovingAverageFrames = self._win.sbMovingAverageFrames.value()
+        self._win.imageWidget.enable_moving_average(movingAverageEnabled, nMovingAverageFrames)
 
     def auto_levels_cal(self):
         """
