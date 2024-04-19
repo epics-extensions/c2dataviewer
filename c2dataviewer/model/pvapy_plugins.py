@@ -154,6 +154,8 @@ class MonitorStrategy:
             self.ctx.channel.setConnectionCallback(self._connection_callback)
             request = 'field()'
             if self.ctx.data_source.server_queue_size:
+                # This establishes image queue on the IOC side, which helps reduce
+                # dropped frames at high rates.
                 request = f'record[queueSize={self.ctx.data_source.server_queue_size}]field()'
             self.ctx.channel.monitor(self._data_callback, request)
         except PvaException as e:
@@ -200,6 +202,7 @@ class Channel:
     def __init__(self, name, data_source, timer=None, provider=pva.PVA, status_callback=None):
         """
         name : PV name
+        data_source: data source class that owns this object
         timer: Timer to use if polling data
         provider: PV protocol
         status_callback:  Callback called if connection state changed
