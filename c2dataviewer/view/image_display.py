@@ -220,9 +220,9 @@ class ImagePlotWidget(RawImageWidget):
         self.image_profile_widget = None
 
         # Moving average
-        self.imageList = []
-        self.movingAverageEnabled = False
-        self.nMovingAverageFrames = 0
+        self.image_list = []
+        self.moving_average_enabled = False
+        self.n_moving_average_frames = 0
 
         # Last displayed image
         self.last_displayed_image = None
@@ -643,15 +643,15 @@ class ImagePlotWidget(RawImageWidget):
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
 
 
-    def enable_moving_average(self, movingAverageEnabled, nMovingAverageFrames):
+    def enable_moving_average(self, moving_average_enabled, n_moving_average_frames):
         """
         Setup moving average parameters
 
-        :param movingAverageEnabled: (bool) Enable or disable moving average
-        :param nMovingAverageFrames: (int) Number of frames to use for average
+        :param moving_average_enabled: (bool) Enable or disable moving average
+        :param n_moving_average_frames: (int) Number of frames to use for average
         """
-        self.movingAverageEnabled = movingAverageEnabled
-        self.nMovingAverageFrames = nMovingAverageFrames
+        self.moving_average_enabled = moving_average_enabled
+        self.n_moving_average_frames = n_moving_average_frames
 
     def set_display_queue_size(self, new_size):
         """
@@ -1206,19 +1206,19 @@ class ImagePlotWidget(RawImageWidget):
             inputType = ImageCompressionUtility.get_ntnda_data_type(uncompressedType)
 
         # Calculate average image if needed
-        movingAverageEnabled = self.movingAverageEnabled
-        nMovingAverageFrames = self.nMovingAverageFrames
-        if movingAverageEnabled and nMovingAverageFrames > 1:
+        moving_average_enabled = self.moving_average_enabled
+        n_moving_average_frames = self.n_moving_average_frames
+        if moving_average_enabled and n_moving_average_frames > 1:
             dtype = imgArray.dtype
             image = imgArray.astype(np.float64)
-            self.imageList.insert(0,image)
-            nImages = min(len(self.imageList),nMovingAverageFrames)
-            self.imageList = self.imageList[:nImages]
-            averageImage = sum(self.imageList)/nImages
-            averageImage = averageImage.astype(dtype)
-            imgArray = averageImage
+            self.image_list.insert(0,image)
+            n_images = min(len(self.image_list),n_moving_average_frames)
+            self.image_list = self.image_list[:n_images]
+            average_image = sum(self.image_list)/n_images
+            average_image = average_image.astype(dtype)
+            imgArray = average_image
         else:
-           self.imageList = []
+           self.image_list = []
 
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
