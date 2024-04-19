@@ -353,9 +353,9 @@
                </widget>
               </item>
               <item row="10" column="0">
-               <widget class="QLabel" name="label_30">
+               <widget class="QLabel" name="lblMovingAverageFrames">
                 <property name="text">
-                 <string>N frames: </string>
+                 <string>MA Frames: </string>
                 </property>
                </widget>
               </item>
@@ -367,7 +367,7 @@
                </widget>
               </item>
               <item row="11" column="0" colspan="2">
-               <widget class="QLabel" name="profilesLabel">
+               <widget class="QLabel" name="lblProfilesSpacer">
                 <property name="sizePolicy">
                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
