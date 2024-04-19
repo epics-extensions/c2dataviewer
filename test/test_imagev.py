@@ -38,7 +38,7 @@ class TestImagev(unittest.TestCase):
         
         # Build image window
         self.window = ImageWindow()
-        self.window.resize(1200, 1200)
+        self.window.resize(1400, 1400)
         QtWidgets.QApplication.instance().processEvents()
 
     def tearDown(self):
@@ -86,7 +86,6 @@ class TestImagev(unittest.TestCase):
 
             # Loop over them and see if they are all contained in a main window
             for _, w in enumerate(widgets):
-
                 # Skip QSizeGrip (Handle which can be clicked with a mouse to resize the window)
                 # as this is part of the window itself and is always out of the "canvas"
                 if isinstance(w, QtWidgets.QSizeGrip):
