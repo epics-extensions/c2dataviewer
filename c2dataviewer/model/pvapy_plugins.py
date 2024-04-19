@@ -154,6 +154,8 @@ class MonitorStrategy:
             self.ctx.channel.setConnectionCallback(self._connection_callback)
             request = 'field()'
             if self.ctx.data_source.server_queue_size:
+                # This establishes image queue on the IOC side, which helps reduce
+                # dropped frames at high rates.
                 request = f'record[queueSize={self.ctx.data_source.server_queue_size}]field()'
             self.ctx.channel.monitor(self._data_callback, request)
         except PvaException as e:
