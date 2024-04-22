@@ -93,6 +93,16 @@ class ImageController:
         self._win.imageAutoAdjust.clicked.connect(lambda: self.auto_levels_cal())
         self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
 
+        # Moving average
+        self._win.cbEnableMovingAverage.setChecked(False)
+        self._win.sbMovingAverageFrames.hide()
+        self._win.lblMovingAverageFrames.hide()
+        self._win.lblProfilesSpacer.hide()
+        self._win.sbMovingAverageFrames.setMinimum(2)
+        self._win.sbMovingAverageFrames.setValue(10)
+        self._win.sbMovingAverageFrames.setMaximum(10000)
+        self._win.sbMovingAverageFrames.setToolTip("Number of frames to be used for calculating moving image average. ")
+
         # Set limits on the dialog widgets
         self._image_settings_dialog.blackMin.setMinimum(self.SPINNER_MIN_VAL)
         self._image_settings_dialog.blackMin.setMaximum(self.SPINNER_MAX_VAL)
@@ -178,10 +188,10 @@ class ImageController:
 
         # Setup profiles
         self._win.imageWidget.setup_profiles(self._win.canvasGrid)
-        #self._win.cbShowProfiles.stateChanged.connect(
-        #    lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
         self._win.cbShowProfiles.stateChanged.connect(self._callback_profiles_show_changed)
         self._win.cbShowRulers.stateChanged.connect(self._callback_profiles_show_changed)
+        self._win.cbEnableMovingAverage.stateChanged.connect(self._callback_enable_moving_average_changed)
+        self._win.sbMovingAverageFrames.textChanged.connect(self._callback_enable_moving_average_changed)
 
         self.frameRateChanged()
         self.camera_changed()
@@ -307,7 +317,7 @@ class ImageController:
     def _callback_profiles_show_changed(self):
         """
         Callback used when the user on the GUI ticks or un-ticks the "Show
-        the image profiles" or the "Show image rulers" bottons.
+        the image profiles" or the "Show image rulers" buttons.
 
         :return:
         """
@@ -338,6 +348,25 @@ class ImageController:
                 self._win.imageWidget._set_image_signal.emit()
         finally:
             self.profilesWidgetMutex.unlock()
+
+    def _callback_enable_moving_average_changed(self):
+        """
+        Callback used when the user on the GUI ticks or un-ticks the
+        "Enable Moving Average" button.
+
+        :return:
+        """
+        moving_average_enabled = self._win.cbEnableMovingAverage.isChecked()
+        n_moving_average_frames = self._win.sbMovingAverageFrames.value()
+        self._win.imageWidget.enable_moving_average(moving_average_enabled, n_moving_average_frames)
+        if moving_average_enabled:
+            self._win.sbMovingAverageFrames.show()
+            self._win.lblMovingAverageFrames.show()
+            self._win.lblProfilesSpacer.show()
+        else:
+            self._win.sbMovingAverageFrames.hide()
+            self._win.lblMovingAverageFrames.hide()
+            self._win.lblProfilesSpacer.hide()
 
     def auto_levels_cal(self):
         """

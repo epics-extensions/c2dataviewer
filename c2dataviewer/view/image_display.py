@@ -219,6 +219,11 @@ class ImagePlotWidget(RawImageWidget):
         # Image profiles
         self.image_profile_widget = None
 
+        # Moving average
+        self.image_list = []
+        self.moving_average_enabled = False
+        self.n_moving_average_frames = 0
+
         # Last displayed image
         self.last_displayed_image = None
 
@@ -637,6 +642,16 @@ class ImagePlotWidget(RawImageWidget):
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
 
+
+    def enable_moving_average(self, moving_average_enabled, n_moving_average_frames):
+        """
+        Setup moving average parameters
+
+        :param moving_average_enabled: (bool) Enable or disable moving average
+        :param n_moving_average_frames: (int) Number of frames to use for average
+        """
+        self.moving_average_enabled = moving_average_enabled
+        self.n_moving_average_frames = n_moving_average_frames
 
     def set_display_queue_size(self, new_size):
         """
@@ -1189,7 +1204,22 @@ class ImagePlotWidget(RawImageWidget):
             decompress = ImageCompressionUtility.get_decompressor(codecName)
             imgArray = decompress(imgArray, uncompressedType, uncompressedSize)
             inputType = ImageCompressionUtility.get_ntnda_data_type(uncompressedType)
-       
+
+        # Calculate average image if needed
+        moving_average_enabled = self.moving_average_enabled
+        n_moving_average_frames = self.n_moving_average_frames
+        if moving_average_enabled and n_moving_average_frames > 1:
+            dtype = imgArray.dtype
+            image = imgArray.astype(np.float64)
+            self.image_list.insert(0,image)
+            n_images = min(len(self.image_list),n_moving_average_frames)
+            self.image_list = self.image_list[:n_images]
+            average_image = sum(self.image_list)/n_images
+            average_image = average_image.astype(dtype)
+            imgArray = average_image
+        else:
+           self.image_list = []
+
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']
