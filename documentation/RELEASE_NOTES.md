@@ -1,3 +1,8 @@
+# Release 1.13.0 (04/22/2024)
+- Add ability to set server queue size for image viewer, which can reduce
+  number of dropped frames at higher image rates
+- Add ability to display moving average images
+
 # Release 1.12.4
 - Fix payload start for LZ4 and BSLZ4 compression codecs
 

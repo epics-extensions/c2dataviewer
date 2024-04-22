@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1119</width>
-    <height>852</height>
+    <width>1200</width>
+    <height>900</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -70,8 +70,8 @@
            <rect>
             <x>0</x>
             <y>0</y>
-            <width>354</width>
-            <height>903</height>
+            <width>350</width>
+            <height>900</height>
            </rect>
           </property>
           <layout class="QVBoxLayout" name="verticalLayout_11">
@@ -313,30 +313,89 @@
                 </item>
                </layout>
               </item>
+              <item row="7" column="1">
+               <widget class="QPushButton" name="imageAutoAdjust">
+                <property name="text">
+                 <string>Auto</string>
+                </property>
+               </widget>
+              </item>
               <item row="8" column="0" colspan="2">
+               <widget class="QLabel" name="movingAverageLabel">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="9" column="0" colspan="2">
+               <widget class="QCheckBox" name="cbEnableMovingAverage">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>25</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>Enable moving average</string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="0">
+               <widget class="QLabel" name="lblMovingAverageFrames">
+                <property name="text">
+                 <string>MA Frames: </string>
+                </property>
+               </widget>
+              </item>
+              <item row="10" column="1">
+               <widget class="QSpinBox" name="sbMovingAverageFrames">
+                <property name="suffix">
+                 <string notr="true"/>
+                </property>
+               </widget>
+              </item>
+              <item row="11" column="0" colspan="2">
+               <widget class="QLabel" name="lblProfilesSpacer">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="12" column="0" colspan="2">
                <widget class="QCheckBox" name="cbShowProfiles">
                 <property name="enabled">
                  <bool>true</bool>
                 </property>
                 <property name="text">
-                 <string>Show image profiles (average calculation)</string>
+                 <string>Show image profiles (x/y average calculation)</string>
                 </property>
                </widget>
               </item>
-              <item row="9" column="0" colspan="2">
+              <item row="13" column="0" colspan="2">
                <widget class="QCheckBox" name="cbShowRulers">
                 <property name="enabled">
                  <bool>true</bool>
                 </property>
                 <property name="text">
                  <string>Show image rulers</string>
-                </property>
-               </widget>
-              </item>
-              <item row="7" column="1">
-               <widget class="QPushButton" name="imageAutoAdjust">
-                <property name="text">
-                 <string>Auto</string>
                 </property>
                </widget>
               </item>

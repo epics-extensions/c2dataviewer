@@ -93,6 +93,16 @@ class ImageController:
         self._win.imageAutoAdjust.clicked.connect(lambda: self.auto_levels_cal())
         self._win.imageWidget.set_getBlackWhiteLimits(self.getimageBlackLimits, self.getimageWhiteLimits)
 
+        # Moving average
+        self._win.cbEnableMovingAverage.setChecked(False)
+        self._win.sbMovingAverageFrames.hide()
+        self._win.lblMovingAverageFrames.hide()
+        self._win.lblProfilesSpacer.hide()
+        self._win.sbMovingAverageFrames.setMinimum(2)
+        self._win.sbMovingAverageFrames.setValue(10)
+        self._win.sbMovingAverageFrames.setMaximum(10000)
+        self._win.sbMovingAverageFrames.setToolTip("Number of frames to be used for calculating moving image average. ")
+
         # Set limits on the dialog widgets
         self._image_settings_dialog.blackMin.setMinimum(self.SPINNER_MIN_VAL)
         self._image_settings_dialog.blackMin.setMaximum(self.SPINNER_MAX_VAL)
@@ -108,12 +118,15 @@ class ImageController:
         self._image_settings_dialog.sbCpuLimit.setMaximum(400)
         self._image_settings_dialog.sbNetworkLimit.setMinimum(10)
         self._image_settings_dialog.sbNetworkLimit.setMaximum(1250) # 1250 megabyte = 10 gigabit
+        self._image_settings_dialog.sbServerQueueSize.setMinimum(0)
+        self._image_settings_dialog.sbServerQueueSize.setMaximum(10000)
 
-        # Concfigure settings window tooltips
+        # Configure settings window tooltips
         self._image_settings_dialog.sbDeadPixelThreshold.setToolTip("Dead pixel threshold. \nPixel values above this setting are counted as 'dead'.")
         self._image_settings_dialog.sbEmbeddedDataLength.setToolTip("Number of pixels at the beggining of the image that hold the embedded data. \nThese pixels are not included in the statistics calculations.")
         self._image_settings_dialog.sbCpuLimit.setToolTip("Maximum allowed usage of the CPU. \n100% = 1 full CPU core.")
         self._image_settings_dialog.sbNetworkLimit.setToolTip("Maximum allowed usage of the network in MB/s.")
+        self._image_settings_dialog.sbServerQueueSize.setToolTip("Maximum number of frames to be queued on the server side.")
 
         # Settings dialog callbacks
         self._win.btnSettings.clicked.connect(lambda: self._callback_adjust_image_settings())
@@ -175,10 +188,10 @@ class ImageController:
 
         # Setup profiles
         self._win.imageWidget.setup_profiles(self._win.canvasGrid)
-        #self._win.cbShowProfiles.stateChanged.connect(
-        #    lambda: self._callback_profiles_show_changed(self._win.cbShowProfiles))
         self._win.cbShowProfiles.stateChanged.connect(self._callback_profiles_show_changed)
         self._win.cbShowRulers.stateChanged.connect(self._callback_profiles_show_changed)
+        self._win.cbEnableMovingAverage.stateChanged.connect(self._callback_enable_moving_average_changed)
+        self._win.sbMovingAverageFrames.textChanged.connect(self._callback_enable_moving_average_changed)
 
         self.frameRateChanged()
         self.camera_changed()
@@ -304,7 +317,7 @@ class ImageController:
     def _callback_profiles_show_changed(self):
         """
         Callback used when the user on the GUI ticks or un-ticks the "Show
-        the image profiles" or the "Show image rulers" bottons.
+        the image profiles" or the "Show image rulers" buttons.
 
         :return:
         """
@@ -335,6 +348,25 @@ class ImageController:
                 self._win.imageWidget._set_image_signal.emit()
         finally:
             self.profilesWidgetMutex.unlock()
+
+    def _callback_enable_moving_average_changed(self):
+        """
+        Callback used when the user on the GUI ticks or un-ticks the
+        "Enable Moving Average" button.
+
+        :return:
+        """
+        moving_average_enabled = self._win.cbEnableMovingAverage.isChecked()
+        n_moving_average_frames = self._win.sbMovingAverageFrames.value()
+        self._win.imageWidget.enable_moving_average(moving_average_enabled, n_moving_average_frames)
+        if moving_average_enabled:
+            self._win.sbMovingAverageFrames.show()
+            self._win.lblMovingAverageFrames.show()
+            self._win.lblProfilesSpacer.show()
+        else:
+            self._win.sbMovingAverageFrames.hide()
+            self._win.lblMovingAverageFrames.hide()
+            self._win.lblProfilesSpacer.hide()
 
     def auto_levels_cal(self):
         """
@@ -388,6 +420,8 @@ class ImageController:
         self._image_settings_dialog.sbCpuLimit.setValue(self._win.imageWidget.get_preferences()['CPULimit'])
         self._image_settings_dialog.cbEnableNetworkLimit.setChecked(self._win.imageWidget.get_preferences()['EnableNetLimit'])
         self._image_settings_dialog.sbNetworkLimit.setValue(self._win.imageWidget.get_preferences()['NetLimit'])
+        self._image_settings_dialog.cbEnableServerQueue.setChecked(self._win.imageWidget.get_preferences()['EnableServerQueue'])
+        self._image_settings_dialog.sbServerQueueSize.setValue(self._win.imageWidget.get_preferences()['ServerQueueSize'])
 
         # Launch the dialog
         self._image_settings_dialog.exec_()
@@ -412,10 +446,15 @@ class ImageController:
             'CPULimit' : self._image_settings_dialog.sbCpuLimit.value(),
             'EnableNetLimit' : self._image_settings_dialog.cbEnableNetworkLimit.isChecked(),
             'NetLimit' : self._image_settings_dialog.sbNetworkLimit.value(),
+            'EnableServerQueue' : self._image_settings_dialog.cbEnableServerQueue.isChecked(),
+            'ServerQueueSize' : self._image_settings_dialog.sbServerQueueSize.value(),
         }
         self._win.imageWidget.set_preferences(preferences)
 
         self._win.imageWidget.set_display_queue_size(self._image_settings_dialog.displayQueueSize.value())
+
+        # Force start/stop if we modified preferences that affect ioc rates
+        self.frameRateChanged()
 
         self._image_settings_dialog.close()
 

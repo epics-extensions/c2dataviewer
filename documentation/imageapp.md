@@ -30,3 +30,6 @@ At the moment the following compression algorithms are supported:
 - bslz4 (requires 'bitshuffle' module)
 - lz4 (requires 'lz4' module)
 
+## Settings
+Users can adjust a number of parameters and resource limits by clicking on the *Settings* button in the control panel.
+

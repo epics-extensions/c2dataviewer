@@ -219,6 +219,11 @@ class ImagePlotWidget(RawImageWidget):
         # Image profiles
         self.image_profile_widget = None
 
+        # Moving average
+        self.image_list = []
+        self.moving_average_enabled = False
+        self.n_moving_average_frames = 0
+
         # Last displayed image
         self.last_displayed_image = None
 
@@ -257,7 +262,9 @@ class ImagePlotWidget(RawImageWidget):
                       "EnableNetLimit": False,
                       "NetLimit": 100,
                       "FPS": 0,
-                      "FPSLimit": None}
+                      "FPSLimit": None,
+                      "EnableServerQueue": False,
+                      "ServerQueueSize": 10}
 
         self._isInputValid = False
         self._inputType = ""
@@ -500,6 +507,8 @@ class ImagePlotWidget(RawImageWidget):
             new_height = int(max(min(new_height, max_height_size), min_size))
 
         # Calculate the relative position of the mouse cursor within the widget
+        if not width or not height:
+            return
         relative_mouse_x = mouse_x / width
         relative_mouse_y = mouse_y / height
 
@@ -633,6 +642,16 @@ class ImagePlotWidget(RawImageWidget):
             except Exception as e:
                 logging.getLogger().error('Error displaying mouse dialog: %s', str(e))
 
+
+    def enable_moving_average(self, moving_average_enabled, n_moving_average_frames):
+        """
+        Setup moving average parameters
+
+        :param moving_average_enabled: (bool) Enable or disable moving average
+        :param n_moving_average_frames: (int) Number of frames to use for average
+        """
+        self.moving_average_enabled = moving_average_enabled
+        self.n_moving_average_frames = n_moving_average_frames
 
     def set_display_queue_size(self, new_size):
         """
@@ -1007,8 +1026,11 @@ class ImagePlotWidget(RawImageWidget):
         self.stop()
         if value == -1:
             value = None
-            
         self.datasource.update_framerate(value)
+        if self._pref['EnableServerQueue']:
+            self.datasource.update_server_queue_size(self._pref['ServerQueueSize'])
+        else:
+            self.datasource.update_server_queue_size(0)
         self.start()
         self.signal()
         
@@ -1182,7 +1204,22 @@ class ImagePlotWidget(RawImageWidget):
             decompress = ImageCompressionUtility.get_decompressor(codecName)
             imgArray = decompress(imgArray, uncompressedType, uncompressedSize)
             inputType = ImageCompressionUtility.get_ntnda_data_type(uncompressedType)
-       
+
+        # Calculate average image if needed
+        moving_average_enabled = self.moving_average_enabled
+        n_moving_average_frames = self.n_moving_average_frames
+        if moving_average_enabled and n_moving_average_frames > 1:
+            dtype = imgArray.dtype
+            image = imgArray.astype(np.float64)
+            self.image_list.insert(0,image)
+            n_images = min(len(self.image_list),n_moving_average_frames)
+            self.image_list = self.image_list[:n_images]
+            average_image = sum(self.image_list)/n_images
+            average_image = average_image.astype(dtype)
+            imgArray = average_image
+        else:
+           self.image_list = []
+
         maxVal = self.dataTypesDict[inputType]['maxVal']
         minVal = self.dataTypesDict[inputType]['minVal']
         npdt = self.dataTypesDict[inputType]['npdt']
@@ -1306,7 +1343,10 @@ class ImagePlotWidget(RawImageWidget):
 
         # Missed frames
         if self.__last_array_id is not None and zoomUpdate == False:
-            self.frames_missed += current_array_id - self.__last_array_id - 1
+            # Make sure IOC did not restart and reset counter
+            frames_missed = current_array_id - self.__last_array_id - 1
+            if frames_missed > 0:
+                self.frames_missed += frames_missed
         self.__last_array_id = current_array_id
 
         image = Image(current_array_id,

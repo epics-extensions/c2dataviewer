@@ -105,6 +105,34 @@
         </property>
        </widget>
       </item>
+      <item row="4" column="0">
+       <widget class="QLabel" name="label_13">
+        <property name="text">
+         <string>Server Queue:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QCheckBox" name="cbEnableServerQueue">
+        <property name="text">
+         <string>Enable</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="QLabel" name="label_14">
+        <property name="text">
+         <string>Frames</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QSpinBox" name="sbServerQueueSize">
+        <property name="suffix">
+         <string notr="true"/>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
