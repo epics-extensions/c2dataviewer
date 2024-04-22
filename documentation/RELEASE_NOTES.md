@@ -1,4 +1,4 @@
-# Release 1.X.Y (04/DD/2024)
+# Release 1.13.0 (04/22/2024)
 - Add ability to set server queue size for image viewer, which can reduce
   number of dropped frames at higher image rates
 - Add ability to display moving average images
