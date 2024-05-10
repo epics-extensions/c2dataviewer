@@ -1,3 +1,6 @@
+# Release 1.13.1 (05/10/2024)
+- Fixed scope mouse over behavior so you can pan like before
+
 # Release 1.13.0 (04/22/2024)
 - Add ability to set server queue size for image viewer, which can reduce
   number of dropped frames at higher image rates
