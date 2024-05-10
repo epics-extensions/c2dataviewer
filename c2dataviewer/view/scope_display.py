@@ -512,6 +512,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         self.mouse_over.set_display_location(loc)
         
     def mouseMoveEvent(self, event):
+        pyqtgraph.GraphicsLayoutWidget.mouseMoveEvent(self, event)
         self.mouse_over.on_mouse_move_event(event)
         
     def set_major_ticks(self, value):
