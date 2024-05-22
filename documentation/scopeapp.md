@@ -63,14 +63,15 @@ APP=SCOPE
 [SCOPE]
 SECTION=<SECTION LIST>
 ```
-Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section.
+Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section. Note that fields and values are case insensitive.
 
 ### ACQUISITION
 | Setting | Description
 |---|---|
 | PV | EPICS PV name.  By default uses PVAccess protocol.  Can specify protocol by starting name with [proto]://pvname, where [proto] is either 'ca' or 'pva' |
 | ConnectOnStart | Attempt to connect to PV on startup. Can set to 'true','false','1', or '0'.|
-| BufferUnit | Units for buffer size.  Can set to 'Samples' or 'Objects'.  If set to Objects, then the buffer size is in terms of number of objects. See [here](configsettings.md) for setting buffer size |
+| BufferUnit | Units for buffer size.  Can set to 'Samples' or 'Objects'.  If set to Objects, then the buffer size is in terms of number of objects|
+|Buffer| Buffer size |
 
 ### CHANNELS
 | Setting | Description
@@ -81,7 +82,14 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 ### DISPLAY
 | Setting | Description |
 |---|---|
+|Refresh| Refresh time in milliseconds |
+|Autoscale | Enable autoscale| 
 |Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
+|FFT_Filter | Sets FFT filter. Can be "none" or "hamming"
+|Single\_Axis| Enable single axis |
+|Histogram | Turns on histogram mode |
+|Trigger|  Sets trigger PV |
+|Trigger\_Mode| Sets trigger mode |
 
 ### CONFIG
 | Setting | Description |
@@ -89,6 +97,4 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 |XAxes| PV field to use for X-axis values in X vs Y mode|
 |MajorTicks| Sample interval length for major ticks|
 |MinorTicks| Sample interval length for minor ticks|
-
-Go [here](configsettings.md) for more configuration settings
 
