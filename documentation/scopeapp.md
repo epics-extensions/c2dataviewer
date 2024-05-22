@@ -85,11 +85,8 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 |Refresh| Refresh time in milliseconds |
 |Autoscale | Enable autoscale| 
 |Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
-|FFT_Filter | Sets FFT filter. Can be "none" or "hamming"
 |Single\_Axis| Enable single axis |
 |Histogram | Turns on histogram mode |
-|Trigger|  Sets trigger PV |
-|Trigger\_Mode| Sets trigger mode |
 
 ### CONFIG
 | Setting | Description |
