@@ -35,8 +35,9 @@ class ScopeControllerBase:
         self.default_trigger = None
         self.trigger_is_monitor = False
         self.trigger_auto_scale = False
-        
-        self._win.graphicsWidget.setup_plot(channels=channels, single_axis=True)
+
+        single_axis = parameters.child('Display', 'Single axis').value()
+        self._win.graphicsWidget.setup_plot(channels=channels, single_axis=single_axis)
         
         # timer to update status with statistics data
         self.status_timer = pyqtgraph.QtCore.QTimer()
