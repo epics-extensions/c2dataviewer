@@ -36,14 +36,29 @@ class ScopeControllerBase:
         self.trigger_is_monitor = False
         self.trigger_auto_scale = False
 
+        self._win.graphicsWidget.set_histogram(parameters.child('Display', 'Histogram').value())
         single_axis = parameters.child('Display', 'Single axis').value()
         self._win.graphicsWidget.setup_plot(channels=channels, single_axis=single_axis)
-        
+
+        display_mode = parameters.child('Display', 'Mode').value()
+        if(display_mode != "normal"):
+            self.set_display_mode(display_mode)
+            
         # timer to update status with statistics data
         self.status_timer = pyqtgraph.QtCore.QTimer()
         self.status_timer.timeout.connect(self.update_status)
         self.status_timer.start(1000)
-        
+
+    def set_display_mode(self, val):
+        self._win.graphicsWidget.set_display_mode(val)
+        self._win.graphicsWidget.setup_plot()
+        # Disable multiaxis for the FFT and PSD modes. As at the time of the
+        # writing this code pyqtgraph does not support logarithmic scale in multiaxis configuration.
+        if self._win.graphicsWidget.fft or self._win.graphicsWidget.psd:
+            self.parameters.child("Display").child("Single axis").setReadonly()
+        else:
+            self.parameters.child("Display").child("Single axis").setWritable()
+
     def set_trigger_pv(self, pvname):
         if self._win.graphicsWidget.plotting_started:
             self.notify_warning("Stop plotting first before changing trigger PV")
@@ -142,14 +157,7 @@ class ScopeControllerBase:
                 elif childName == "Acquisition.Freeze":
                     self._win.graphicsWidget.is_freeze = data
                 elif childName == "Display.Mode":
-                    self._win.graphicsWidget.set_display_mode(data)
-                    self._win.graphicsWidget.setup_plot()
-                    # Disable multiaxis for the FFT and PSD modes. As at the time of the
-                    # writing this code pyqtgraph does not support logarithmic scale in multiaxis configuration.
-                    if self._win.graphicsWidget.fft or self._win.graphicsWidget.psd:
-                        self.parameters.child("Display").child("Single axis").setReadonly()
-                    else:
-                        self.parameters.child("Display").child("Single axis").setWritable()
+                    self.set_display_mode(data)
                 elif childName == "Display.FFT filter":
                     self._win.graphicsWidget.set_fft_filter(data)
                 elif childName == "Display.Exp moving avg":
