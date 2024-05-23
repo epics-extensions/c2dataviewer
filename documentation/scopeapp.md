@@ -65,11 +65,16 @@ SECTION=<SECTION LIST>
 ```
 Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section. Note that fields and values are case insensitive.
 
+### SCOPE
+| Setting | Description
+|---|---|
+| Section | List of sections to read in the config file |
+
 ### ACQUISITION
 | Setting | Description
 |---|---|
 | PV | EPICS PV name.  By default uses PVAccess protocol.  Can specify protocol by starting name with [proto]://pvname, where [proto] is either 'ca' or 'pva' |
-| ConnectOnStart | Attempt to connect to PV on startup. Can set to 'true','false','1', or '0'.|
+| ConnectOnStart | Attempt to connect to PV on startup. Set to true or false|
 | BufferUnit | Units for buffer size.  Can set to 'Samples' or 'Objects'.  If set to Objects, then the buffer size is in terms of number of objects|
 |Buffer| Buffer size |
 
@@ -83,10 +88,10 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 | Setting | Description |
 |---|---|
 |Refresh| Refresh time in milliseconds |
-|Autoscale | Enable autoscale| 
+|Autoscale | Enable autoscale. Set to true or false| 
 |Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
-|Single\_Axis| Enable single axis |
-|Histogram | Turns on histogram mode |
+|Single\_Axis| Enable single axis. Set to true or false |
+|Histogram | Turns on histogram mode. Set to true or false |
 
 ### CONFIG
 | Setting | Description |
