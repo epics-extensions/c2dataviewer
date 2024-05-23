@@ -21,14 +21,37 @@ Chan1.PV = S:R:reg1
 Chan2.PV = S:R:reg2
 Chan3.PV = S:R:reg3
 ```
+Striptool configurations must start with:
 
-Below are settings specific to striptool
+```ini
+[DEFAULT]
+APP=STRIPTOOL
+
+[SCOPE]
+SECTION=<SECTION LIST>
+```
+Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section.
+
+### ACQUISITION
+| Setting | Description
+|---|---|
+|Buffer| Buffer size |
+
+### DISPLAY
+| Setting | Description |
+|---|---|
+|Refresh| Refresh time in milliseconds |
+|Autoscale | Enable autoscale| 
+|Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
+|Single\_Axis| Enable single axis |
+|Histogram | Turns on histogram mode |
+
+### STRIPTOOL
 | Setting | Description 
 |---|---|
 | DefaultProtocol | default PV protocol.  Possible values are 'ca' and 'pva'. Required if protocol is not specified for each PV |
 | Chan[ID].PV | PV channel name.  Can specify the protocol by starting name with [proto]://pvname, where [proto] is either 'ca' or 'pva'. Otherwise, use the default protocol. Example: `Chan1.PV = ca://S:R:reg1` |
 | Chan[ID].Color | Color to plot for "Chan[ID]". If not set, striptool will set the color. Example: `Chan1.Color = #00FF00` |
 
-Go [here](configsettings.md) for more configuration settings
 
 
