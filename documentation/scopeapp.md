@@ -65,6 +65,11 @@ SECTION=<SECTION LIST>
 ```
 Where <SECTION_LIST> is a list of the sections in the file. Below are configuration settings specific to the scope app for each section. Note that fields and values are case insensitive.
 
+### SCOPE
+| Setting | Description
+|---|---|
+| Section | List of sections to read in the config file |
+
 ### ACQUISITION
 | Setting | Description
 |---|---|
