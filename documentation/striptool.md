@@ -13,13 +13,16 @@ By default striptool plots channel access PVs.  PVs can be specified from comman
 PVs can be specified by a configuration file. Below is an example:
 ```ini
 [DEFAULT]
-APP=STRIPTOOL
+APP=STRIPTOOL,DISPLAY
 
 [STRIPTOOL]
 DefaultProtocol = ca
 Chan1.PV = S:R:reg1
 Chan2.PV = S:R:reg2
 Chan3.PV = S:R:reg3
+
+[DISPLAY]
+Autoscale=true
 ```
 Striptool configurations must start with:
 
@@ -41,10 +44,10 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 | Setting | Description |
 |---|---|
 |Refresh| Refresh time in milliseconds |
-|Autoscale | Enable autoscale| 
+|Autoscale | Enable autoscale. Can be true or false| 
 |Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
-|Single\_Axis| Enable single axis |
-|Histogram | Turns on histogram mode |
+|Single\_Axis| Enable single axis. Can be true or false |
+|Histogram | Turns on histogram mode. Can be true or false |
 
 ### STRIPTOOL
 | Setting | Description 
