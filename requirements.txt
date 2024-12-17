@@ -1,6 +1,6 @@
 psutil
 pvapy
-pyqtgraph==0.12.4
+pyqtgraph
 PyQt5
 blosc[blosc-compression,all]
 lz4[lz4-compression,all]

@@ -93,8 +93,11 @@ class ImageProfileWidget(object):
             'green' : self._plot_y_profile.widget().plot(pen=pg.mkPen(color=(  0,255,  0), style=pg.Qt.QtCore.Qt.DashLine)),
             'blue'  : self._plot_y_profile.widget().plot(pen=pg.mkPen(color=(  0,255,255), style=pg.Qt.QtCore.Qt.DashDotLine)),
         }
+
+        transform = pg.QtGui.QTransform()
+        transform.rotate(-90)
         for curve in self._profile_y_curves.values():
-            curve.rotate(-90)
+            curve.setTransform(transform)
 
         # Hide profiles by default
         self._plot_x_profile.widget().hide()
