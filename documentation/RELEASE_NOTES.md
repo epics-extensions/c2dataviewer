@@ -1,3 +1,6 @@
+# Release 1.14.1 (12/18/2024)
+-Put restriction that pyqtgraph must be at least 0.12, to avoid invalid Qt call errors for older pyqt versions
+
 # Release 1.14.0 (12/18/2024)
 - Fix striptool and scope app documentation
 - Made c2dv compatible with pyqtgraph 0.13 and removed pyqtgraph version restriction
