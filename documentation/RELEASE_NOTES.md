@@ -1,3 +1,7 @@
+# Release 1.14.0 (12/18/2024)
+- Fix striptool and scope app documentation
+- Made c2dv compatible with pyqtgraph 0.13 and removed pyqtgraph version restriction
+
 # Release 1.13.2 (05/22/2024)
 - fix single axis, histogram, and display mode configuration
 - update striptool and scope app config documentation to reflect what is supported
