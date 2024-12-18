@@ -26,7 +26,7 @@ requirements:
     - pyqt
     - psutil
     - pvapy
-    - pyqtgraph
+    - pyqtgraph>=0.12
     # The following modules are required for viewing compressed images and
     # must be installed separately.
     #- python-blosc
