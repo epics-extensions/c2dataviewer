@@ -1,3 +1,6 @@
+# Release 1.14.2 (01/30/2025)
+- force conda build to python 3.10
+
 # Release 1.14.1 (12/18/2024) 
 -Put restriction that pyqtgraph must be at least 0.12, to avoid invalid Qt call errors for older pyqt versions
 
