@@ -1,3 +1,6 @@
+# Release 1.14.3 (02/26/2025)
+- Fixed missing buffer unit error that started occurring when upgraded python libraries
+
 # Release 1.14.2 (01/30/2025)
 - force conda build to python 3.10
 
