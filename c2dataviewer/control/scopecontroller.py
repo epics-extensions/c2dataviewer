@@ -81,11 +81,12 @@ class ScopeController(ScopeControllerBase):
         if kwargs['connect_on_start']:
             start = True
 
-        buffer_unit = self.parameters.child("Acquisition").child("Buffer Unit").value()
-        self.buffer_unit = buffer_unit
+        bunit = self.parameters.child("Acquisition").child("Buffer Unit").value().strip()
+        if bunit != "":
+            self.buffer_unit = bunit
         
-        super().default_config(**kwargs, buffer_unit=buffer_unit)
-        self.auto_buffer_size = not self.parameters.child("Acquisition").child("Buffer (%s)" % buffer_unit).value()
+        super().default_config(**kwargs, buffer_unit=self.buffer_unit)
+        self.auto_buffer_size = not self.parameters.child("Acquisition").child("Buffer (%s)" % self.buffer_unit).value()
         
         if kwargs['arrayid']:
             self.set_arrayid(kwargs["arrayid"])
