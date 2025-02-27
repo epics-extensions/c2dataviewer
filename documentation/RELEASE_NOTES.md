@@ -1,3 +1,6 @@
+# Release 1.14.5 (02/27/2025)
+- replace use of deprecated ParameterTree field
+
 # Release 1.14.4 (02/26/2025)
 - Fixed missing buffer unit error that started occurring when upgraded python libraries
 
