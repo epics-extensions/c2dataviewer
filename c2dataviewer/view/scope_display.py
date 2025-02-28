@@ -65,7 +65,7 @@ class Trigger:
         self.trigger_data_done = True
         
         # double sec past epoch timestamp from the trig pv
-        self.trigger_timestamp = 0.0
+        self.trigger_timestamp = None
 
         self.trigger_level = 0.0
         class TriggerSignal(QtCore.QObject):
@@ -87,6 +87,7 @@ class Trigger:
         self.trigger_value = None
         self.missed_triggers = 0
         self.missed_adjust_buffer_size = 0
+        self.enable_trigger_marker = True
         
     def __trigger_on_change(self, val):
         return True
@@ -130,8 +131,11 @@ class Trigger:
         self.is_triggered_ = True
         self.trigger_data_done = False
 
-        ts = data[self.trigger_time_field]
-        self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+        if self.trigger_time_field in data:
+            ts = data[self.trigger_time_field]
+            self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+        else:
+            self.trigger_timestamp = None
 
     def __is_trigger_in_array(self, time_array):
         """
@@ -142,6 +146,10 @@ class Trigger:
                                             If True, second element hold index of the element, otherwise is None.
         """
 
+        if self.trigger_timestamp is None:
+            logging.getLogger().error(f'Trigger timestamp is not set. Check if {self.trigger_time_field} field exists')
+            return -3
+        
         if self.trigger_timestamp < time_array[0]:
             return -1
 
@@ -178,12 +186,25 @@ class Trigger:
         """
         max_length = self.parent.max_length
         
-        if self.trigger_mode and self.is_triggered_:
+        if not self.is_triggered():
+            return
+        
+        if self.data_time_field not in self.trig_data.keys():
+            for k, v in self.trig_data.items():
+                if type(v) != np.ndarray:
+                     continue
+
+                self.parent.data[k] = self.trig_data[k][-self.parent.max_length:]
+            self.display_start_index = 0
+            self.plot_trigger_signal_emitter.emit()
+            self.enable_trigger_marker = False
+        else:
             samples_after_trig = int(max_length / 2)
 
             # Check if we have trigger timestamp in buffer
             time_data = self.trig_data[self.data_time_field]
             idx = self.__is_trigger_in_array(time_data)
+            self.enable_trigger_marker = True
             if idx >= 0:
                 self.missed_triggers = 0                
                 self.trigger_index = idx
@@ -1156,7 +1177,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         :param mark_size: (Array [int, int]) Y range for the trigger mark.
         :return:
         """
-        if self.trigger.is_triggered():
+        if self.trigger.is_triggered() and self.trigger.enable_trigger_marker:
             if draw_trig_mark:
                 # Add trigger marker on plotting
                 pvnames = [ c.pvname for c in self.channels ]

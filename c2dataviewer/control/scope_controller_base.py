@@ -103,12 +103,14 @@ class ScopeControllerBase:
         refresh = self.parameters.child("Display").child("Refresh").value()
         if refresh:
             self.set_freshrate(refresh)
-            
-        self.default_trigger = kwargs.get("trigger", None)
-        if self.default_trigger is not None:
-            self.set_trigger_pv(self.default_trigger)
 
         try:
+            trigger_pv = self.parameters.child("Trigger").child("PV").value()
+            self.set_trigger_pv(trigger_pv)
+
+            trigger_mode = self.parameters.child("Trigger").child("Mode").value()
+            self.set_trigger_mode(trigger_mode)
+        
             self.trigger_auto_scale = self.parameters.child("Trigger").child("Autoscale Buffer").value()
         except:
             pass
@@ -250,11 +252,7 @@ class ScopeControllerBase:
             if self.model.trigger is None:
                 raise Exception('Trigger PV is not set')
             
-            if self._win.graphicsWidget.trigger.data_time_field is None:
-                raise Exception('Data time field is not set')
-            
-            if self._win.graphicsWidget.trigger.trigger_time_field is None:
-                raise Exception('Trigger time field is not set')
+
             
             self.model.start_trigger(self._win.graphicsWidget.trigger.data_callback)
             self.trigger_is_monitor = True

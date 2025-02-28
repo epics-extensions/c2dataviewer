@@ -185,9 +185,12 @@ class ScopeConfigureBase:
             else:
                 trigger_mode = 'none'
         
+
+        config_expanded = True if trigger_mode != "none" else False
+
         cfg ={"name": "Trigger",
               "type": "group",
-              "expanded": False,
+              "expanded": config_expanded,
               "children" : [
                   { "name" :  "Mode", "type": "list", "limits": {
                     "Off" : "none",
