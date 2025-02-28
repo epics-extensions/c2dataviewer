@@ -61,4 +61,7 @@ def striptool(cfg, **kwargs):
     parameters.sigTreeStateChanged.connect(controller.parameter_change)
     
     w.show()
-    sys.exit(app.exec_())
+    try:
+        app.exec_()
+    finally:
+        controller.stop_plotting()
