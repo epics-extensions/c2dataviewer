@@ -1,3 +1,19 @@
+# Release 1.14.5 (02/27/2025)
+- replace use of deprecated ParameterTree field
+
+# Release 1.14.4 (02/26/2025)
+- Fixed missing buffer unit error that started occurring when upgraded python libraries
+
+# Release 1.14.2 (01/30/2025)
+- force conda build to python 3.10
+
+# Release 1.14.1 (12/18/2024) 
+-Put restriction that pyqtgraph must be at least 0.12, to avoid invalid Qt call errors for older pyqt versions
+
+# Release 1.14.0 (12/18/2024)
+- Fix striptool and scope app documentation
+- Made c2dv compatible with pyqtgraph 0.13 and removed pyqtgraph version restriction
+
 # Release 1.13.2 (05/22/2024)
 - fix single axis, histogram, and display mode configuration
 - update striptool and scope app config documentation to reflect what is supported

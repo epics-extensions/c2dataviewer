@@ -70,14 +70,14 @@ class ScopeConfigureBase:
             display = {"name": "Display", "type": "group",
                        "expanded": True,
                        "children": [
-                {"name": "Mode", "type": "list", "values": {
+                {"name": "Mode", "type": "list", "limits": {
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
                     "Diff": "diff",
                     "X vs Y": "xy",
                 }, "value": "Normal"},
-                {"name": "FFT filter", "type": "list", "values": {
+                {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",
                     "Hamming" : "hamming"
                 }, "value": "None"},
@@ -138,14 +138,14 @@ class ScopeConfigureBase:
 
             display = {"name": "Display", "type": "group", "expanded": True,
                        "children": [
-                {"name": "Mode", "type": "list", "values": {
+                {"name": "Mode", "type": "list", "limits": {
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
                     "Diff": "diff",
                     "X vs Y": "xy",
                 }, "value": display_mode},
-                {"name": "FFT filter", "type": "list", "values": {
+                {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",
                     "Hamming" : "hamming"
                 }, "value": fft_filter},
@@ -189,7 +189,7 @@ class ScopeConfigureBase:
               "type": "group",
               "expanded": False,
               "children" : [
-                  { "name" :  "Mode", "type": "list", "values": {
+                  { "name" :  "Mode", "type": "list", "limits": {
                     "Off" : "none",
                     "On change" : "onchange",
                     "Greater than threshold" : "gtthreshold",
@@ -200,9 +200,9 @@ class ScopeConfigureBase:
                   {"name": "PV", "type": "str", "value": trigger_pv},
                   {"name": "Trig Status", "type": "str", "value": "", "readonly": True},
                   {"name": "Trig Value", "type": "str", "value": "", "readonly": True},
-                  {"name": "Time Field", "type": "list", "values" :
+                  {"name": "Time Field", "type": "list", "limits" :
                    [ "None" ], "default" : "None", "visible" : False},
-                  {"name": "Data Time Field", "type": "list", "values" :["None"], "default" : "None" },
+                  {"name": "Data Time Field", "type": "list", "limits" :["None"], "default" : "None" },
                   {"name": "Autoscale Buffer", "type": "bool", "value" : True},
                   {"name": "Threshold", "type": "float", "value": 0.0},
               ]}

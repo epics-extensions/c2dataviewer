@@ -1,5 +1,4 @@
 TOP = .
-
 PYTHON = python3
 
 all: pip conda
@@ -13,7 +12,7 @@ conda: conda-build
 .PHONY:conda-build
 conda-build:	
 	cp setup_conda.py setup.py
-	conda build . -c epics -c conda-forge
+	conda build . -c https://conda.anaconda.org/epics -c https://conda.anaconda.org/conda-forge/
 
 .PHONY:conda-clean
 conda-clean:

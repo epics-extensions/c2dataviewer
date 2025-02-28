@@ -57,7 +57,7 @@ setup (
     install_requires=[
         'psutil',
         'pvapy',
-        'pyqtgraph==0.12.4',
+        'pyqtgraph>=0.12',
         'PyQt5',
     ],
     extras_require = {

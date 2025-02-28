@@ -94,9 +94,9 @@ class Configure(ScopeConfigureBase):
                          "value": self.default_color[i],
                          "readonly": True
                      },
-                     {"name": "Field", "type": "list", "values": [field], "value": field},
+                     {"name": "Field", "type": "list", "limits": [field], "value": field},
                      {"name": "DC offset", "type": "float", "value": dcoffset},
-                     {"name": "Axis location", "type": "list", "values": {
+                     {"name": "Axis location", "type": "list", "limits": {
                          "Left" : "left",
                          "Right" : "right",
                      }, "value" : "Left"},
@@ -150,7 +150,7 @@ class Configure(ScopeConfigureBase):
                     self.pvs = {pv: pv}
 
         newchildren = [
-            {"name": "Buffer Unit", "type": "list", "values": ["Samples", "Objects"],
+            {"name": "Buffer Unit", "type": "list", "limits": ["Samples", "Objects"],
              "value": buffer_unit},
             {"name": "PV", "type": "str", "value": pv},
             {"name": "PV status", "type": "str", "value": "Disconnected", "readonly": True},
@@ -185,12 +185,12 @@ class Configure(ScopeConfigureBase):
                "type": "group",
                "expanded": True,
                "children": [
-                   {"name": "ArrayId", "type": "list", "values": id_value, "value": self.default_arrayid},
-                   {"name": "X Axes", "type": "list", "values": axes, "value": self.default_xaxes},
+                   {"name": "ArrayId", "type": "list", "limits": id_value, "value": self.default_arrayid},
+                   {"name": "X Axes", "type": "list", "limits": axes, "value": self.default_xaxes},
                    {"name": "Major Ticks", "type": "int", "value": self.default_major_tick, 'decimals':20},
                    {"name": "Minor Ticks", "type": "int", "value": self.default_minor_tick, 'decimals':20},
-                   {"name": "Extra Display Fields", "type": "checklist", "values":[], "expanded": False},
-                   {"name": "MO Disp Location", "type": "list", "values":['top-right', 'bottom-right', 'bottom-left'], "value" : "bottom-right"}
+                   {"name": "Extra Display Fields", "type": "checklist", "limits":[], "expanded": False},
+                   {"name": "MO Disp Location", "type": "list", "limits":['top-right', 'bottom-right', 'bottom-left'], "value" : "bottom-right"}
                    
                    ]
                }

@@ -26,10 +26,7 @@ requirements:
     - pyqt
     - psutil
     - pvapy
-    # 0.13 removes support for PlotItem::rotate used in image_profile_display.py.
-    # Hardcode version until we find an alternative.
-    # Note that this is also hardcoded in requirements.txt
-    - pyqtgraph=0.12.4
+    - pyqtgraph>=0.12
     # The following modules are required for viewing compressed images and
     # must be installed separately.
     #- python-blosc

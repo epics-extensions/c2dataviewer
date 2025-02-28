@@ -190,7 +190,7 @@ class StripToolController(ScopeControllerBase):
                           "value": si.channel.color
                       },
                       {"name": "DC offset", "type": "float", "value": si.channel.dc_offset},
-                      {"name": "Axis location", "type": "list", "values": {
+                      {"name": "Axis location", "type": "list", "limits": {
                           "Left" : "left",
                           "Right" : "right",
                       }, "value" : si.channel.axis_location},
