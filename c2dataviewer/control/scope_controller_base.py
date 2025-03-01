@@ -250,7 +250,7 @@ class ScopeControllerBase:
         """
         if not self.trigger_is_monitor:
             if self.model.trigger is None:
-                raise Exception('Trigger PV is not set')
+                raise Exception('Trigger PV is not set or is invalid')
             
 
             
