@@ -1,3 +1,6 @@
+# Release 1.4.7 (03/03/2025)
+- add python 3.7 and 3.11 to conda build config
+
 # Release 1.14.6 (03/03/2025)
 - Add support to trigger without timestamp data
 - fixed PV trigger configuration
