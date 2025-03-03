@@ -12,7 +12,6 @@ from c2dataviewer.view.scopeconfig import Configure
 class TestScopeConfig(unittest.TestCase):
     def get_display_val(self, data, val):
         for child in data['children']:
-            print(child['name'])
             if child['name'] == val:
                 ret_val = child['value']
                 return ret_val
