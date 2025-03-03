@@ -1,3 +1,9 @@
+# Release 1.14.6 (03/03/2025)
+- Add support to trigger without timestamp data
+- fixed PV trigger configuration
+- Shutdown plot when scope app or striptool app exits
+- Expand user in configuration path
+
 # Release 1.14.5 (02/27/2025)
 - replace use of deprecated ParameterTree field
 
