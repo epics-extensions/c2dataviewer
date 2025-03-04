@@ -21,19 +21,28 @@ You can also configure the X/Y range, by right-click, select options from either
 ## Triggering
 Scope application supports software triggering via external v3 PV. When trigger mode is configured and trigger occur,
 selected displayed channels will be updated for the trigger time. Number of samples displayed can be controlled via `Buffer` parameter.
-Trigger timestamp is always at the middle of the displayed waveform and is marked with the red line.
 
 Configuring the trigger:
 
 0. Stop acquisition if needed
 1. Set PV
-2. Set trigger PV. If the trigger PV uses `pva` protocol, then set the trigger time field.
+2. Set trigger PV. 
 3. Set trigger mode to "On Change".
-4. Set data time field for the PV.  This field is used to determine if the trigger PV timestamp falls within the PV waveform
 5. Select desired input channels
 6. Start the acquisition
 
-When the trigger condition is meet, the waveform will draw/update.
+When the trigger condition is meet, the waveform will draw/update with the latest data.
+
+If your PV has a time data field, you can sync the plot with the trigger timestamp.  To do this, modify your existing configuration the following way::
+
+0. Stop acquisition if needed
+1. If the trigger PV uses `pva` protocol, then set the trigger time field.  If it is `ca` it will automatically use the `timeStamp` field
+2. Set data time field for the PV.  This field is used to determine if the trigger PV timestamp falls within the PV waveform
+3. Start the acquisition
+
+Trigger timestamp is always at the middle of the displayed waveform and is marked with the red line.
+
+
 
 ## Configuration
 PVs can be specified by a configuration file. 
@@ -100,3 +109,8 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 |MajorTicks| Sample interval length for major ticks|
 |MinorTicks| Sample interval length for minor ticks|
 
+## TRIGGER
+| Setting | Description |
+|---|---|
+|Trigger| Trigger PV |
+|Trigger_Mode | Trigger mode. Can be "Off", "OnChange", "GtThreshold", or "LtThreshold" |
