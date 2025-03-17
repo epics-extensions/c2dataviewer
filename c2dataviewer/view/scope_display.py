@@ -1159,16 +1159,16 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         elif time_array is None:
             data_to_plot = self.filter(data) + channel.dc_offset
             self.curves[count].setData(data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.display_trigger_index(), [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, [data_to_plot.min(), data_to_plot.max()])
 
         # Draw time_array on the X axis and data on Y
         else:
             d, t = self.filter(data, time_array)
             data_to_plot = d + channel.dc_offset
             self.curves[count].setData(t - t[0], data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.trigger_timestamp - time_array[0], [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, [data_to_plot.min(), data_to_plot.max()], time_array=time_array)
 
-    def __handle_trigger_marker__(self, draw_trig_mark, marktime, mark_size):
+    def __handle_trigger_marker__(self, draw_trig_mark, mark_size, time_array=None):
         """
         Draw vertical line trigger mark at the specified marktime.
 
@@ -1179,6 +1179,11 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         """
         if self.trigger.is_triggered() and self.trigger.enable_trigger_marker:
             if draw_trig_mark:
+                if time_array:
+                    marktime = self.trigger.trigger_timestamp - time_array[0]
+                else:
+                    marktime = self.trigger.display_trigger_index()
+                    
                 # Add trigger marker on plotting
                 pvnames = [ c.pvname for c in self.channels ]
                 min_value = max_value = None
