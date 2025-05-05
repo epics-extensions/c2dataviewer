@@ -29,7 +29,6 @@ class DisplayMode(Enum):
     FFT = 'fft'
     PSD = 'psd'
     DIFF = 'diff'
-    XY = 'xy'
     
     def __str__(self):
         return self.value

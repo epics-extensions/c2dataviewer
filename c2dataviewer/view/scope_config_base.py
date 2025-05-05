@@ -74,8 +74,7 @@ class ScopeConfigureBase:
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
-                    "Diff": "diff",
-                    "X vs Y": "xy",
+                    "Diff": "diff",                    
                 }, "value": "Normal"},
                 {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",
@@ -90,7 +89,7 @@ class ScopeConfigureBase:
             ]}
         else:
             display_mode = section.get("MODE", "normal").lower().strip()
-            if display_mode not in ["normal", "fft", "psd", "diff", "xy"]:
+            if display_mode not in ["normal", "fft", "psd", "diff"]:
                 display_mode = "normal"
 
             fft_filter = section.get("FFT_FILTER", None)
@@ -142,8 +141,7 @@ class ScopeConfigureBase:
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
-                    "Diff": "diff",
-                    "X vs Y": "xy",
+                    "Diff": "diff",                    
                 }, "value": display_mode},
                 {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",
