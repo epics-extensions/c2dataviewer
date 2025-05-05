@@ -52,9 +52,9 @@ class ScopeControllerBase:
     def set_display_mode(self, val):
         self._win.graphicsWidget.set_display_mode(val)
         self._win.graphicsWidget.setup_plot()
-        # Disable multiaxis for the FFT and PSD modes. As at the time of the
+        # Disable multiaxis for the FFT-type modes. As at the time of the
         # writing this code pyqtgraph does not support logarithmic scale in multiaxis configuration.
-        if self._win.graphicsWidget.fft or self._win.graphicsWidget.psd:
+        if self._win.graphicsWidget.display_mode.is_fft():
             self.parameters.child("Display").child("Single axis").setReadonly()
         else:
             self.parameters.child("Display").child("Single axis").setWritable()

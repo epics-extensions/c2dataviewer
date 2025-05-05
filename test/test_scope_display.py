@@ -21,6 +21,8 @@ import time
 from c2dataviewer.view.scope_display import PlotWidget
 from c2dataviewer.view.scope_display import PlotChannel
 from c2dataviewer.view.scope_display import TriggerType
+from c2dataviewer.view.scope_display import DisplayMode
+from c2dataviewer.view.scope_display import FFTFilter
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -67,7 +69,7 @@ class TestScopeDisplay(unittest.TestCase):
         sample_period = np.diff(data).mean()
 
         # Calculate fft
-        xf, yf = self.pw.calculate_ftt(data, sample_period, "fft", None)
+        xf, yf = self.pw.calculate_fft(data, sample_period, DisplayMode.FFT, FFTFilter.NONE)
 
         # Test result
         np.testing.assert_array_almost_equal(xf,
@@ -99,7 +101,7 @@ class TestScopeDisplay(unittest.TestCase):
         sample_period = np.diff(data).mean()
 
         # Run transformation
-        xf, yf = self.pw.calculate_ftt(data, sample_period, "psd", "hamming")
+        xf, yf = self.pw.calculate_fft(data, sample_period, DisplayMode.PSD, FFTFilter.HAMMING)
 
         # Check results
         np.testing.assert_array_almost_equal(xf,
