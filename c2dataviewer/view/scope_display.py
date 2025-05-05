@@ -1113,7 +1113,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             time_array = self.data[self.current_xaxes]
 
         if self.diff:
-            d = np.diff(data)
+            data = np.diff(data)
 
         xf = yf = None
         if self.fft or self.psd:
