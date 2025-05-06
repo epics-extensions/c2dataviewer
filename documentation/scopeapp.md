@@ -98,7 +98,7 @@ Where <SECTION_LIST> is a list of the sections in the file. Below are configurat
 |---|---|
 |Refresh| Refresh time in milliseconds |
 |Autoscale | Enable autoscale. Set to true or false| 
-|Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "xy"|
+|Mode| Set display mode.  Valid values are: "normal", "fft", "psd", "diff", "autocorrelate_fft"|
 |Single\_Axis| Enable single axis. Set to true or false |
 |Histogram | Turns on histogram mode. Set to true or false |
 
