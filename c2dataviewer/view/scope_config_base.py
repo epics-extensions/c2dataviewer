@@ -74,7 +74,8 @@ class ScopeConfigureBase:
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
-                    "Diff": "diff",                    
+                    "Diff": "diff",   
+                    "Autocorrelation FFT": "autocorrelate_fft",                 
                 }, "value": "Normal"},
                 {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",
@@ -89,7 +90,7 @@ class ScopeConfigureBase:
             ]}
         else:
             display_mode = section.get("MODE", "normal").lower().strip()
-            if display_mode not in ["normal", "fft", "psd", "diff"]:
+            if display_mode not in ["normal", "fft", "psd", "diff", "autocorrelate_fft"]:
                 display_mode = "normal"
 
             fft_filter = section.get("FFT_FILTER", None)
@@ -141,7 +142,8 @@ class ScopeConfigureBase:
                     "Normal": "normal",
                     "FFT": "fft",
                     "PSD": "psd",
-                    "Diff": "diff",                    
+                    "Diff": "diff",    
+                    "Autocorrelation FFT": "autocorrelate_fft",               
                 }, "value": display_mode},
                 {"name": "FFT filter", "type": "list", "limits": {
                     "None" : "none",

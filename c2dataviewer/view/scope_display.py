@@ -29,6 +29,7 @@ class DisplayMode(Enum):
     FFT = 'fft'
     PSD = 'psd'
     DIFF = 'diff'
+    AUTOCORFFT = 'autocorrelate_fft'
     
     def __str__(self):
         return self.value
@@ -1082,6 +1083,30 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         return new_data_ave
 
+    def autocorrelation_fft(self, x, filter):
+        # Zero-pad the data to twice its length
+        n = len(x)
+
+        if(filter == FFTFilter.HAMMING):
+            # Apply Hamming window
+            hamming_window = np.hamming(n)
+            x_wind = hamming_window * x
+        else:
+            x_wind = x
+
+        # Compute the FFT
+        x = np.fft.fft(x_wind)
+
+        # Compute the power spectrum
+        p = x * np.conjugate(x)
+
+        # Compute the inverse FFT to get the autocorrelation
+        autocorr = np.fft.ifft(p).real
+
+        # Normalize the result
+        autocorr = autocorr[:n] / n
+        return autocorr
+
     def draw_curve(self, count, data, channel, draw_trig_mark=False):
         """
         Draw a waveform curve
@@ -1109,15 +1134,18 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             sample_period = np.diff(self.data[self.current_xaxes]).mean()
             time_array = self.data[self.current_xaxes]
 
-        if self.display_mode == DisplayMode.DIFF:
-            data = np.diff(data)
 
         xf = yf = None
-        if self.display_mode.is_fft():
+        if self.display_mode == DisplayMode.DIFF:
+            data = np.diff(data)
+        elif self.display_mode.is_fft():
             if data_len == 0:
                 return            
+            
             xf, yf = self.calculate_fft(data, sample_period, self.display_mode, self.fft_filter)
-
+        elif self.display_mode == DisplayMode.AUTOCORFFT:
+            data = self.autocorrelation_fft(data, self.fft_filter)
+            
         if self.histogram and not self.display_mode.is_fft():
             self.curves[count].opts['stepMode'] = True
         else:
