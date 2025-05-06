@@ -1,3 +1,9 @@
+# Release 1.14.8 (05/06/2025)
+- Remove python 3.7 build
+- fix failure with x-axis set and trigger is not set
+- fix diff mode and removed unimplemented xy mode
+- added new autocorrelation FFT mode
+
 # Release 1.4.7 (03/03/2025)
 - add python 3.7 and 3.11 to conda build config
 
