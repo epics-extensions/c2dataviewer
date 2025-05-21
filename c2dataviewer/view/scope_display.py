@@ -19,6 +19,32 @@ from pyqtgraph.Qt import QtCore
 import enum
 import logging
 import time
+from enum import Enum
+
+class DisplayMode(Enum):
+    """
+    Display mode for the plot
+    """
+    NORMAL = 'normal'
+    FFT = 'fft'
+    PSD = 'psd'
+    DIFF = 'diff'
+    AUTOCORFFT = 'autocorrelate_fft'
+    
+    def __str__(self):
+        return self.value
+    def is_fft(self):
+        return self in [DisplayMode.FFT, DisplayMode.PSD]
+
+class FFTFilter(Enum):
+    """
+    FFT filter type
+    """
+    NONE = 'none'
+    HAMMING = 'hamming'
+
+    def __str__(self):
+        return self.value
 
 class PlotChannel:
     """
@@ -65,7 +91,7 @@ class Trigger:
         self.trigger_data_done = True
         
         # double sec past epoch timestamp from the trig pv
-        self.trigger_timestamp = 0.0
+        self.trigger_timestamp = None
 
         self.trigger_level = 0.0
         class TriggerSignal(QtCore.QObject):
@@ -87,6 +113,7 @@ class Trigger:
         self.trigger_value = None
         self.missed_triggers = 0
         self.missed_adjust_buffer_size = 0
+        self.enable_trigger_marker = True
         
     def __trigger_on_change(self, val):
         return True
@@ -130,8 +157,11 @@ class Trigger:
         self.is_triggered_ = True
         self.trigger_data_done = False
 
-        ts = data[self.trigger_time_field]
-        self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+        if self.trigger_time_field in data:
+            ts = data[self.trigger_time_field]
+            self.trigger_timestamp = ts['secondsPastEpoch'] + 1e-9*ts['nanoseconds']
+        else:
+            self.trigger_timestamp = None
 
     def __is_trigger_in_array(self, time_array):
         """
@@ -142,6 +172,10 @@ class Trigger:
                                             If True, second element hold index of the element, otherwise is None.
         """
 
+        if self.trigger_timestamp is None:
+            logging.getLogger().error(f'Trigger timestamp is not set. Check if {self.trigger_time_field} field exists')
+            return -3
+        
         if self.trigger_timestamp < time_array[0]:
             return -1
 
@@ -178,12 +212,25 @@ class Trigger:
         """
         max_length = self.parent.max_length
         
-        if self.trigger_mode and self.is_triggered_:
+        if not self.is_triggered():
+            return
+        
+        if self.data_time_field not in self.trig_data.keys():
+            for k, v in self.trig_data.items():
+                if type(v) != np.ndarray:
+                     continue
+
+                self.parent.data[k] = self.trig_data[k][-self.parent.max_length:]
+            self.display_start_index = 0
+            self.plot_trigger_signal_emitter.emit()
+            self.enable_trigger_marker = False
+        else:
             samples_after_trig = int(max_length / 2)
 
             # Check if we have trigger timestamp in buffer
             time_data = self.trig_data[self.data_time_field]
             idx = self.__is_trigger_in_array(time_data)
+            self.enable_trigger_marker = True
             if idx >= 0:
                 self.missed_triggers = 0                
                 self.trigger_index = idx
@@ -424,11 +471,8 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         self._min = None
 
         self.bins = 100
-        self.fft = False
-        self.fft_filter = None
-        self.psd = False
-        self.diff = False
-        self.xy = False
+        self.display_mode = DisplayMode.NORMAL
+        self.fft_filter = FFTFilter.NONE
         self.histogram = False
         self.average = 1
 
@@ -555,7 +599,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             single_axis = self.single_axis
 
         # FFT and PSD support only single axis, PyQTGraph currently doesn't support log scale on the multiple axis setup
-        if not single_axis and (self.fft or self.psd):
+        if not single_axis and self.display_mode.is_fft():
             single_axis = True
             # Could Be replaced with logging if added in the future
             print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}: FFT or PSD selected in multi axis mode, which is not supported. Changed to one axis mode automatically.")
@@ -570,7 +614,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         # Create plot item
         self.plot = pyqtgraph.PlotItem()
         self.plot.showGrid(x=True, y=True)
-        if self.fft or self.psd:
+        if self.display_mode.is_fft():
             self.plot.setLogMode(x=True, y=True)
 
         # Generate plot items
@@ -771,7 +815,7 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         #
         # Cases where x-values are not buffer samples
         #
-        if self.current_xaxes != None or self.fft or self.psd or self.histogram:
+        if self.current_xaxes != None or self.display_mode.is_fft() or self.histogram:
             return
         
         xmin = 0;
@@ -843,31 +887,11 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         :param value:
         :return:
         """
-        if value == 'normal':
-            self.fft = False
-            self.psd = False
-            self.diff = False
-            self.xy = False
-        elif value == 'fft':
-            self.fft = True
-            self.psd = False
-            self.diff = False
-            self.xy = False
-        elif value == 'psd':
-            self.fft = False
-            self.psd = True
-            self.diff = False
-            self.xy = False
-        elif value == 'diff':
-            self.fft = False
-            self.psd = False
-            self.diff = True
-            self.xy = False
-        elif value == 'xy':
-            self.fft = False
-            self.psd = False
-            self.diff = False
-            self.xy = True
+        try:
+            self.display_mode = DisplayMode(value)    
+        except ValueError:
+            raise ValueError(f"{str(value)} is not valid display mode.")
+
         self.plot.autoScale = True
 
         # Mode changed, iterate over the curves and set moving average to None
@@ -882,9 +906,12 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         :return:
         """
         if value is None:
-            self.fft_filter = value
-        else:
-            self.fft_filter = value.lower()
+            value = "none"
+        
+        try:
+            self.fft_filter = FFTFilter(value)
+        except ValueError:
+            raise ValueError(f"{str(value)} is not valid FFT filter type.")            
 
     def set_average(self, value):
         """
@@ -995,47 +1022,39 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         if self.first_data:
             self.first_data = False
 
-    def calculate_ftt(self, data, sample_period, mode, filter=None):
+    def calculate_fft(self, data, sample_period, mode, filter):
         """
         Calculate fft on the input array.
 
         :param data: (Numpy array) Data to be transformed.
         :param sample_period: (int) Sampling period of the data.
-        :param mode: (string) This could be either "fft" or "psd".
-        :param filter: (None or string) Filter to be applied on the data before transformation.
+        :param mode: (DisplayMode) This could be either "fft" or "psd".
+        :param filter: (FFTFilter) Filter to be applied on the data before transformation.
 
         :return: (Numpy array, Numpy array) xf and yf transformations of the data.
         """
         xf = yf = None
-        filter = filter or "none"
 
         # Perform transformation for X axis
         data_len = len(data)
         xf = np.fft.rfftfreq(data_len, d=sample_period)
 
         # Calculate window
-        if filter == "none":
-            pass
-        elif filter == "hamming":
+        if filter == FFTFilter.HAMMING:
             window = np.hamming(data_len)
             data = data * window
-        else:
-            raise ValueError(f"{str(filter)} is not valid FFT filter type.")
-
+        
         # Perform transformation for Y axis
         yf_raw = np.abs(np.fft.rfft(data))
 
-        # Apply normalisation filter
-        try:
-            vertical_gain = self.__fft_vgain[filter]
-        except KeyError:
-            raise ValueError(f"{str(filter)} is not valid FFT filter type.")
+        # Apply normalisation filter        
+        vertical_gain = self.__fft_vgain[str(filter)]
 
-        if mode.lower() == "fft":
+        if mode == DisplayMode.FFT:
             yf = 2. * vertical_gain * yf_raw / data_len
             # DC bin has different scale factor
             yf[0] = yf[0] / 2.
-        elif mode.lower() == "psd":
+        elif mode == DisplayMode.PSD:
             # Sample period in sec. Sample rate is 1/sample rate. Hz/bin=srage/nf
             sample_rate = 1. / sample_period
             yf = 2. * vertical_gain * vertical_gain * yf_raw * yf_raw / (sample_rate * sample_rate)
@@ -1064,6 +1083,30 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
 
         return new_data_ave
 
+    def autocorrelation_fft(self, x, filter):
+        # Zero-pad the data to twice its length
+        n = len(x)
+
+        if(filter == FFTFilter.HAMMING):
+            # Apply Hamming window
+            hamming_window = np.hamming(n)
+            x_wind = hamming_window * x
+        else:
+            x_wind = x
+
+        # Compute the FFT
+        x = np.fft.fft(x_wind)
+
+        # Compute the power spectrum
+        p = x * np.conjugate(x)
+
+        # Compute the inverse FFT to get the autocorrelation
+        autocorr = np.fft.ifft(p).real
+
+        # Normalize the result
+        autocorr = autocorr[:n] / n
+        return autocorr
+
     def draw_curve(self, count, data, channel, draw_trig_mark=False):
         """
         Draw a waveform curve
@@ -1091,17 +1134,19 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
             sample_period = np.diff(self.data[self.current_xaxes]).mean()
             time_array = self.data[self.current_xaxes]
 
-        if self.diff:
-            d = np.diff(data)
 
         xf = yf = None
-        if self.fft or self.psd:
+        if self.display_mode == DisplayMode.DIFF:
+            data = np.diff(data)
+        elif self.display_mode.is_fft():
             if data_len == 0:
-                return
-            mode = "fft" if self.fft else "psd"
-            xf, yf = self.calculate_ftt(data, sample_period, mode, self.fft_filter)
-
-        if self.histogram and not self.psd and not self.fft:
+                return            
+            
+            xf, yf = self.calculate_fft(data, sample_period, self.display_mode, self.fft_filter)
+        elif self.display_mode == DisplayMode.AUTOCORFFT:
+            data = self.autocorrelation_fft(data, self.fft_filter)
+            
+        if self.histogram and not self.display_mode.is_fft():
             self.curves[count].opts['stepMode'] = True
         else:
             self.curves[count].opts['stepMode'] = False
@@ -1125,11 +1170,11 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
                 self.curves[count].plotdata_ave = data
 
         # Draw curve for the fft or psd mode
-        if self.fft or self.psd:
+        if self.display_mode.is_fft():
             self.curves[count].setData(xf, yf)
 
         # Calculate histogram bins and draw the curve
-        elif self.histogram and not self.psd and not self.fft:
+        elif self.histogram and not self.display_mode.is_fft():
             d = self.filter(data)
             y, x = np.histogram(d, bins=self.bins)
             self.curves[count].setData(x, y)
@@ -1138,16 +1183,16 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         elif time_array is None:
             data_to_plot = self.filter(data) + channel.dc_offset
             self.curves[count].setData(data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.display_trigger_index(), [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, [data_to_plot.min(), data_to_plot.max()])
 
         # Draw time_array on the X axis and data on Y
         else:
             d, t = self.filter(data, time_array)
             data_to_plot = d + channel.dc_offset
             self.curves[count].setData(t - t[0], data_to_plot)
-            self.__handle_trigger_marker__(draw_trig_mark, self.trigger.trigger_timestamp - time_array[0], [data_to_plot.min(), data_to_plot.max()])
+            self.__handle_trigger_marker__(draw_trig_mark, [data_to_plot.min(), data_to_plot.max()], time_array=time_array)
 
-    def __handle_trigger_marker__(self, draw_trig_mark, marktime, mark_size):
+    def __handle_trigger_marker__(self, draw_trig_mark, mark_size, time_array=None):
         """
         Draw vertical line trigger mark at the specified marktime.
 
@@ -1156,8 +1201,13 @@ class PlotWidget(pyqtgraph.GraphicsLayoutWidget):
         :param mark_size: (Array [int, int]) Y range for the trigger mark.
         :return:
         """
-        if self.trigger.is_triggered():
+        if self.trigger.is_triggered() and self.trigger.enable_trigger_marker:
             if draw_trig_mark:
+                if time_array:
+                    marktime = self.trigger.trigger_timestamp - time_array[0]
+                else:
+                    marktime = self.trigger.display_trigger_index()
+                    
                 # Add trigger marker on plotting
                 pvnames = [ c.pvname for c in self.channels ]
                 min_value = max_value = None

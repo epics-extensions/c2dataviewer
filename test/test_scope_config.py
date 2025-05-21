@@ -16,6 +16,21 @@ class TestScopeConfig(unittest.TestCase):
                 ret_val = child['value']
                 return ret_val
             
+    def test_trigger(self):
+        raw1 = """
+        [TRIGGER]
+        TRIGGER=pv1
+        TRIGGER_MODE=onchange
+        """
+        parser = ConfigParser()
+        parser.read_string(raw1)
+        configure = Configure(parser)
+        section = parser["TRIGGER"]
+        self.assertIsNotNone(section)
+        trigger = configure.assemble_trigger(section=section)
+        self.assertEqual(self.get_display_val(data=trigger, val='PV'), 'pv1')
+        self.assertEqual(self.get_display_val(data=trigger, val='Mode'), 'onchange')
+
     def test_autoscale(self):
         #Does autoscale setting in app specific section take precedence
         raw1 = """

@@ -115,8 +115,8 @@ def run_scope(args):
     schema = { 'obj1' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'obj2' : {'x': [pva.FLOAT], 'y': [pva.FLOAT]}, 'time': [pva.DOUBLE], 'objectTime': pva.DOUBLE, 'names': [pva.STRING]}
     server = pva.PvaServer(pvname, pva.PvObject(schema))
     print('starting', pvname)
-    delay = 0.5
-    nsamples = 100
+    delay = 1/args.pvrate
+    nsamples = args.wflen
     sample_time_interval = delay / nsamples
     while(True):
         objectTime = float(time.time())
@@ -142,6 +142,8 @@ if __name__ == "__main__":
     scope.add_argument('pvname', help='structure pv to host')
     scope.add_argument('--trigger-pv', help='Adds a trigger PV.  PV values will range between -10 and 10', dest='triggerpv')
     scope.add_argument('--trigger-interval', help='Fires at given interval in seconds', dest='trigger_interval', default=1, type=float)
+    scope.add_argument('--pv-rate', help='PV update rate', dest='pvrate', default=2, type=float)
+    scope.add_argument('--waveform-length', help='Waveform length', dest='wflen', default=100, type=int)    
     args = parser.parse_args()
     if args.command == 'striptool':
         run_striptool(args)

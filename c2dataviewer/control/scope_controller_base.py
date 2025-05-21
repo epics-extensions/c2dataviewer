@@ -52,9 +52,9 @@ class ScopeControllerBase:
     def set_display_mode(self, val):
         self._win.graphicsWidget.set_display_mode(val)
         self._win.graphicsWidget.setup_plot()
-        # Disable multiaxis for the FFT and PSD modes. As at the time of the
+        # Disable multiaxis for the FFT-type modes. As at the time of the
         # writing this code pyqtgraph does not support logarithmic scale in multiaxis configuration.
-        if self._win.graphicsWidget.fft or self._win.graphicsWidget.psd:
+        if self._win.graphicsWidget.display_mode.is_fft():
             self.parameters.child("Display").child("Single axis").setReadonly()
         else:
             self.parameters.child("Display").child("Single axis").setWritable()
@@ -103,12 +103,14 @@ class ScopeControllerBase:
         refresh = self.parameters.child("Display").child("Refresh").value()
         if refresh:
             self.set_freshrate(refresh)
-            
-        self.default_trigger = kwargs.get("trigger", None)
-        if self.default_trigger is not None:
-            self.set_trigger_pv(self.default_trigger)
 
         try:
+            trigger_pv = self.parameters.child("Trigger").child("PV").value()
+            self.set_trigger_pv(trigger_pv)
+
+            trigger_mode = self.parameters.child("Trigger").child("Mode").value()
+            self.set_trigger_mode(trigger_mode)
+        
             self.trigger_auto_scale = self.parameters.child("Trigger").child("Autoscale Buffer").value()
         except:
             pass
@@ -248,13 +250,9 @@ class ScopeControllerBase:
         """
         if not self.trigger_is_monitor:
             if self.model.trigger is None:
-                raise Exception('Trigger PV is not set')
+                raise Exception('Trigger PV is not set or is invalid')
             
-            if self._win.graphicsWidget.trigger.data_time_field is None:
-                raise Exception('Data time field is not set')
-            
-            if self._win.graphicsWidget.trigger.trigger_time_field is None:
-                raise Exception('Trigger time field is not set')
+
             
             self.model.start_trigger(self._win.graphicsWidget.trigger.data_callback)
             self.trigger_is_monitor = True

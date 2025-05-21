@@ -21,6 +21,8 @@ import time
 from c2dataviewer.view.scope_display import PlotWidget
 from c2dataviewer.view.scope_display import PlotChannel
 from c2dataviewer.view.scope_display import TriggerType
+from c2dataviewer.view.scope_display import DisplayMode
+from c2dataviewer.view.scope_display import FFTFilter
 
 os.environ["QT_QPA_PLATFORM"] = "offscreen"
 
@@ -67,7 +69,7 @@ class TestScopeDisplay(unittest.TestCase):
         sample_period = np.diff(data).mean()
 
         # Calculate fft
-        xf, yf = self.pw.calculate_ftt(data, sample_period, "fft", None)
+        xf, yf = self.pw.calculate_fft(data, sample_period, DisplayMode.FFT, FFTFilter.NONE)
 
         # Test result
         np.testing.assert_array_almost_equal(xf,
@@ -99,7 +101,7 @@ class TestScopeDisplay(unittest.TestCase):
         sample_period = np.diff(data).mean()
 
         # Run transformation
-        xf, yf = self.pw.calculate_ftt(data, sample_period, "psd", "hamming")
+        xf, yf = self.pw.calculate_fft(data, sample_period, DisplayMode.PSD, FFTFilter.HAMMING)
 
         # Check results
         np.testing.assert_array_almost_equal(xf,
@@ -372,6 +374,29 @@ class TestScopeDisplay(unittest.TestCase):
         self.assertEqual(len(self.pw.data), 2)
         self.assertEqual(len(self.pw.data['x']), self.pw.max_length)
         self.assertEqual(self.pw.trigger.display_trigger_index(), 50)
+
+        #
+        # Test trigger without datatime field
+        #
+        self.pw.trigger.set_trigger_mode(False)
+        self.pw.notify_plotting_started(False)
+        self.pw.data = {}
+        self.pw.trigger.data_time_field = None
+        self.pw.notify_plotting_started(True)
+        self.pw.trigger.set_trigger_mode(True)
+        self.assertFalse(self.pw.trigger.is_triggered())
+        self.call_data_process({
+            'x' : list(range(100, 150)),
+            'time' : list(range(100, 150))
+        })
+        #no trigger, should have no data
+        self.assertEqual(len(self.pw.data), 0)
+        self.pw.trigger.data_callback(self.create_trig_data(0, 0))
+        self.call_data_process({
+            'x' : list(range(150, 200)),
+            'time' : list(range(150, 200))
+        })
+        self.assertEqual(len(self.pw.data), 2)
 
     def test_data_process(self):
         """
